@@ -4,36 +4,37 @@ use std::fmt;
 pub struct IndexId(pub(crate) u8);
 
 impl IndexId {
-    pub const MAX_INDEX: u8 = 27;
-
-    pub const ANIMATIONS: Self = Self(0);
+    pub const ANIMS: Self = Self(0);
     pub const SKELETONS: Self = Self(1);
     pub const CONFIGS: Self = Self(2);
     pub const INTERFACES: Self = Self(3);
-    pub const SOUND_EFFECTS: Self = Self(4);
+    pub const SOUNDEFFECTS: Self = Self(4);
     pub const MAPS: Self = Self(5);
-    pub const MUSIC_TRACKS: Self = Self(6);
+    pub const MUSIC: Self = Self(6);
     pub const MODELS: Self = Self(7);
     pub const SPRITES: Self = Self(8);
     pub const TEXTURES: Self = Self(9);
-    pub const BINARY: Self = Self(10);
-    pub const MUSIC_JINGLES: Self = Self(11);
-    pub const CLIENT_SCRIPTS: Self = Self(12);
-    pub const FONT_METRICS: Self = Self(13);
+    pub const HUFFMAN: Self = Self(10);
+    pub const JINGLES: Self = Self(11);
+    pub const CLIENTSCRIPT: Self = Self(12);
+    pub const FONTMETRICS: Self = Self(13);
     pub const VORBIS: Self = Self(14);
-    pub const OGG_INSTRUMENTS: Self = Self(15);
-    pub const WORLD_MAP_OLD: Self = Self(16);
-    pub const DEFAULTS: Self = Self(17);
-    pub const WORLD_MAP_GEOGRAPHY: Self = Self(18);
+    pub const INSTRUMENTS: Self = Self(15);
+    pub const WORLDMAPDATA: Self = Self(16);
+    pub const WORLDMAP: Self = Self(17);
+    pub const NPCS: Self = Self(18);
     pub const ITEMS: Self = Self(19);
-    pub const NPCS: Self = Self(20);
-    pub const OBJECTS: Self = Self(21);
-    pub const FLOORS: Self = Self(22);
-    pub const IDENTKIT: Self = Self(23);
-    pub const OVERLAYS: Self = Self(24);
-    pub const INVENTORIES: Self = Self(25);
-    pub const WORLD_MAP: Self = Self(26);
+    pub const SEQUENCES: Self = Self(20);
+    pub const SPOTANIMS: Self = Self(21);
+    pub const VARBITS: Self = Self(22);
+    pub const WORLDMAP_OLD: Self = Self(23);
+    pub const QUICKCHAT: Self = Self(24);
+    pub const QUICKCHAT_GLOBAL: Self = Self(25);
+    pub const MATERIALS: Self = Self(26);
     pub const PARTICLES: Self = Self(27);
+    pub const DEFAULTS: Self = Self(28);
+    pub const BILLBOARDS: Self = Self(29);
+    pub const NATIVES: Self = Self(30);
 
     #[inline(always)]
     pub const fn new(id: u8) -> Self {
@@ -50,41 +51,39 @@ impl IndexId {
         self.0 == 255
     }
 
-    #[inline]
-    pub const fn is_valid_data_index(self) -> bool {
-        self.0 <= Self::MAX_INDEX
-    }
-
     pub const fn name(self) -> &'static str {
         match self.0 {
-            0 => "animations",
+            0 => "anims",
             1 => "skeletons",
             2 => "configs",
             3 => "interfaces",
-            4 => "sound_effects",
+            4 => "soundeffects",
             5 => "maps",
-            6 => "music_tracks",
+            6 => "music",
             7 => "models",
             8 => "sprites",
             9 => "textures",
-            10 => "binary",
-            11 => "music_jingles",
-            12 => "client_scripts",
-            13 => "font_metrics",
+            10 => "huffman",
+            11 => "jingles",
+            12 => "clientscript",
+            13 => "fontmetrics",
             14 => "vorbis",
-            15 => "ogg_instruments",
-            16 => "world_map_old",
-            17 => "defaults",
-            18 => "world_map_geography",
+            15 => "instruments",
+            16 => "worldmapdata",
+            17 => "worldmap",
+            18 => "npcs",
             19 => "items",
-            20 => "npcs",
-            21 => "objects",
-            22 => "floors",
-            23 => "identkit",
-            24 => "overlays",
-            25 => "inventories",
-            26 => "world_map",
-            255 => "reference_tables",
+            20 => "sequences",
+            21 => "spotanims",
+            22 => "varbits",
+            23 => "worldmap_old",
+            24 => "quickchat",
+            25 => "quickchat_global",
+            26 => "materials",
+            27 => "particles",
+            28 => "defaults",
+            29 => "billboards",
+            30 => "natives",
             _ => "unknown",
         }
     }
@@ -111,6 +110,11 @@ impl ArchiveId {
     #[inline(always)]
     pub const fn new(id: u32) -> Self {
         Self(id)
+    }
+
+    #[inline(always)]
+    pub const fn is_reference(self) -> bool {
+        self.0 == 255
     }
 
     #[inline(always)]

@@ -60,6 +60,10 @@ impl Cache {
         self.index_stores.contains_key(&index)
     }
 
+    pub fn index_count(&self) -> usize {
+        self.index_stores.len()
+    }
+
     pub fn archive_count(&self, index: IndexId) -> CacheResult<u32> {
         self.index_stores
             .get(&index)

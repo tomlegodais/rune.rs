@@ -3,8 +3,8 @@ pub enum ConnectionError {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
-    #[error("invalid handshake opcode")]
-    InvalidHandshake,
+    #[error("invalid handshake opcode: {0}")]
+    InvalidHandshakeOpcode(u8),
 
     #[error("client connected to wrong service (expected JS5, got login)")]
     WrongService,
@@ -12,8 +12,8 @@ pub enum ConnectionError {
     #[error("client version mismatch")]
     VersionMismatch,
 
-    #[error("invalid opcode: {0}")]
-    InvalidOpcode(u8),
+    #[error("invalid request opcode: {0}")]
+    InvalidRequestOpcode(u8),
 
     #[error("task panic: {0}")]
     TaskPanic(String),

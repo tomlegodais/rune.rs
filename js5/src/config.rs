@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 
-const DEFAULT_VERSION: u32 = 530;
+const DEFAULT_VERSION: u32 = 592;
 
 #[derive(Debug, Clone)]
 pub struct Js5Config {

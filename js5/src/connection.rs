@@ -100,7 +100,7 @@ impl Js5Connection {
         match HandshakeOpcode::from_byte(opcode) {
             Some(HandshakeOpcode::Js5) => {}
             Some(HandshakeOpcode::Login) => return Err(ConnectionError::WrongService),
-            None => return Err(ConnectionError::InvalidHandshake),
+            None => return Err(ConnectionError::InvalidHandshakeOpcode(opcode)),
         }
 
         let client_version = self.socket.read_u32().await?;
@@ -156,7 +156,7 @@ impl Js5Connection {
         };
 
         let opcode = RequestOpcode::from_byte(opcode)
-            .ok_or_else(|| ConnectionError::InvalidOpcode(opcode))?;
+            .ok_or_else(|| ConnectionError::InvalidRequestOpcode(opcode))?;
 
         match opcode {
             FileRequestNormal | FileRequestUrgent => {
@@ -177,7 +177,7 @@ impl Js5Connection {
             }
 
             EncryptionKeys => {
-                let mut keys = [0u8; 16];
+                let mut keys = [0u8; 3];
                 reader.read_exact(&mut keys).await?;
                 Ok(Some(ClientMessage::StateChange(
                     StateChange::EncryptionKeys,

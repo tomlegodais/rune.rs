@@ -1,7 +1,7 @@
 use crate::{ArchiveId, Cache, CacheResult, IndexId, REFERENCE_INDEX, crc32};
 
 pub fn build_checksum_table(cache: &Cache) -> CacheResult<Vec<u8>> {
-    let index_count = (IndexId::MAX_INDEX as usize) + 1;
+    let index_count = cache.index_count() - 1;
     let mut table = Vec::with_capacity(index_count * 8);
 
     for i in 0..index_count {
