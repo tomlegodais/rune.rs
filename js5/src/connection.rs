@@ -3,6 +3,7 @@ use crate::error::ConnectionError;
 use crate::handshake::{HandshakeOpcode, HandshakeResponse};
 use crate::request::RequestOpcode::*;
 use crate::request::{FileRequest, RequestOpcode};
+use crate::response::WorldListEncoder;
 use crate::service::Js5Service;
 use std::io::ErrorKind;
 use std::sync::Arc;
@@ -97,27 +98,37 @@ impl Js5Connection {
 
     async fn handshake(&mut self) -> anyhow::Result<(), ConnectionError> {
         let opcode = self.socket.read_u8().await?;
+
         match HandshakeOpcode::from_byte(opcode) {
-            Some(HandshakeOpcode::Js5) => {}
-            Some(HandshakeOpcode::Login) => return Err(ConnectionError::WrongService),
-            None => return Err(ConnectionError::InvalidHandshakeOpcode(opcode)),
+            Some(HandshakeOpcode::Js5) => {
+                let client_version = self.socket.read_u32().await?;
+                let response = match client_version == self.config.version {
+                    true => HandshakeResponse::Success,
+                    false => HandshakeResponse::OutOfDate,
+                };
+
+                self.socket.write_u8(response.as_byte()).await?;
+                self.socket.flush().await?;
+
+                if response != HandshakeResponse::Success {
+                    return Err(ConnectionError::VersionMismatch);
+                }
+
+                Ok(())
+            }
+
+            Some(HandshakeOpcode::WorldList) => {
+                let full_update = self.socket.read_u8().await? == 0;
+                let response = WorldListEncoder::encode(full_update, "127.0.0.1", 1);
+
+                self.socket.write_all(&response).await?;
+                self.socket.flush().await?;
+
+                Ok(())
+            }
+            Some(HandshakeOpcode::Login) => Ok(()),
+            None => Err(ConnectionError::InvalidHandshakeOpcode(opcode)),
         }
-
-        let client_version = self.socket.read_u32().await?;
-        let response = if client_version == self.config.version {
-            HandshakeResponse::Success
-        } else {
-            HandshakeResponse::OutOfDate
-        };
-
-        self.socket.write_u8(response.as_byte()).await?;
-        self.socket.flush().await?;
-
-        if response != HandshakeResponse::Success {
-            return Err(ConnectionError::VersionMismatch);
-        }
-
-        Ok(())
     }
 
     async fn reader_task(

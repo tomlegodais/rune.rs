@@ -3,6 +3,7 @@
 pub enum HandshakeOpcode {
     Js5 = 15,
     Login = 14,
+    WorldList = 23,
 }
 
 impl HandshakeOpcode {
@@ -10,6 +11,7 @@ impl HandshakeOpcode {
         match byte {
             15 => Some(Self::Js5),
             14 => Some(Self::Login),
+            23 => Some(Self::WorldList),
             _ => None,
         }
     }
