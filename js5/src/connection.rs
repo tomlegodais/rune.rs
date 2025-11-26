@@ -1,14 +1,14 @@
+use crate::config::Js5Config;
 use crate::error::ConnectionError;
 use crate::handshake::{HandshakeOpcode, HandshakeResponse};
-use crate::config::Js5Config;
-use crate::service::Js5Service;
 use crate::request::RequestOpcode::*;
 use crate::request::{FileRequest, RequestOpcode};
+use crate::service::Js5Service;
 use std::io::ErrorKind;
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
-use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::TcpStream;
+use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::sync::mpsc;
 
 enum ClientMessage {
@@ -44,12 +44,7 @@ impl Js5Connection {
         self.socket.set_nodelay(true)?;
         self.handshake().await?;
 
-        let (tx, rx) = mpsc::channel(self.config.request_buffer_size);
-        let (reader, writer) = self.socket.into_split();
-        let reader = BufReader::new(reader);
-        let writer = BufWriter::new(writer);
-        let reader_handle = tokio::spawn(Self::reader_task(reader, tx));
-        let writer_handle = tokio::spawn(Self::writer_task(writer, rx, self.service));
+        let (reader_handle, writer_handle) = self.spawn_io_tasks();
 
         tokio::select! {
             result = reader_handle => {
@@ -61,6 +56,43 @@ impl Js5Connection {
         }
 
         Ok(())
+    }
+
+    fn spawn_io_tasks(
+        self,
+    ) -> (
+        tokio::task::JoinHandle<anyhow::Result<(), ConnectionError>>,
+        tokio::task::JoinHandle<anyhow::Result<(), ConnectionError>>,
+    ) {
+        let buffer_size = self.config.request_buffer_size;
+        let (urgent_tx, urgent_rx) = mpsc::channel(buffer_size);
+        let (normal_tx, normal_rx) = mpsc::channel(buffer_size);
+
+        let (reader, writer) = self.socket.into_split();
+
+        let reader_handle = Self::spawn_reader_task(reader, urgent_tx, normal_tx);
+        let writer_handle = Self::spawn_writer_task(writer, urgent_rx, normal_rx, self.service);
+
+        (reader_handle, writer_handle)
+    }
+
+    fn spawn_reader_task(
+        reader: OwnedReadHalf,
+        urgent_tx: mpsc::Sender<FileRequest>,
+        normal_tx: mpsc::Sender<FileRequest>,
+    ) -> tokio::task::JoinHandle<anyhow::Result<(), ConnectionError>> {
+        let reader = BufReader::new(reader);
+        tokio::spawn(Self::reader_task(reader, urgent_tx, normal_tx))
+    }
+
+    fn spawn_writer_task(
+        writer: OwnedWriteHalf,
+        urgent_rx: mpsc::Receiver<FileRequest>,
+        normal_rx: mpsc::Receiver<FileRequest>,
+        service: Arc<Js5Service>,
+    ) -> tokio::task::JoinHandle<anyhow::Result<(), ConnectionError>> {
+        let writer = BufWriter::new(writer);
+        tokio::spawn(Self::writer_task(writer, urgent_rx, normal_rx, service))
     }
 
     async fn handshake(&mut self) -> anyhow::Result<(), ConnectionError> {
@@ -90,12 +122,18 @@ impl Js5Connection {
 
     async fn reader_task(
         mut reader: BufReader<OwnedReadHalf>,
-        tx: mpsc::Sender<FileRequest>,
+        urgent_tx: mpsc::Sender<FileRequest>,
+        normal_tx: mpsc::Sender<FileRequest>,
     ) -> anyhow::Result<(), ConnectionError> {
         loop {
             let message = Self::read_message(&mut reader).await?;
             match message {
                 Some(ClientMessage::FileRequest(request)) => {
+                    let tx = if request.urgent {
+                        &urgent_tx
+                    } else {
+                        &normal_tx
+                    };
                     if tx.send(request).await.is_err() {
                         return Ok(());
                     }
@@ -160,10 +198,29 @@ impl Js5Connection {
 
     async fn writer_task(
         mut writer: BufWriter<OwnedWriteHalf>,
-        mut rx: mpsc::Receiver<FileRequest>,
+        mut urgent_rx: mpsc::Receiver<FileRequest>,
+        mut normal_rx: mpsc::Receiver<FileRequest>,
         service: Arc<Js5Service>,
     ) -> anyhow::Result<(), ConnectionError> {
-        while let Some(request) = rx.recv().await {
+        loop {
+            let request = tokio::select! {
+                biased;
+
+                urgent_request = urgent_rx.recv() => {
+                    match urgent_request {
+                        Some(request) => request,
+                        None => break,
+                    }
+                }
+
+                normal_request = normal_rx.recv() => {
+                    match normal_request {
+                        Some(request) => request,
+                        None => break,
+                    }
+                }
+            };
+
             if let Ok(response) = service.serve(&request) {
                 writer.write_all(&response).await?;
                 writer.flush().await?;
