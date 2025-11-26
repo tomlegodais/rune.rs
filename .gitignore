@@ -1,2 +1,19 @@
-# Project exclude paths
+# Rust
 /target/
+**/*.rs.bk
+*.pdb
+
+# RustRover / JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+cmake-build-*/
+
+# Operating System
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+*~
