@@ -1,6 +1,6 @@
-use crate::connection::Connection;
-use crate::file_service::FileService;
-use crate::tcp_config::TcpConfig;
+use crate::config::TcpConfig;
+use crate::service::cache::CacheService;
+use crate::session::Session;
 use filesystem::Cache;
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -20,7 +20,7 @@ impl TcpService {
     async fn run(&self, on_ready: Option<oneshot::Sender<()>>) -> anyhow::Result<()> {
         let listener = TcpListener::bind(self.config.bind_addr).await?;
         let semaphore = Arc::new(Semaphore::new(self.config.max_connections));
-        let file_service = Arc::new(FileService::new(self.cache.clone())?);
+        let cache_service = Arc::new(CacheService::new(self.cache.clone())?);
 
         info!("Listening on {}", self.config.bind_addr);
 
@@ -31,11 +31,10 @@ impl TcpService {
         loop {
             let permit = semaphore.clone().acquire_owned().await?;
             let (socket, _) = listener.accept().await?;
-            let connection =
-                Connection::new(socket, Arc::clone(&file_service), self.config.clone());
+            let session = Session::new(socket, Arc::clone(&cache_service));
 
             tokio::spawn(async move {
-                if let Err(_e) = connection.accept().await {
+                if let Err(_e) = session.run().await {
                     eprintln!("error accepting connection: {}", _e);
                 }
                 drop(permit);

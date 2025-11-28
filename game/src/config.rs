@@ -1,4 +1,4 @@
-use net::tcp_config::TcpConfig;
+use net::config::TcpConfig;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]

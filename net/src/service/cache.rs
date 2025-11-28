@@ -1,14 +1,14 @@
-use crate::request::FileRequest;
+use crate::codec::FileRequest;
 use crate::response::FileResponseEncoder;
 use filesystem::{Cache, CacheResult};
 use std::sync::Arc;
 
-pub struct FileService {
+pub struct CacheService {
     cache: Arc<Cache>,
     checksum: Vec<u8>,
 }
 
-impl FileService {
+impl CacheService {
     pub fn new(cache: Arc<Cache>) -> anyhow::Result<Self> {
         let checksum = filesystem::build_checksum_table(&cache)?;
         Ok(Self { cache, checksum })
@@ -29,7 +29,9 @@ impl FileService {
             return Ok(self.checksum.clone());
         }
 
-        let mut data = self.cache.read_archive_raw(request.index, request.archive)?;
+        let mut data = self
+            .cache
+            .read_archive_raw(request.index, request.archive)?;
         if !request.index.is_reference() && data.len() >= 2 {
             data.truncate(data.len() - 2);
         }

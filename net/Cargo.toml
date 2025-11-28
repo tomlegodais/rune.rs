@@ -7,7 +7,10 @@ edition.workspace = true
 [dependencies]
 anyhow = { workspace = true }
 filesystem = { path = "../filesystem" }
+futures-util = { version = "0.3", features = ["sink"] }
+num_enum = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
+tokio-util = { workspace = true }
 tracing = { workspace = true }

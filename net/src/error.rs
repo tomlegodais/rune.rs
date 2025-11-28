@@ -1,5 +1,5 @@
 #[derive(Debug, thiserror::Error)]
-pub enum ConnectionError {
+pub enum SessionError {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
