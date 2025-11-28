@@ -12,3 +12,5 @@ thiserror = "2"
 tracing = "0.1"
 tokio = { version = "1", features = ["full"] }
 tokio-util = { version = "0.7", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+config = { version = "0.15", features = ["toml"] }

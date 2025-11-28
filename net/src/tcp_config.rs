@@ -1,6 +1,8 @@
+use serde::Deserialize;
 use std::net::SocketAddr;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Deserialize, Clone)]
+#[serde(default)]
 pub struct TcpConfig {
     pub bind_addr: SocketAddr,
     pub max_connections: usize,

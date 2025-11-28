@@ -1,0 +1,7 @@
+[log]
+level = "INFO"
+
+[tcp]
+bind_addr = "127.0.0.1:43594"
+max_connections = 100
+request_buffer_size = 1024

@@ -10,3 +10,4 @@ filesystem = { path = "../filesystem" }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+serde = { workspace = true }
