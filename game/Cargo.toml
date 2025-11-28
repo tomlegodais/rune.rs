@@ -6,11 +6,11 @@ edition.workspace = true
 
 [dependencies]
 anyhow = { workspace = true }
-tokio = { workspace = true }
-tokio-util = { workspace = true }
+config = { workspace = true }
 filesystem = { path = "../filesystem" }
 net = { path = "../net" }
+serde = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-config = { workspace = true }
-serde = { workspace = true }

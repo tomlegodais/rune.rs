@@ -7,7 +7,7 @@ edition.workspace = true
 [dependencies]
 anyhow = { workspace = true }
 filesystem = { path = "../filesystem" }
+serde = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
-serde = { workspace = true }
