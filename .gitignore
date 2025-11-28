@@ -18,5 +18,8 @@ Thumbs.db
 Desktop.ini
 *~
 
+# Local Configuration
+Config.local.toml
+
 # RS Cache
 cache/main_file_cache.*
