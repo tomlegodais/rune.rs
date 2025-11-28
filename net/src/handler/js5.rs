@@ -24,30 +24,32 @@ impl Js5Handler {
         let mut sequence: u64 = 0;
 
         loop {
-            if queue.is_empty() {
-                match framed.next().await {
-                    Some(Ok(msg)) => Self::read(msg, &mut framed, &mut queue, &mut sequence),
-                    Some(Err(e)) => return Err(e),
-                    None => return Ok(()),
-                }
-            } else {
-                let maybe_msg = poll_fn(|cx| match framed.poll_next_unpin(cx) {
-                    Poll::Ready(msg) => Poll::Ready(Some(msg)),
-                    Poll::Pending => Poll::Ready(None),
-                })
-                .await;
-
-                if let Some(result) = maybe_msg {
-                    match result {
-                        Some(Ok(msg)) => Self::read(msg, &mut framed, &mut queue, &mut sequence),
-                        Some(Err(e)) => return Err(e),
-                        None => return Ok(()),
-                    }
-                }
-
-                Self::process(&mut framed, &mut queue, &service).await?;
+            match Self::recv(&mut framed, queue.is_empty()).await {
+                Some(Ok(msg)) => Self::read(msg, &mut framed, &mut queue, &mut sequence),
+                Some(Err(e)) => return Err(e),
+                None if queue.is_empty() => return Ok(()),
+                None => {}
             }
+
+            Self::process(&mut framed, &mut queue, &service).await?;
         }
+    }
+
+    async fn recv(
+        framed: &mut Framed<TcpStream, XorCodec<Js5Codec>>,
+        blocking: bool,
+    ) -> Option<Result<Js5Inbound, SessionError>> {
+        if blocking {
+            return framed.next().await;
+        }
+
+        poll_fn(|cx| {
+            Poll::Ready(match framed.poll_next_unpin(cx) {
+                Poll::Ready(msg) => msg,
+                Poll::Pending => None,
+            })
+        })
+        .await
     }
 
     fn read(
