@@ -6,9 +6,6 @@ pub enum ConnectionError {
     #[error("invalid handshake opcode: {0}")]
     InvalidHandshakeOpcode(u8),
 
-    #[error("client connected to wrong service (expected JS5, got login)")]
-    WrongService,
-
     #[error("client version mismatch")]
     VersionMismatch,
 

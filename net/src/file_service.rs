@@ -1,21 +1,22 @@
 use crate::request::FileRequest;
-use crate::response::ResponseEncoder;
+use crate::response::FileResponseEncoder;
 use filesystem::{Cache, CacheResult};
+use std::sync::Arc;
 
-pub struct Js5Service {
-    cache: Cache,
+pub struct FileService {
+    cache: Arc<Cache>,
     checksum: Vec<u8>,
 }
 
-impl Js5Service {
-    pub fn new(cache: Cache) -> CacheResult<Self> {
+impl FileService {
+    pub fn new(cache: Arc<Cache>) -> anyhow::Result<Self> {
         let checksum = filesystem::build_checksum_table(&cache)?;
         Ok(Self { cache, checksum })
     }
 
     pub fn serve(&self, request: &FileRequest) -> CacheResult<Vec<u8>> {
         let data = self.get_file_data(request)?;
-        Ok(ResponseEncoder::encode(
+        Ok(FileResponseEncoder::encode(
             request.index,
             request.archive,
             &data,

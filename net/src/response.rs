@@ -2,10 +2,10 @@ use filesystem::{ArchiveId, IndexId};
 
 const BLOCK_MARKER: u8 = 0xFF;
 
-pub struct ResponseEncoder;
+pub struct FileResponseEncoder;
 pub struct WorldListEncoder;
 
-impl ResponseEncoder {
+impl FileResponseEncoder {
     pub fn encode(index: IndexId, archive: ArchiveId, data: &[u8], urgent: bool) -> Vec<u8> {
         if data.is_empty() {
             return Vec::new();
@@ -68,7 +68,7 @@ impl WorldListEncoder {
             write_smart(&mut buffer, 1); // world id
             buffer.push(0); // location (country index)
             buffer.extend_from_slice(&(0x1u32 | 0x8).to_be_bytes()); // flags: members | lootshare
-            write_jag_string(&mut buffer, "PvP"); // activity
+            write_jag_string(&mut buffer, ""); // activity
             write_jag_string(&mut buffer, host); // hostname
             buffer.extend_from_slice(&0x94DA4A87u32.to_be_bytes()); // session id
         }

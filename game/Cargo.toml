@@ -7,4 +7,8 @@ edition.workspace = true
 [dependencies]
 anyhow = { workspace = true }
 tokio = { workspace = true }
+tokio-util = { workspace = true }
 filesystem = { path = "../filesystem" }
+net = { path = "../net" }
+tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

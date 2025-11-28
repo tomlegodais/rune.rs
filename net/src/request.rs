@@ -7,7 +7,7 @@ pub enum RequestOpcode {
     FileRequestUrgent = 1,
     LoggedIn = 2,
     LoggedOut = 3,
-    EncryptionKeys = 4,
+    EncryptionKey = 4,
     Connected = 6,
     Disconnected = 7,
 }
@@ -19,7 +19,7 @@ impl RequestOpcode {
             1 => Some(Self::FileRequestUrgent),
             2 => Some(Self::LoggedIn),
             3 => Some(Self::LoggedOut),
-            4 => Some(Self::EncryptionKeys),
+            4 => Some(Self::EncryptionKey),
             6 => Some(Self::Connected),
             7 => Some(Self::Disconnected),
             _ => None,
