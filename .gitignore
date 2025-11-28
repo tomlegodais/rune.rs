@@ -17,3 +17,6 @@ cmake-build-*/
 Thumbs.db
 Desktop.ini
 *~
+
+# RS Cache
+cache/main_file_cache.*
