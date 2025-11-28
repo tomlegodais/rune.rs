@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_variables)]
+
 use crate::error::SessionError;
 use tokio_util::bytes::BytesMut;
 use tokio_util::codec::{Decoder, Encoder};
