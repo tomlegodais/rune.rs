@@ -1,7 +1,8 @@
 use crate::definition::ParamValue;
 use std::collections::HashMap;
 use std::io;
-use util::Buffer;
+use tokio_util::bytes::{Buf, Bytes};
+use util::BufExt;
 
 #[derive(Debug, Clone)]
 pub struct ItemDefinition {
@@ -83,9 +84,9 @@ impl ItemDefinition {
             ..Default::default()
         };
 
-        let mut buf = Buffer::new(data);
+        let mut buf = Bytes::copy_from_slice(data);
         loop {
-            let opcode = buf.read_u8()?;
+            let opcode = buf.get_u8();
             if opcode == 0 {
                 break;
             }
@@ -95,56 +96,56 @@ impl ItemDefinition {
         Ok(def)
     }
 
-    fn decode_opcode(&mut self, buf: &mut Buffer, opcode: u8) -> io::Result<()> {
+    fn decode_opcode(&mut self, buf: &mut Bytes, opcode: u8) -> io::Result<()> {
         match opcode {
             1 => {
-                self.inventory_model = buf.read_u16()? as u32;
+                self.inventory_model = buf.get_u16() as u32;
             }
             2 => {
-                self.name = buf.read_string()?;
+                self.name = buf.get_string();
             }
             4 => {
-                self.zoom_2d = buf.read_u16()?;
+                self.zoom_2d = buf.get_u16();
             }
             5 => {
-                self.rotation_x = buf.read_u16()?;
+                self.rotation_x = buf.get_u16();
             }
             6 => {
-                self.rotation_y = buf.read_u16()?;
+                self.rotation_y = buf.get_u16();
             }
             7 => {
-                self.offset_x = buf.read_u16()? as i16;
+                self.offset_x = buf.get_u16() as i16;
             }
             8 => {
-                self.offset_y = buf.read_u16()? as i16;
+                self.offset_y = buf.get_u16() as i16;
             }
             11 => {
                 self.stackable = true;
             }
             12 => {
-                self.value = buf.read_i32()?;
+                self.value = buf.get_i32();
             }
             16 => {
                 self.members = true;
             }
             18 => {
-                let _unknown = buf.read_u16()?;
+                let _unknown = buf.get_u16();
             }
             23 => {
-                self.male_equip_models[0] = Some(buf.read_u16()? as u32);
+                self.male_equip_models[0] = Some(buf.get_u16() as u32);
             }
             24 => {
-                self.male_equip_models[1] = Some(buf.read_u16()? as u32);
+                self.male_equip_models[1] = Some(buf.get_u16() as u32);
             }
             25 => {
-                self.female_equip_models[0] = Some(buf.read_u16()? as u32);
+                self.female_equip_models[0] = Some(buf.get_u16() as u32);
             }
             26 => {
-                self.female_equip_models[1] = Some(buf.read_u16()? as u32);
+                self.female_equip_models[1] = Some(buf.get_u16() as u32);
             }
             30..=34 => {
                 let idx = (opcode - 30) as usize;
-                let option = buf.read_string()?;
+                let option = buf.get_string();
                 self.ground_options[idx] = if option == "Hidden" {
                     None
                 } else {
@@ -153,137 +154,137 @@ impl ItemDefinition {
             }
             35..=39 => {
                 let idx = (opcode - 35) as usize;
-                let option = buf.read_string()?;
+                let option = buf.get_string();
                 self.inventory_options[idx] = Some(option);
             }
             40 => {
-                let count = buf.read_u8()? as usize;
+                let count = buf.get_u8() as usize;
                 self.recolor_find = Vec::with_capacity(count);
                 self.recolor_replace = Vec::with_capacity(count);
                 for _ in 0..count {
-                    self.recolor_find.push(buf.read_u16()?);
-                    self.recolor_replace.push(buf.read_u16()?);
+                    self.recolor_find.push(buf.get_u16());
+                    self.recolor_replace.push(buf.get_u16());
                 }
             }
             41 => {
-                let count = buf.read_u8()? as usize;
+                let count = buf.get_u8() as usize;
                 self.retexture_find = Vec::with_capacity(count);
                 self.retexture_replace = Vec::with_capacity(count);
                 for _ in 0..count {
-                    self.retexture_find.push(buf.read_u16()?);
-                    self.retexture_replace.push(buf.read_u16()?);
+                    self.retexture_find.push(buf.get_u16());
+                    self.retexture_replace.push(buf.get_u16());
                 }
             }
             42 => {
-                let _shift_click_index = buf.read_i8()?;
+                let _shift_click_index = buf.get_i8();
             }
             65 => {
                 self.tradeable = true;
             }
             78 => {
-                self.male_equip_models[2] = Some(buf.read_u16()? as u32);
+                self.male_equip_models[2] = Some(buf.get_u16() as u32);
             }
             79 => {
-                self.female_equip_models[2] = Some(buf.read_u16()? as u32);
+                self.female_equip_models[2] = Some(buf.get_u16() as u32);
             }
             90 => {
-                self.male_head_model = Some(buf.read_u16()? as u32);
+                self.male_head_model = Some(buf.get_u16() as u32);
             }
             91 => {
-                self.female_head_model = Some(buf.read_u16()? as u32);
+                self.female_head_model = Some(buf.get_u16() as u32);
             }
             92 => {
-                let _model = buf.read_u16()?;
+                let _model = buf.get_u16();
             }
             93 => {
-                let _model = buf.read_u16()?;
+                let _model = buf.get_u16();
             }
             95 => {
-                self.rotation_z = buf.read_u16()?;
+                self.rotation_z = buf.get_u16();
             }
             96 => {
-                let _unknown = buf.read_u8()?;
+                let _unknown = buf.get_u8();
             }
             97 => {
-                self.noted_id = Some(buf.read_u16()? as u32);
+                self.noted_id = Some(buf.get_u16() as u32);
             }
             98 => {
-                self.noted_template = Some(buf.read_u16()? as u32);
+                self.noted_template = Some(buf.get_u16() as u32);
             }
             100..=109 => {
                 let idx = (opcode - 100) as usize;
                 if idx >= self.stack_variants.len() {
                     self.stack_variants.resize(idx + 1, (0, 0));
                 }
-                let variant_id = buf.read_u16()? as u32;
-                let variant_amount = buf.read_u16()?;
+                let variant_id = buf.get_u16() as u32;
+                let variant_amount = buf.get_u16();
                 self.stack_variants[idx] = (variant_id, variant_amount);
             }
             110 => {
-                let _scale = buf.read_u16()?;
+                let _scale = buf.get_u16();
             }
             111 => {
-                let _scale = buf.read_u16()?;
+                let _scale = buf.get_u16();
             }
             112 => {
-                let _scale = buf.read_u16()?;
+                let _scale = buf.get_u16();
             }
             113 => {
-                let _ambient = buf.read_i8()?;
+                let _ambient = buf.get_i8();
             }
             114 => {
-                let _contrast = buf.read_i8()?;
+                let _contrast = buf.get_i8();
             }
             115 => {
-                self.team = buf.read_u8()?;
+                self.team = buf.get_u8();
             }
             121 => {
-                self.lent_id = Some(buf.read_u16()? as u32);
+                self.lent_id = Some(buf.get_u16() as u32);
             }
             122 => {
-                self.lent_template = Some(buf.read_u16()? as u32);
+                self.lent_template = Some(buf.get_u16() as u32);
             }
             125 => {
-                let _x = buf.read_i8()?;
-                let _y = buf.read_i8()?;
-                let _z = buf.read_i8()?;
+                let _x = buf.get_i8();
+                let _y = buf.get_i8();
+                let _z = buf.get_i8();
             }
             126 => {
-                let _x = buf.read_i8()?;
-                let _y = buf.read_i8()?;
-                let _z = buf.read_i8()?;
+                let _x = buf.get_i8();
+                let _y = buf.get_i8();
+                let _z = buf.get_i8();
             }
             127 => {
-                let _cursor = buf.read_u8()?;
-                let _index = buf.read_u16()?;
+                let _cursor = buf.get_u8();
+                let _index = buf.get_u16();
             }
             128 => {
-                let _cursor = buf.read_u8()?;
-                let _index = buf.read_u16()?;
+                let _cursor = buf.get_u8();
+                let _index = buf.get_u16();
             }
             129 => {
-                let _cursor = buf.read_u8()?;
-                let _index = buf.read_u16()?;
+                let _cursor = buf.get_u8();
+                let _index = buf.get_u16();
             }
             130 => {
-                let _cursor = buf.read_u8()?;
-                let _index = buf.read_u16()?;
+                let _cursor = buf.get_u8();
+                let _index = buf.get_u16();
             }
             132 => {
-                let count = buf.read_u8()? as usize;
+                let count = buf.get_u8() as usize;
                 for _ in 0..count {
-                    let _quest_id = buf.read_u16()?;
+                    let _quest_id = buf.get_u16();
                 }
             }
             249 => {
-                let count = buf.read_u8()? as usize;
+                let count = buf.get_u8() as usize;
                 for _ in 0..count {
-                    let is_string = buf.read_u8()? == 1;
-                    let key = buf.read_u24()?;
+                    let is_string = buf.get_u8() == 1;
+                    let key = buf.get_u24();
                     let value = if is_string {
-                        ParamValue::String(buf.read_string()?)
+                        ParamValue::String(buf.get_string())
                     } else {
-                        ParamValue::Int(buf.read_i32()?)
+                        ParamValue::Int(buf.get_i32())
                     };
                     self.params.insert(key, value);
                 }
