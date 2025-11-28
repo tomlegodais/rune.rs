@@ -1,5 +1,6 @@
 use filesystem::{ArchiveId, IndexId};
 use num_enum::TryFromPrimitive;
+use std::cmp::Ordering;
 
 #[derive(Debug)]
 pub struct FileRequest {
@@ -15,6 +16,35 @@ impl FileRequest {
             index,
             archive,
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct PriorityRequest {
+    pub request: FileRequest,
+    pub sequence: u64,
+}
+
+impl PartialEq for PriorityRequest {
+    fn eq(&self, other: &Self) -> bool {
+        self.request.urgent == other.request.urgent && self.sequence == other.sequence
+    }
+}
+
+impl Eq for PriorityRequest {}
+impl Ord for PriorityRequest {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self.request.urgent, other.request.urgent) {
+            (true, false) => Ordering::Greater,
+            (false, true) => Ordering::Less,
+            _ => other.sequence.cmp(&self.sequence),
+        }
+    }
+}
+
+impl PartialOrd for PriorityRequest {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
