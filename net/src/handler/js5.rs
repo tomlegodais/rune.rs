@@ -1,6 +1,7 @@
-use crate::codec::{Js5Codec, Js5Inbound, Js5Outbound};
+use crate::codec::{Js5Codec, XorCodec};
 use crate::error::SessionError;
-use crate::service::cache::CacheService;
+use crate::message::{Js5Inbound, Js5Outbound};
+use crate::service::CacheService;
 use futures_util::{SinkExt, StreamExt};
 use std::sync::Arc;
 use tokio::net::TcpStream;
@@ -13,23 +14,28 @@ impl Js5Handler {
         stream: TcpStream,
         service: Arc<CacheService>,
     ) -> anyhow::Result<(), SessionError> {
-        let codec = Js5Codec::new();
-        let mut framed = Framed::new(stream, codec);
+        let codec = Js5Codec::default();
+        let xor_codec = XorCodec::new(codec);
+        let mut framed = Framed::new(stream, xor_codec);
 
         while let Some(frame) = framed.next().await {
             let msg = frame?;
 
             match msg {
                 Js5Inbound::FileRequest(request) => {
-                    if let Ok(bytes) = service.serve(&request) {
-                        let outbound = Js5Outbound { bytes };
+                    if let Ok(data) = service.get_file(&request) {
+                        let outbound = Js5Outbound {
+                            index: request.index,
+                            archive: request.archive,
+                            data,
+                            urgent: request.urgent,
+                        };
                         framed.send(outbound).await?;
                     }
                 }
 
                 Js5Inbound::EncryptionKey(key) => {
-                    let codec = framed.codec_mut();
-                    codec.xor_key = key;
+                    framed.codec_mut().set_xor_key(key);
                 }
             }
         }

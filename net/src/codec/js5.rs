@@ -1,65 +1,11 @@
 use crate::error::SessionError;
+use crate::message::{FileRequest, Js5Inbound, Js5Outbound, RequestOpcode};
 use filesystem::{ArchiveId, IndexId};
-use num_enum::TryFromPrimitive;
-use tokio_util::bytes::{Buf, BytesMut};
+use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
 
-#[derive(Debug)]
-pub struct FileRequest {
-    pub urgent: bool,
-    pub index: IndexId,
-    pub archive: ArchiveId,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, TryFromPrimitive)]
-#[repr(u8)]
-enum RequestOpcode {
-    Normal = 0,
-    Urgent = 1,
-    LoggedIn = 2,
-    LoggedOut = 3,
-    EncryptionKey = 4,
-    Connected = 6,
-    Disconnected = 7,
-}
-
-#[derive(Debug)]
-pub enum Js5Inbound {
-    FileRequest(FileRequest),
-    EncryptionKey(u8),
-}
-
-#[derive(Debug)]
-pub struct Js5Outbound {
-    pub bytes: Vec<u8>,
-}
-
-#[derive(Debug)]
-pub struct Js5Codec {
-    pub xor_key: u8,
-}
-
-impl Js5Codec {
-    pub fn new() -> Self {
-        Self { xor_key: 0 }
-    }
-}
-
-impl FileRequest {
-    pub fn new(urgent: bool, index: IndexId, archive: ArchiveId) -> Self {
-        Self {
-            urgent,
-            index,
-            archive,
-        }
-    }
-
-    pub fn parse(urgent: bool, data: &[u8]) -> Self {
-        let index = IndexId::new(data[0]);
-        let archive = ArchiveId::new(u16::from_be_bytes([data[1], data[2]]) as u32);
-        Self::new(urgent, index, archive)
-    }
-}
+#[derive(Debug, Default)]
+pub struct Js5Codec;
 
 impl Decoder for Js5Codec {
     type Item = Js5Inbound;
@@ -67,10 +13,11 @@ impl Decoder for Js5Codec {
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         loop {
+            if src.len() < 4 {
+                return Ok(None);
+            }
+
             let opcode = src.get_u8();
-
-            println!("opcode: {}", opcode);
-
             let request_opcode = RequestOpcode::try_from(opcode)
                 .map_err(|_| SessionError::InvalidRequestOpcode(opcode))?;
 
@@ -85,19 +32,17 @@ impl Decoder for Js5Codec {
                         ArchiveId::new(archive_id),
                     );
 
-                    println!("request: {:?}", request);
-
                     return Ok(Some(Js5Inbound::FileRequest(request)));
                 }
 
                 RequestOpcode::EncryptionKey => {
                     let key = src.get_u8();
-                    src.advance(2); // skip 2 bytes
+                    src.advance(2);
 
                     return Ok(Some(Js5Inbound::EncryptionKey(key)));
                 }
 
-                _ => src.advance(3), // skip 3 bytes
+                _ => src.advance(3),
             }
         }
     }
@@ -107,13 +52,41 @@ impl Encoder<Js5Outbound> for Js5Codec {
     type Error = SessionError;
 
     fn encode(&mut self, item: Js5Outbound, dst: &mut BytesMut) -> Result<(), Self::Error> {
-        if self.xor_key == 0 {
-            dst.extend_from_slice(&item.bytes);
+        if item.data.is_empty() {
+            return Ok(());
+        }
+
+        let compression = item.data[0];
+        let compression_byte = if item.urgent {
+            compression
         } else {
-            dst.reserve(item.bytes.len());
-            for b in item.bytes {
-                dst.extend_from_slice(&[b ^ self.xor_key]);
-            }
+            compression | 0x80
+        };
+
+        let container_data = &item.data[1..];
+        let data_len = container_data.len();
+        let num_markers = if data_len <= 508 {
+            0
+        } else {
+            1 + (data_len - 508 - 1) / 511
+        };
+
+        let total_size = 4 + data_len + num_markers;
+        dst.reserve(total_size);
+        dst.put_u8(item.index.as_u8());
+        dst.put_u16(item.archive.as_u32() as u16);
+        dst.put_u8(compression_byte);
+
+        let first_chunk_size = container_data.len().min(508);
+        dst.extend_from_slice(&container_data[..first_chunk_size]);
+
+        let mut offset = first_chunk_size;
+        while offset < container_data.len() {
+            dst.put_u8(0xFF);
+
+            let chunk_size = (container_data.len() - offset).min(511);
+            dst.extend_from_slice(&container_data[offset..offset + chunk_size]);
+            offset += chunk_size;
         }
 
         Ok(())

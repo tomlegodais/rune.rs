@@ -1,13 +1,13 @@
 use crate::error::SessionError;
 use crate::handler::{HandshakeHandler, Js5Handler, LoginHandler, WorldListHandler};
-use crate::service::cache::CacheService;
+use crate::service::CacheService;
 use std::sync::Arc;
 use tokio::net::TcpStream;
 
 #[derive(Debug, Clone, Copy)]
 pub enum SessionPhase {
     Js5,
-    WorldList,
+    WorldList { full_update: bool },
     Login,
 }
 
@@ -26,7 +26,9 @@ impl Session {
 
         match phase {
             SessionPhase::Js5 => Js5Handler::run(stream, self.service).await,
-            SessionPhase::WorldList => WorldListHandler::run(stream).await,
+            SessionPhase::WorldList { full_update } => {
+                WorldListHandler::run(stream, full_update).await
+            }
             SessionPhase::Login => LoginHandler::run(stream).await,
         }
     }

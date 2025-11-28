@@ -1,5 +1,6 @@
-use crate::codec::{HandshakeCodec, HandshakeInbound, HandshakeOutbound, HandshakeResponse};
+use crate::codec::HandshakeCodec;
 use crate::error::SessionError;
+use crate::message::{HandshakeInbound, HandshakeOutbound, HandshakeResponse};
 use crate::session::SessionPhase;
 use futures_util::{SinkExt, StreamExt};
 use tokio::net::TcpStream;
@@ -19,8 +20,7 @@ impl HandshakeHandler {
             )));
         };
 
-        let msg = frame?;
-        let phase = match msg {
+        let phase = match frame? {
             HandshakeInbound::Js5 { client_version } => {
                 let response = match client_version == 592 {
                     true => HandshakeResponse::Success,
@@ -36,11 +36,11 @@ impl HandshakeHandler {
                 SessionPhase::Js5
             }
 
-            HandshakeInbound::WorldList => SessionPhase::WorldList,
+            HandshakeInbound::WorldList { full_update } => SessionPhase::WorldList { full_update },
             HandshakeInbound::Login => SessionPhase::Login,
         };
 
-        let stream = framed.into_inner();
-        Ok((stream, phase))
+        let parts = framed.into_parts();
+        Ok((parts.io, phase))
     }
 }

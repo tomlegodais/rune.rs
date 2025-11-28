@@ -1,3 +1,4 @@
 mod session;
 
-pub use session::{Session, SessionPhase};
+pub(crate) use session::Session;
+pub(crate) use session::SessionPhase;

@@ -5,7 +5,7 @@ use filesystem::Cache;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio::sync::{Semaphore, oneshot};
-use tracing::info;
+use tracing::{error, info};
 
 pub struct TcpService {
     config: TcpConfig,
@@ -34,9 +34,13 @@ impl TcpService {
             let session = Session::new(socket, Arc::clone(&cache_service));
 
             tokio::spawn(async move {
-                if let Err(_e) = session.run().await {
-                    eprintln!("error accepting connection: {}", _e);
-                }
+                session
+                    .run()
+                    .await
+                    .err()
+                    .filter(|err| !err.is_disconnect())
+                    .map(|e| error!("{e}"));
+
                 drop(permit);
             });
         }
