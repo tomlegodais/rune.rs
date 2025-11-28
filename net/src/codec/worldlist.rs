@@ -2,6 +2,7 @@ use crate::error::SessionError;
 use crate::message::WorldListOutbound;
 use tokio_util::bytes::{BufMut, BytesMut};
 use tokio_util::codec::Encoder;
+use util::BytesMutExt;
 
 #[derive(Debug, Default)]
 pub struct WorldListCodec;
@@ -10,50 +11,44 @@ impl Encoder<WorldListOutbound> for WorldListCodec {
     type Error = SessionError;
 
     fn encode(&mut self, item: WorldListOutbound, dst: &mut BytesMut) -> Result<(), Self::Error> {
-        let mut buffer = Vec::with_capacity(128);
+        let mut buffer = BytesMut::new();
+        buffer.put_u8(1);
+        buffer.put_u8(if item.full_update { 1 } else { 0 });
 
-        buffer.push(1);
-        buffer.push(if item.full_update { 1 } else { 0 });
+        let min_world_id = item.worlds.iter().map(|w| w.id).min().unwrap_or(0);
+        let max_world_id = item.worlds.iter().map(|w| w.id).max().unwrap_or(0);
 
         if item.full_update {
-            write_smart(&mut buffer, 1); // country count
-            write_smart(&mut buffer, 0); // country id
-            write_jag_string(&mut buffer, "World 1"); // world name
+            buffer.put_smart(item.countries.len() as u16);
+            for country in &item.countries {
+                buffer.put_smart(country.flag as u16);
+                buffer.put_jag_string(&country.name);
+            }
 
-            write_smart(&mut buffer, 0); // min world id
-            write_smart(&mut buffer, 2); // max world id + 1
-            write_smart(&mut buffer, 1); // world count
+            buffer.put_smart(min_world_id);
+            buffer.put_smart(max_world_id);
+            buffer.put_smart(item.worlds.len() as u16);
 
-            write_smart(&mut buffer, 1); // world id
-            buffer.push(0); // location (country index)
-            buffer.extend_from_slice(&(0x1u32 | 0x8).to_be_bytes()); // flags: members | lootshare
-            write_jag_string(&mut buffer, ""); // activity
-            write_jag_string(&mut buffer, &item.host); // hostname
-            buffer.extend_from_slice(&0x94DA4A87u32.to_be_bytes()); // session id
+            for world in &item.worlds {
+                buffer.put_smart(world.id - min_world_id);
+                buffer.put_u8(world.location);
+                buffer.put_u32(world.flags.bits());
+                buffer.put_jag_string(&world.activity);
+                buffer.put_jag_string(&world.hostname);
+            }
+
+            buffer.put_u32(item.session_id);
         }
 
-        write_smart(&mut buffer, 1); // world count
-        buffer.extend_from_slice(&item.player_count.to_be_bytes()); // player count
+        for world in &item.worlds {
+            buffer.put_smart(world.id - min_world_id);
+            buffer.put_u16(world.player_count);
+        }
 
         dst.put_u8(0);
         dst.put_u16(buffer.len() as u16);
-        dst.extend_from_slice(&buffer);
+        dst.put(buffer.freeze());
 
         Ok(())
     }
-}
-
-fn write_smart(buffer: &mut Vec<u8>, value: u16) {
-    if value < 128 {
-        buffer.push(value as u8);
-    } else {
-        buffer.push(((value >> 8) as u8) | 0x80);
-        buffer.push(value as u8);
-    }
-}
-
-fn write_jag_string(buffer: &mut Vec<u8>, s: &str) {
-    buffer.push(0);
-    buffer.extend_from_slice(s.as_bytes());
-    buffer.push(0);
 }

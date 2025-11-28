@@ -1,6 +1,6 @@
 use crate::codec::WorldListCodec;
 use crate::error::SessionError;
-use crate::message::WorldListOutbound;
+use crate::message::{Country, CountryFlag, World, WorldFlag, WorldListOutbound};
 use futures_util::SinkExt;
 use tokio::net::TcpStream;
 use tokio_util::codec::Framed;
@@ -14,8 +14,19 @@ impl WorldListHandler {
 
         let outbound = WorldListOutbound {
             full_update,
-            host: "127.0.0.1".to_string(),
-            player_count: 100,
+            countries: vec![Country {
+                flag: CountryFlag::USA,
+                name: "USA".to_string(),
+            }],
+            worlds: vec![World {
+                id: 1,
+                location: 0,
+                flags: WorldFlag::MEMBERS | WorldFlag::LOOTSHARE,
+                activity: "Members".to_string(),
+                hostname: "127.0.0.1".to_string(),
+                player_count: 0,
+            }],
+            session_id: 0xDEADBEEF,
         };
 
         framed.send(outbound).await?;

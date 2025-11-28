@@ -460,6 +460,7 @@ name = "net"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bitflags",
  "filesystem",
  "futures-util",
  "num_enum",
@@ -468,6 +469,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
+ "util",
 ]
 
 [[package]]
@@ -1048,6 +1050,9 @@ checksum = "f6ccf251212114b54433ec949fd6a7841275f9ada20dddd2f29e9ceea4501493"
 [[package]]
 name = "util"
 version = "0.1.0"
+dependencies = [
+ "tokio-util",
+]
 
 [[package]]
 name = "valuable"
