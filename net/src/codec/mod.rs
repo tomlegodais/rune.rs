@@ -6,5 +6,6 @@ mod xor;
 
 pub(crate) use handshake::HandshakeCodec;
 pub(crate) use js5::Js5Codec;
+pub(crate) use login::LoginCodec;
 pub(crate) use worldlist::WorldListCodec;
 pub(crate) use xor::XorCodec;

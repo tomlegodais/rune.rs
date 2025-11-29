@@ -13,6 +13,18 @@ pub enum SessionError {
 
     #[error("invalid request opcode: {0}")]
     InvalidRequestOpcode(u8),
+
+    #[error("invalid login type: {0}")]
+    InvalidLoginType(u8),
+
+    #[error("invalid encryption: {0}")]
+    RsaDecrypt(#[from] anyhow::Error),
+
+    #[error("invalid encrypted block type: {0}")]
+    InvalidEncryptedType(u8),
+
+    #[error("Username hash mismatch")]
+    UsernameHashMismatch,
 }
 
 impl SessionError {

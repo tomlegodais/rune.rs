@@ -2,10 +2,20 @@ use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 #[derive(Debug, TryFromPrimitive)]
 #[repr(u8)]
-pub(crate) enum HandshakeType {
+pub enum HandshakeType {
     Js5 = 15,
     WorldList = 23,
     Login = 14,
+}
+
+impl HandshakeType {
+    pub fn len(&self) -> usize {
+        match self {
+            HandshakeType::Js5 => 4,
+            HandshakeType::WorldList => 1,
+            HandshakeType::Login => 1,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, IntoPrimitive)]
@@ -19,7 +29,7 @@ pub enum HandshakeResponse {
 pub enum HandshakeInbound {
     Js5 { client_version: u32 },
     WorldList { full_update: bool },
-    Login,
+    Login { hash: u8 },
 }
 
 pub enum HandshakeOutbound {

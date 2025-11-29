@@ -37,7 +37,7 @@ impl HandshakeHandler {
             }
 
             HandshakeInbound::WorldList { full_update } => SessionPhase::WorldList { full_update },
-            HandshakeInbound::Login => SessionPhase::Login,
+            HandshakeInbound::Login { hash } => SessionPhase::Login { hash },
         };
 
         let parts = framed.into_parts();

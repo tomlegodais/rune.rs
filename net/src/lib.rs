@@ -7,4 +7,6 @@ mod service;
 mod session;
 
 pub use config::TcpConfig;
-pub use service::TcpService;
+pub use error::SessionError;
+pub use message::{LoginOutcome, LoginRequest, LoginSuccess, StatusCode};
+pub use service::{LoginService, TcpService};

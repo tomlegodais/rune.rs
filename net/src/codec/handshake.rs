@@ -11,33 +11,39 @@ impl Decoder for HandshakeCodec {
     type Error = SessionError;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        if src.is_empty() {
+        const OPCODE_LEN: usize = 1;
+        if src.len() < OPCODE_LEN {
             return Ok(None);
         }
 
-        let opcode = src.get_u8();
+        let opcode = src[0];
         let handshake_type = HandshakeType::try_from(opcode)
             .map_err(|_| SessionError::InvalidHandshakeOpcode(opcode))?;
 
-        match handshake_type {
+        let needed = OPCODE_LEN + handshake_type.len();
+        if src.len() < needed {
+            return Ok(None);
+        }
+
+        let _ = src.get_u8();
+        let item = match handshake_type {
             HandshakeType::Js5 => {
-                if src.len() < 4 {
-                    return Ok(None);
-                }
                 let client_version = src.get_u32();
-                Ok(Some(HandshakeInbound::Js5 { client_version }))
+                HandshakeInbound::Js5 { client_version }
             }
 
             HandshakeType::WorldList => {
-                if src.is_empty() {
-                    return Ok(None);
-                }
                 let full_update = src.get_u8() == 0;
-                Ok(Some(HandshakeInbound::WorldList { full_update }))
+                HandshakeInbound::WorldList { full_update }
             }
 
-            HandshakeType::Login => Ok(Some(HandshakeInbound::Login)),
-        }
+            HandshakeType::Login => {
+                let hash = src.get_u8();
+                HandshakeInbound::Login { hash }
+            }
+        };
+
+        Ok(Some(item))
     }
 }
 

@@ -1,3 +1,4 @@
+use crate::LoginService;
 use crate::config::TcpConfig;
 use crate::service::cache::CacheService;
 use crate::session::Session;
@@ -10,17 +11,27 @@ use tracing::{error, info};
 pub struct TcpService {
     config: TcpConfig,
     cache: Arc<Cache>,
+    login_service: Arc<dyn LoginService>,
 }
 
 impl TcpService {
-    pub fn new(config: TcpConfig, cache: Arc<Cache>) -> anyhow::Result<Self> {
-        Ok(Self { config, cache })
+    pub fn new(
+        config: TcpConfig,
+        cache: Arc<Cache>,
+        login_service: Arc<dyn LoginService>,
+    ) -> anyhow::Result<Self> {
+        Ok(Self {
+            config,
+            cache,
+            login_service,
+        })
     }
 
     async fn run(&self, on_ready: Option<oneshot::Sender<()>>) -> anyhow::Result<()> {
         let listener = TcpListener::bind(self.config.bind_addr).await?;
         let semaphore = Arc::new(Semaphore::new(self.config.max_connections));
         let cache_service = Arc::new(CacheService::new(self.cache.clone())?);
+        let login_service = Arc::clone(&self.login_service);
 
         info!("Listening on {}", self.config.bind_addr);
 
@@ -31,7 +42,11 @@ impl TcpService {
         loop {
             let permit = semaphore.clone().acquire_owned().await?;
             let (socket, _) = listener.accept().await?;
-            let session = Session::new(socket, Arc::clone(&cache_service));
+            let session = Session::new(
+                socket,
+                Arc::clone(&cache_service),
+                Arc::clone(&login_service),
+            );
 
             tokio::spawn(async move {
                 session
