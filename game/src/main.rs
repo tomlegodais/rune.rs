@@ -1,15 +1,19 @@
 use crate::config::AppConfig;
-use crate::service::{ServiceManager, WorldLoginService};
+use crate::service::{ServiceManager, WorldLoginService, WorldService};
+use crate::world::World;
 use ::config::{Config, Environment, File};
 use filesystem::CacheBuilder;
 use net::TcpService;
 use std::sync::Arc;
+use tokio::sync::Mutex;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
-mod config;
-mod service;
 mod account;
+mod config;
+mod player;
+mod service;
+mod world;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -28,11 +32,23 @@ async fn main() -> anyhow::Result<()> {
 
     let mut service_manager = ServiceManager::new();
     let cache = Arc::new(CacheBuilder::new("cache/").open()?);
-    let login_service = Arc::new(WorldLoginService::new(app_config.game));
+
+    let world = Arc::new(Mutex::new(World::new()));
+    let world_service = WorldService::new(world.clone());
+    let login_service = Arc::new(WorldLoginService::new(app_config.game, world.clone()));
     let tcp_service = TcpService::new(app_config.tcp, cache.clone(), login_service)?;
 
     service_manager.spawn("TCP Service", |cancel, tx| async move {
         tcp_service.run_until(cancel.cancelled(), Some(tx)).await
+    });
+
+    service_manager.spawn("World Service", move |cancel, tx| {
+        let world_service = world_service.clone();
+        async move {
+            let _ = tx.send(());
+            world_service.run_until(cancel).await;
+            Ok(())
+        }
     });
 
     service_manager

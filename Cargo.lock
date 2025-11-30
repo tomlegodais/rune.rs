@@ -305,6 +305,7 @@ dependencies = [
  "tokio-util",
  "tracing",
  "tracing-subscriber",
+ "util",
 ]
 
 [[package]]
@@ -1146,6 +1147,7 @@ name = "util"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bytes",
  "num-bigint",
  "num-traits",
  "tokio-util",

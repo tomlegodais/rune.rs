@@ -1,5 +1,6 @@
 mod codec;
 mod config;
+mod crypto;
 mod error;
 mod handler;
 mod message;
@@ -8,5 +9,5 @@ mod session;
 
 pub use config::TcpConfig;
 pub use error::SessionError;
-pub use message::{LoginOutcome, LoginRequest, LoginSuccess, StatusCode};
+pub use message::{GameMessage, LoginOutcome, LoginRequest, LoginSuccess, MessageType, StatusCode};
 pub use service::{LoginService, TcpService};

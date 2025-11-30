@@ -25,6 +25,9 @@ pub enum SessionError {
 
     #[error("Username hash mismatch")]
     UsernameHashMismatch,
+
+    #[error("Message {0} has illegal size")]
+    InvalidMessageSize(u8),
 }
 
 impl SessionError {

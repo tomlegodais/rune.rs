@@ -1,15 +1,19 @@
 use crate::account::Account;
 use crate::config::GameConfig;
+use crate::world::World;
 use async_trait::async_trait;
 use net::{LoginOutcome, LoginRequest, LoginService, LoginSuccess, SessionError};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 pub struct WorldLoginService {
     config: GameConfig,
+    world: Arc<Mutex<World>>,
 }
 
 impl WorldLoginService {
-    pub fn new(config: GameConfig) -> Self {
-        Self { config }
+    pub fn new(config: GameConfig, world: Arc<Mutex<World>>) -> Self {
+        Self { config, world }
     }
 
     fn validate_session(
@@ -34,8 +38,8 @@ impl WorldLoginService {
         // TODO: Accounts Service (SQL, Memory, Disk, etc...)
 
         Ok(Account {
-            _id: 1,
-            _username: username.to_string(),
+            id: 1,
+            username: username.to_string(),
             _password_hash: "fake-hash".to_string(),
             rights: 0,
         })
@@ -68,11 +72,20 @@ impl LoginService for WorldLoginService {
             return Ok(outcome);
         }
 
-        let player_index = 1;
+        let (player_index, inbox_tx, outbound_rx) = {
+            let mut world = self.world.lock().await;
+            let (player_index, inbox_tx, outbound_rx) = world.register_player(&account);
+
+            world.on_player_login(player_index).await;
+            (player_index, inbox_tx, outbound_rx)
+        };
+
         let success = LoginSuccess {
             rights: account.rights,
             player_index,
             members: true,
+            inbox_tx,
+            outbound_rx,
         };
 
         Ok(LoginOutcome::Success(success))

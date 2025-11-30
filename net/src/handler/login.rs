@@ -6,6 +6,9 @@ use futures_util::{SinkExt, StreamExt};
 use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio_util::codec::Framed;
+use crate::crypto::NoopCipher;
+use crate::handler::GameHandler;
+use crate::LoginOutcome;
 
 pub struct LoginHandler;
 
@@ -28,10 +31,19 @@ impl LoginHandler {
 
         let LoginInbound::Request(request) = request?;
         let outcome = service.authenticate(request, session_key).await?;
-        let response = LoginResponse::from_outcome(outcome);
-
+        let response = LoginResponse::from_outcome(&outcome);
         framed.send(LoginOutbound::Response(response)).await?;
 
-        Ok(())
+        match outcome {
+            LoginOutcome::Success(s) => {
+                let parts = framed.into_parts();
+                let stream = parts.io;
+                let in_cipher = NoopCipher;
+                let out_cipher = NoopCipher;
+
+                GameHandler::run(stream, in_cipher, out_cipher, s.inbox_tx, s.outbound_rx).await
+            }
+            _ => Ok(()),
+        }
     }
 }

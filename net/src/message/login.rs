@@ -1,4 +1,6 @@
+use crate::GameMessage;
 use num_enum::IntoPrimitive;
+use tokio::sync::mpsc;
 use tokio_util::bytes::{BufMut, Bytes, BytesMut};
 
 #[derive(Debug, Copy, Clone, IntoPrimitive)]
@@ -41,6 +43,8 @@ pub struct LoginSuccess {
     pub rights: u8,
     pub player_index: u16,
     pub members: bool,
+    pub inbox_tx: mpsc::Sender<GameMessage>,
+    pub outbound_rx: mpsc::Receiver<GameMessage>,
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
@@ -61,7 +65,7 @@ pub enum LoginOutbound {
 }
 
 impl LoginResponse {
-    pub fn from_outcome(outcome: LoginOutcome) -> Self {
+    pub fn from_outcome(outcome: &LoginOutcome) -> Self {
         match outcome {
             LoginOutcome::Success(s) => LoginResponse {
                 status: StatusCode::OK,

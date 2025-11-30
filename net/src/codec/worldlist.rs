@@ -22,7 +22,7 @@ impl Encoder<WorldListOutbound> for WorldListCodec {
             buffer.put_smart(item.countries.len() as u16);
             for country in &item.countries {
                 buffer.put_smart(country.flag as u16);
-                buffer.put_jag_string(&country.name);
+                buffer.put_versioned_string(0, &country.name);
             }
 
             buffer.put_smart(min_world_id);
@@ -33,8 +33,8 @@ impl Encoder<WorldListOutbound> for WorldListCodec {
                 buffer.put_smart(world.id - min_world_id);
                 buffer.put_u8(world.location);
                 buffer.put_u32(world.flags.bits());
-                buffer.put_jag_string(&world.activity);
-                buffer.put_jag_string(&world.hostname);
+                buffer.put_versioned_string(0, &world.activity);
+                buffer.put_versioned_string(0, &world.hostname);
             }
 
             buffer.put_u32(item.session_id);
