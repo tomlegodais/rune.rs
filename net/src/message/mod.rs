@@ -9,5 +9,5 @@ pub(crate) use js5::{FileRequest, Js5Inbound, Js5Outbound, PriorityRequest, Requ
 pub(crate) use login::{LoginInbound, LoginOutbound, LoginState};
 pub(crate) use worldlist::{Country, CountryFlag, World, WorldFlag, WorldListOutbound};
 
-pub use game::{GameMessage, MessageType};
+pub use game::{GameMessage, MessageType, ServerMessage};
 pub use login::{LoginOutcome, LoginRequest, LoginResponse, LoginSuccess, StatusCode};

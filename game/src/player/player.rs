@@ -1,10 +1,8 @@
 use crate::account::Account;
+use crate::message::{GameScene, RootInterface};
 use crate::player::{Connection, Scene};
 use crate::world::{Position, RegionId};
-use net::{GameMessage, MessageType};
-use tokio_util::bytes::{BufMut, BytesMut};
 use tracing::info;
-use util::{BitsMut, BytesMutExt};
 
 pub struct Player {
     pub id: u16,
@@ -50,54 +48,17 @@ impl Player {
     }
 
     async fn send_game_scene(&mut self, init: bool) {
-        let mut buf = BytesMut::new();
-
-        if init {
-            let mut bit_pos = buf.bits_start();
-            buf.put_bits(&mut bit_pos, 30, self.position.bits());
-
-            for _player_index in 1..2048 {
-                if _player_index == self.id {
-                    continue;
-                }
-                buf.put_bits(&mut bit_pos, 18, 0);
-            }
-
-            buf.bits_end(bit_pos);
-        }
-
-        buf.put_u8_sub(self.scene.size);
-        buf.put_u16_add(self.scene.center_chunk_x as u16);
-        buf.put_u16_le_add(self.scene.center_chunk_y as u16);
-        buf.put_u8_add(0);
-
-        for _region_id in &self.scene.region_ids {
-            for _ in 0..4 {
-                buf.put_u32(0);
-            }
-        }
-
-        let msg = GameMessage {
-            opcode: 13,
-            ty: MessageType::Short,
-            payload: buf.freeze(),
-        };
-
-        let _ = self.connection.outbound.send(msg).await;
+        self.connection
+            .send(GameScene {
+                init,
+                position: self.position,
+                scene: &self.scene,
+                player_id: self.id,
+            })
+            .await;
     }
 
     async fn send_root_interface(&mut self, root_id: u16) {
-        let mut buf = BytesMut::new();
-        buf.put_u8(0);
-        buf.put_u16_le(0);
-        buf.put_u16_le(root_id);
-
-        let msg = GameMessage {
-            opcode: 102,
-            ty: MessageType::Fixed,
-            payload: buf.freeze(),
-        };
-
-        let _ = self.connection.outbound.send(msg).await;
+        self.connection.send(RootInterface { root_id }).await;
     }
 }

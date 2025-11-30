@@ -13,3 +13,7 @@ pub struct GameMessage {
     pub ty: MessageType,
     pub payload: Bytes,
 }
+
+pub trait ServerMessage {
+    fn into_game_message(self) -> GameMessage;
+}

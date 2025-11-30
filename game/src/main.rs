@@ -1,10 +1,10 @@
 use crate::config::AppConfig;
 use crate::service::{ServiceManager, WorldLoginService, WorldService};
 use crate::world::World;
-use ::config::{Config, Environment, File};
 use filesystem::CacheBuilder;
 use net::TcpService;
 use std::sync::Arc;
+use ::config::{Config, Environment, File};
 use tokio::sync::Mutex;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
@@ -14,6 +14,7 @@ mod config;
 mod player;
 mod service;
 mod world;
+mod message;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
