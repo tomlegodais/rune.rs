@@ -1,5 +1,5 @@
-mod widget;
 mod scene;
+mod widget;
 
-pub(crate) use widget::{OpenWidget, SetRootWidget};
 pub(crate) use scene::GameScene;
+pub(crate) use widget::{OpenWidget, SetRootWidget};
