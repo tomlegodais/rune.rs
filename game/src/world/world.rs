@@ -23,6 +23,7 @@ impl World {
     pub fn register_player(
         &mut self,
         account: &Account,
+        display_mode: u8,
     ) -> (u16, mpsc::Sender<GameMessage>, mpsc::Receiver<GameMessage>) {
         let (inbox_tx, inbox_rx) = mpsc::channel::<GameMessage>(128);
         let (outbound_tx, outbound_rx) = mpsc::channel::<GameMessage>(128);
@@ -35,7 +36,7 @@ impl World {
             outbound: outbound_tx,
         };
 
-        let player = Player::new(id, &account, connection, Position::default());
+        let player = Player::new(id, &account, connection, Position::default(), display_mode);
         let region_id = player.position.region_id();
 
         self.region_map.add_player(player.id, region_id);
@@ -51,8 +52,13 @@ impl World {
 
     pub async fn tick(&mut self) {
         for player in self.players.values_mut() {
-            while let Ok(msg) = player.connection.inbox.try_recv() {
-                Self::handle_message(player, msg).await;
+            let messages = {
+                let mut connection = player.connection.lock().await;
+                connection.drain()
+            };
+
+            for message in messages {
+                Self::handle_message(player, message).await;
             }
 
             Self::process_player_tick(player, &mut self.region_map).await;

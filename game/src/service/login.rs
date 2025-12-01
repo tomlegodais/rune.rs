@@ -74,7 +74,7 @@ impl LoginService for WorldLoginService {
 
         let (player_index, inbox_tx, outbound_rx) = {
             let mut world = self.world.lock().await;
-            let (player_index, inbox_tx, outbound_rx) = world.register_player(&account);
+            let (player_index, inbox_tx, outbound_rx) = world.register_player(&account, req.display_mode);
 
             world.on_player_login(player_index).await;
             (player_index, inbox_tx, outbound_rx)
