@@ -1,8 +1,7 @@
-use crate::message::{OpenWidget, SetRootWidget};
-use crate::player::{SharedConnection, ui};
+use crate::message::{Outbox, OutboxExt};
+use codec::{OpenWidget, SetRootWidget};
+use crate::player::ui;
 use std::collections::HashMap;
-use strum::IntoEnumIterator;
-use strum_macros::EnumIter;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum DisplayMode {
@@ -38,7 +37,7 @@ pub struct ChatboxWidget {
 pub struct InventoryWidget(pub u16);
 
 pub struct WidgetManager {
-    connection: SharedConnection,
+    outbox: Outbox,
     display_mode: DisplayMode,
     root: RootWidget,
     widgets: HashMap<u16, u16>,
@@ -159,11 +158,11 @@ impl Widget for InventoryWidget {
 }
 
 impl WidgetManager {
-    pub fn new(connection: SharedConnection, display_mode: u8) -> Self {
+    pub fn new(outbox: Outbox, display_mode: u8) -> Self {
         let display_mode = DisplayMode::from_u8(display_mode).unwrap_or(DisplayMode::Fixed);
 
         Self {
-            connection,
+            outbox,
             display_mode,
             root: display_mode.root_widget(),
             widgets: HashMap::new(),
@@ -182,8 +181,7 @@ impl WidgetManager {
             self.root = root;
         }
 
-        let mut connection = self.connection.lock().await;
-        connection.send(SetRootWidget(root)).await;
+        self.outbox.send_message(SetRootWidget(root.0)).await;
     }
 
     pub async fn open_widget<W>(&mut self, widget: &W)
@@ -194,11 +192,10 @@ impl WidgetManager {
         let interface = widget.interface();
         self.widgets.insert(position, interface);
 
-        let mut connection = self.connection.lock().await;
-        connection
-            .send(OpenWidget {
+        self.outbox
+            .send_message(OpenWidget {
                 parent: widget.parent(self.root),
-                position: widget.position(self.display_mode),
+                position,
                 interface,
                 click_through: false,
             })

@@ -14,6 +14,6 @@ pub struct GameMessage {
     pub payload: Bytes,
 }
 
-pub trait ServerMessage {
-    fn into_game_message(self) -> GameMessage;
+pub trait Encodable {
+    fn encode(self) -> GameMessage;
 }

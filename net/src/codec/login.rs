@@ -1,9 +1,9 @@
 use crate::error::SessionError;
 use crate::message::{LoginInbound, LoginOutbound, LoginRequest, LoginResponse, LoginState};
-use rand::Rng;
+use rand::RngExt;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
-use util::{decode_base37, rsa_decrypt, BufExt, EXPONENT, MODULUS};
+use util::{BufExt, EXPONENT, MODULUS, decode_base37, rsa_decrypt};
 
 #[derive(Debug)]
 pub struct LoginCodec {

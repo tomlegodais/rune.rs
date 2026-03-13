@@ -1,5 +1,5 @@
 use crate::account::Account;
-use crate::player::{Connection, Player};
+use crate::player::Player;
 use crate::world::{Position, RegionMap};
 use net::GameMessage;
 use std::collections::HashMap;
@@ -31,14 +31,16 @@ impl World {
         let id = self.next_index;
         self.next_index += 1;
 
-        let connection = Connection {
-            inbox: inbox_rx,
-            outbound: outbound_tx,
-        };
+        let player = Player::new(
+            id,
+            &account,
+            inbox_rx,
+            outbound_tx,
+            Position::default(),
+            display_mode,
+        );
 
-        let player = Player::new(id, &account, connection, Position::default(), display_mode);
         let region_id = player.position.region_id();
-
         self.region_map.add_player(player.id, region_id);
         self.players.insert(id, player);
         (id, inbox_tx, outbound_rx)
@@ -52,11 +54,7 @@ impl World {
 
     pub async fn tick(&mut self) {
         for player in self.players.values_mut() {
-            let messages = {
-                let mut connection = player.connection.lock().await;
-                connection.drain()
-            };
-
+            let messages = player.drain();
             for message in messages {
                 Self::handle_message(player, message).await;
             }

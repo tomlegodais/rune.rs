@@ -1,0 +1,10 @@
+[package]
+name = "codec"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+net = { path = "../net" }
+tokio-util = { workspace = true }
+util = { path = "../util" }
