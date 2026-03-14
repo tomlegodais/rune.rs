@@ -101,6 +101,7 @@ name = "codec"
 version = "0.1.0"
 dependencies = [
  "net",
+ "tokio",
  "tokio-util",
  "util",
 ]

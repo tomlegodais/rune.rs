@@ -1,5 +1,4 @@
-use crate::message::{Outbox, OutboxExt};
-use codec::{OpenWidget, SetRootWidget};
+use codec::{OpenWidget, Outbox, OutboxExt, SetRootWidget};
 use crate::player::ui;
 use std::collections::HashMap;
 
@@ -181,7 +180,7 @@ impl WidgetManager {
             self.root = root;
         }
 
-        self.outbox.send_message(SetRootWidget(root.0)).await;
+        self.outbox.write(SetRootWidget(root.0)).await;
     }
 
     pub async fn open_widget<W>(&mut self, widget: &W)
@@ -193,7 +192,7 @@ impl WidgetManager {
         self.widgets.insert(position, interface);
 
         self.outbox
-            .send_message(OpenWidget {
+            .write(OpenWidget {
                 parent: widget.parent(self.root),
                 position,
                 interface,

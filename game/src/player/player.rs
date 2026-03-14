@@ -1,8 +1,8 @@
 use crate::account::Account;
-use crate::message::{GameScene, Inbox, Outbox, OutboxExt};
-use crate::player::{Scene, WidgetManager};
+use crate::player::{Scene, SkillManager, WidgetManager};
 use crate::world::{Position, RegionId};
-use net::GameMessage;
+use codec::{GameScene, Inbox, Outbox, OutboxExt};
+use net::Frame;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::info;
@@ -18,6 +18,7 @@ pub struct Player {
     pub position: Position,
     pub current_region: RegionId,
     pub scene: Scene,
+    pub skills: SkillManager,
     pub widgets: WidgetManager,
 }
 
@@ -32,6 +33,7 @@ impl Player {
     ) -> Self {
         let scene = Scene::new(position, 0);
         let current_region = position.region_id();
+        let skills = SkillManager::new(outbox.clone());
         let widgets = WidgetManager::new(outbox.clone(), display_mode);
 
         Self {
@@ -44,6 +46,7 @@ impl Player {
             position,
             current_region,
             scene,
+            skills,
             widgets,
         }
     }
@@ -51,6 +54,7 @@ impl Player {
     pub async fn on_login(&mut self) {
         self.send_game_scene(true).await;
         self.widgets.on_login().await;
+        self.skills.flush().await;
 
         info!("Player ({}) logged in", self.username);
     }
@@ -64,7 +68,7 @@ impl Player {
 
     async fn send_game_scene(&mut self, init: bool) {
         self.outbox
-            .send_message(GameScene {
+            .write(GameScene {
                 init,
                 position_bits: self.position.bits(),
                 player_id: self.id,
@@ -76,7 +80,7 @@ impl Player {
             .await;
     }
 
-    pub fn drain(&mut self) -> Vec<GameMessage> {
+    pub fn drain(&mut self) -> Vec<Frame> {
         let mut messages = Vec::new();
         while let Ok(msg) = self.inbox.try_recv() {
             messages.push(msg);

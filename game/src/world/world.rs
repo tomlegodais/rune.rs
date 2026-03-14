@@ -1,7 +1,7 @@
 use crate::account::Account;
 use crate::player::Player;
 use crate::world::{Position, RegionMap};
-use net::GameMessage;
+use net::Frame;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 
@@ -24,9 +24,9 @@ impl World {
         &mut self,
         account: &Account,
         display_mode: u8,
-    ) -> (u16, mpsc::Sender<GameMessage>, mpsc::Receiver<GameMessage>) {
-        let (inbox_tx, inbox_rx) = mpsc::channel::<GameMessage>(128);
-        let (outbound_tx, outbound_rx) = mpsc::channel::<GameMessage>(128);
+    ) -> (u16, mpsc::Sender<Frame>, mpsc::Receiver<Frame>) {
+        let (inbox_tx, inbox_rx) = mpsc::channel::<Frame>(128);
+        let (outbound_tx, outbound_rx) = mpsc::channel::<Frame>(128);
 
         let id = self.next_index;
         self.next_index += 1;
@@ -63,7 +63,7 @@ impl World {
         }
     }
 
-    async fn handle_message(_player: &mut Player, _msg: GameMessage) {
+    async fn handle_message(_player: &mut Player, _msg: Frame) {
         // TODO: handle incoming messages
     }
 

@@ -12,7 +12,6 @@ use tracing_subscriber::EnvFilter;
 
 mod account;
 mod config;
-mod message;
 mod player;
 mod service;
 mod world;

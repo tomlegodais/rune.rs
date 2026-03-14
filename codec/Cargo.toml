@@ -6,5 +6,6 @@ edition.workspace = true
 
 [dependencies]
 net = { path = "../net" }
+tokio = { workspace = true }
 tokio-util = { workspace = true }
 util = { path = "../util" }

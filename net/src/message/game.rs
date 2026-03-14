@@ -1,19 +1,19 @@
 use tokio_util::bytes::Bytes;
 
 #[derive(Debug, Copy, Clone)]
-pub enum MessageType {
+pub enum Prefix {
     Fixed,
     Byte,
     Short,
 }
 
 #[derive(Debug)]
-pub struct GameMessage {
+pub struct Frame {
     pub opcode: u8,
-    pub ty: MessageType,
+    pub prefix: Prefix,
     pub payload: Bytes,
 }
 
 pub trait Encodable {
-    fn encode(self) -> GameMessage;
+    fn encode(self) -> Frame;
 }

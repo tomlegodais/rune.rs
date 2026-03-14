@@ -1,4 +1,4 @@
-use net::{Encodable, GameMessage, MessageType};
+use net::{Encodable, Frame, Prefix};
 use tokio_util::bytes::{BufMut, BytesMut};
 use util::{BitsMut, BytesMutExt};
 
@@ -13,7 +13,7 @@ pub struct GameScene {
 }
 
 impl Encodable for GameScene {
-    fn encode(self) -> GameMessage {
+    fn encode(self) -> Frame {
         let mut buf = BytesMut::new();
 
         if self.init {
@@ -41,9 +41,9 @@ impl Encodable for GameScene {
             }
         }
 
-        GameMessage {
+        Frame {
             opcode: 13,
-            ty: MessageType::Short,
+            prefix: Prefix::Short,
             payload: buf.freeze(),
         }
     }

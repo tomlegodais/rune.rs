@@ -1,6 +1,6 @@
 use crate::codec::GameCodec;
 use crate::crypto::StreamCipher;
-use crate::{GameMessage, SessionError};
+use crate::{Frame, SessionError};
 use futures_util::{SinkExt, StreamExt};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
@@ -13,8 +13,8 @@ impl GameHandler {
         stream: TcpStream,
         in_cipher: CIn,
         out_cipher: COut,
-        inbox_tx: mpsc::Sender<GameMessage>,
-        mut outbox_rx: mpsc::Receiver<GameMessage>,
+        inbox_tx: mpsc::Sender<Frame>,
+        mut outbox_rx: mpsc::Receiver<Frame>,
     ) -> Result<(), SessionError>
     where
         CIn: StreamCipher + 'static,

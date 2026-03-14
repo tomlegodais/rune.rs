@@ -1,5 +1,5 @@
 use crate::crypto::StreamCipher;
-use crate::{GameMessage, MessageType, SessionError};
+use crate::{Frame, Prefix, SessionError};
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
 
@@ -101,7 +101,7 @@ enum State {
     },
     Payload {
         opcode: u8,
-        ty: MessageType,
+        prefix: Prefix,
         size: usize,
     },
 }
@@ -132,7 +132,7 @@ where
     CIn: StreamCipher,
     COut: StreamCipher,
 {
-    type Item = GameMessage;
+    type Item = Frame;
     type Error = SessionError;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
@@ -159,7 +159,7 @@ where
                     } else {
                         self.state = State::Payload {
                             opcode,
-                            ty: MessageType::Fixed,
+                            prefix: Prefix::Fixed,
                             size: size_marker as usize,
                         };
                     }
@@ -177,7 +177,7 @@ where
                         let size = src.get_u8() as usize;
                         self.state = State::Payload {
                             opcode,
-                            ty: MessageType::Byte,
+                            prefix: Prefix::Byte,
                             size,
                         };
                     }
@@ -188,14 +188,14 @@ where
                         let size = src.get_u16() as usize;
                         self.state = State::Payload {
                             opcode,
-                            ty: MessageType::Short,
+                            prefix: Prefix::Short,
                             size,
                         };
                     }
                     _ => unreachable!("size_marker must be -1 or -2 in Size state"),
                 },
 
-                State::Payload { opcode, ty, size } => {
+                State::Payload { opcode, prefix, size } => {
                     if src.len() < size {
                         return Ok(None);
                     }
@@ -203,9 +203,9 @@ where
                     let payload = src.split_to(size).freeze();
                     self.state = State::Opcode;
 
-                    return Ok(Some(GameMessage {
+                    return Ok(Some(Frame {
                         opcode,
-                        ty,
+                        prefix,
                         payload,
                     }));
                 }
@@ -214,27 +214,27 @@ where
     }
 }
 
-impl<CIn, COut> Encoder<GameMessage> for GameCodec<CIn, COut>
+impl<CIn, COut> Encoder<Frame> for GameCodec<CIn, COut>
 where
     CIn: StreamCipher,
     COut: StreamCipher,
 {
     type Error = SessionError;
 
-    fn encode(&mut self, msg: GameMessage, dst: &mut BytesMut) -> Result<(), Self::Error> {
-        let GameMessage {
+    fn encode(&mut self, msg: Frame, dst: &mut BytesMut) -> Result<(), Self::Error> {
+        let Frame {
             opcode,
-            ty,
+            prefix,
             payload,
         } = msg;
 
         let encrypted = opcode.wrapping_add(self.out_cipher.next_u8());
         dst.put_u8(encrypted);
 
-        match ty {
-            MessageType::Fixed => {}
-            MessageType::Byte => dst.put_u8(payload.len() as u8),
-            MessageType::Short => dst.put_u16(payload.len() as u16),
+        match prefix {
+            Prefix::Fixed => {}
+            Prefix::Byte => dst.put_u8(payload.len() as u8),
+            Prefix::Short => dst.put_u16(payload.len() as u16),
         }
 
         dst.extend_from_slice(&payload);

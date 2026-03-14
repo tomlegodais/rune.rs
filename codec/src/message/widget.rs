@@ -1,19 +1,19 @@
-use net::{Encodable, GameMessage, MessageType};
+use net::{Encodable, Frame, Prefix};
 use tokio_util::bytes::{BufMut, BytesMut};
 use util::BytesMutExt;
 
 pub struct SetRootWidget(pub u16);
 
 impl Encodable for SetRootWidget {
-    fn encode(self) -> GameMessage {
+    fn encode(self) -> Frame {
         let mut buf = BytesMut::new();
         buf.put_u8(0);
         buf.put_u16_le(0);
         buf.put_u16_le(self.0);
 
-        GameMessage {
+        Frame {
             opcode: 102,
-            ty: MessageType::Fixed,
+            prefix: Prefix::Fixed,
             payload: buf.freeze(),
         }
     }
@@ -27,16 +27,16 @@ pub struct OpenWidget {
 }
 
 impl Encodable for OpenWidget {
-    fn encode(self) -> GameMessage {
+    fn encode(self) -> Frame {
         let mut buf = BytesMut::new();
         buf.put_u8_sub(self.click_through as u8);
         buf.put_u16_add(0);
         buf.put_u32(self.to_hash());
         buf.put_u16_le(self.interface);
 
-        GameMessage {
+        Frame {
             opcode: 22,
-            ty: MessageType::Fixed,
+            prefix: Prefix::Fixed,
             payload: buf.freeze(),
         }
     }
