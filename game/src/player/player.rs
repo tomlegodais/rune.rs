@@ -1,14 +1,23 @@
 use crate::account::Account;
-use crate::player::{Scene, SkillManager, WidgetManager};
+use crate::player::{
+    Appearance, AppearanceEncoder, MaskBlock, MaskFlags, MoveTypeMask, SkillManager, Viewport,
+    WidgetManager, gpi,
+};
 use crate::world::{Position, RegionId};
 use codec::{GameScene, Inbox, Outbox, OutboxExt};
 use net::Frame;
-use std::sync::Arc;
-use tokio::sync::Mutex;
 use tracing::info;
 
+#[derive(Clone)]
+pub struct PlayerSnapshot {
+    pub id: usize,
+    pub position: Position,
+    pub appearance: Appearance,
+    pub mask_flags: MaskFlags,
+}
+
 pub struct Player {
-    pub id: u16,
+    pub id: usize,
     pub _account_id: i64,
     pub username: String,
     pub _rights: u8,
@@ -17,21 +26,24 @@ pub struct Player {
     pub outbox: Outbox,
     pub position: Position,
     pub current_region: RegionId,
-    pub scene: Scene,
+    pub viewport: Viewport,
     pub skills: SkillManager,
     pub widgets: WidgetManager,
+    pub appearance: Appearance,
+    pub mask_flags: MaskFlags,
 }
 
 impl Player {
     pub fn new(
-        id: u16,
+        id: usize,
         account: &Account,
         inbox: Inbox,
         outbox: Outbox,
         position: Position,
         display_mode: u8,
+        snapshots: &[PlayerSnapshot],
     ) -> Self {
-        let scene = Scene::new(position, 0);
+        let viewport = Viewport::new(id, position, 0, snapshots);
         let current_region = position.region_id();
         let skills = SkillManager::new(outbox.clone());
         let widgets = WidgetManager::new(outbox.clone(), display_mode);
@@ -45,13 +57,33 @@ impl Player {
             outbox,
             position,
             current_region,
-            scene,
+            viewport,
             skills,
             widgets,
+            appearance: Appearance::new(&account.username, 3),
+            mask_flags: MaskFlags::APPEARANCE | MaskFlags::MOVE_TYPE,
         }
     }
 
-    pub async fn on_login(&mut self) {
+    pub fn snapshot(&self) -> PlayerSnapshot {
+        PlayerSnapshot {
+            id: self.id,
+            position: self.position,
+            appearance: self.appearance.clone(),
+            mask_flags: self.mask_flags,
+        }
+    }
+
+    pub async fn tick(&mut self, snapshots: &[PlayerSnapshot]) {
+        if self.viewport.needs_rebuild(self.position) {
+            self.viewport.rebuild(self.position);
+            self.send_game_scene(false).await;
+        }
+
+        self.viewport.sync(self.id, snapshots);
+    }
+
+    pub async fn on_login(&mut self, snapshots: &[PlayerSnapshot]) {
         self.send_game_scene(true).await;
         self.widgets.on_login().await;
         self.skills.flush().await;
@@ -59,32 +91,34 @@ impl Player {
         info!("Player ({}) logged in", self.username);
     }
 
-    pub async fn tick(&mut self) {
-        if self.scene.needs_rebuild(self.position) {
-            self.scene.rebuild(self.position);
-            self.send_game_scene(false).await;
-        }
+    pub async fn send_player_info(&mut self) {
+        let appearance_encoder = AppearanceEncoder::new(&self.appearance);
+        let block = MaskBlock {
+            flags: &self.mask_flags,
+            move_type: &MoveTypeMask,
+            appearance: &appearance_encoder,
+        };
+        let frame = gpi::encode(&mut self.viewport, self.id, &block);
+        let _ = self.outbox.send(frame).await;
     }
 
     async fn send_game_scene(&mut self, init: bool) {
         self.outbox
             .write(GameScene {
                 init,
-                position_bits: self.position.bits(),
+                position_bits: self.position.to_bits(),
                 player_id: self.id,
-                size: self.scene.size,
-                center_chunk_x: self.scene.center_chunk_x,
-                center_chunk_y: self.scene.center_chunk_y,
-                region_count: self.scene.region_ids.len(),
+                view_distance: self.viewport.view_distance,
+                chunk_x: self.position.chunk_x(),
+                chunk_y: self.position.chunk_y(),
+                region_count: self.viewport.region_ids().len(),
+                region_hashes: core::array::from_fn(|i| self.viewport.players[i].region_hash),
             })
             .await;
     }
 
-    pub fn drain(&mut self) -> Vec<Frame> {
-        let mut messages = Vec::new();
-        while let Ok(msg) = self.inbox.try_recv() {
-            messages.push(msg);
-        }
-        messages
+    pub fn reset(&mut self) {
+        self.viewport.reset();
+        self.mask_flags.clear();
     }
 }

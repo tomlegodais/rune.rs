@@ -108,12 +108,13 @@ impl BitsMut for BytesMut {
         }
 
         ensure_byte(self, byte_pos);
-        let mask = (1u32 << bit_offset) - 1;
 
         if num_bits == bit_offset {
+            let mask = (1u32 << bit_offset) - 1;
             self[byte_pos] &= !(mask as u8);
             self[byte_pos] |= (value & mask) as u8;
         } else {
+            let mask = (1u32 << num_bits) - 1;
             self[byte_pos] &= !((mask as u8) << (bit_offset - num_bits));
             self[byte_pos] |= ((value & mask) as u8) << (bit_offset - num_bits);
         }

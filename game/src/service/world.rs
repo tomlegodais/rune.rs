@@ -26,6 +26,7 @@ impl WorldService {
                 _ = async {
                     {
                         let mut world = self.world.lock().await;
+                        world.process_messages().await;
                         world.tick().await;
                     }
                 } => {}

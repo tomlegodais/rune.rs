@@ -41,7 +41,7 @@ pub enum LoginOutcome {
 #[derive(Debug)]
 pub struct LoginSuccess {
     pub rights: u8,
-    pub player_index: u16,
+    pub player_index: usize,
     pub members: bool,
     pub inbox_tx: mpsc::Sender<Frame>,
     pub outbound_rx: mpsc::Receiver<Frame>,
@@ -100,7 +100,7 @@ impl LoginSuccess {
         buf.put_u8(0);
         buf.put_u8(0);
         buf.put_u8(0);
-        buf.put_u16(self.player_index);
+        buf.put_u16(self.player_index as u16);
         buf.put_u8(1);
         buf.put_u8(if self.members { 1 } else { 0 });
 

@@ -6,7 +6,7 @@ pub struct RegionId(pub u16);
 #[allow(dead_code)]
 pub struct Region {
     pub id: RegionId,
-    pub players: HashSet<u16>,
+    pub players: HashSet<usize>,
 }
 
 pub struct RegionMap {
@@ -25,6 +25,11 @@ impl RegionId {
 
     pub fn y(self) -> u16 {
         self.0 & 0xFF
+    }
+
+    pub fn to(self, other: RegionId) -> impl Iterator<Item = RegionId> {
+        (self.x()..=other.x())
+            .flat_map(move |x| (self.y()..=other.y()).map(move |y| RegionId::from_coords(x, y)))
     }
 }
 
@@ -48,13 +53,13 @@ impl RegionMap {
         self.regions.entry(id).or_insert_with(|| Region::new(id))
     }
 
-    pub fn add_player(&mut self, player_id: u16, region_id: RegionId) {
+    pub fn add_player(&mut self, player_id: usize, region_id: RegionId) {
         self.region_mut(region_id).players.insert(player_id);
     }
 
     pub fn update_player_region(
         &mut self,
-        player_id: u16,
+        player_id: usize,
         old_region: RegionId,
         new_region: RegionId,
     ) {

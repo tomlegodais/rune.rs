@@ -5,11 +5,12 @@ use util::{BitsMut, BytesMutExt};
 pub struct GameScene {
     pub init: bool,
     pub position_bits: u32,
-    pub player_id: u16,
-    pub size: u8,
-    pub center_chunk_x: i32,
-    pub center_chunk_y: i32,
+    pub player_id: usize,
+    pub view_distance: usize,
+    pub chunk_x: i32,
+    pub chunk_y: i32,
     pub region_count: usize,
+    pub region_hashes: [u32; 2048],
 }
 
 impl Encodable for GameScene {
@@ -20,19 +21,19 @@ impl Encodable for GameScene {
             let mut bit_pos = buf.bits_start();
             buf.put_bits(&mut bit_pos, 30, self.position_bits);
 
-            for _player_index in 1..2048 {
-                if _player_index == self.player_id {
+            for player_index in 1..2048usize {
+                if player_index == self.player_id {
                     continue;
                 }
-                buf.put_bits(&mut bit_pos, 18, 0);
+                buf.put_bits(&mut bit_pos, 18, self.region_hashes[player_index]);
             }
 
             buf.bits_end(bit_pos);
         }
 
-        buf.put_u8_sub(self.size);
-        buf.put_u16_add(self.center_chunk_x as u16);
-        buf.put_u16_le_add(self.center_chunk_y as u16);
+        buf.put_u8_sub(self.view_distance as u8);
+        buf.put_u16_add(self.chunk_x as u16);
+        buf.put_u16_le_add(self.chunk_y as u16);
         buf.put_u8_add(0);
 
         for _ in 0..self.region_count {
