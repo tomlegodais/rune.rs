@@ -2,7 +2,7 @@ use crate::archive::unpack_archive_owned;
 use crate::codec::decode_container;
 use crate::error::{CacheError, CacheResult};
 use crate::id::{ArchiveId, FileId, IndexId, REFERENCE_INDEX};
-use crate::reference::{ReferenceTable, name_hash};
+use crate::reference::{name_hash, ReferenceTable};
 use crate::store::{DataStore, IndexStore};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -49,7 +49,7 @@ impl Cache {
         })
     }
 
-    pub fn indices(&self) -> impl Iterator<Item = IndexId> + '_ {
+    pub fn indices(&self) -> impl Iterator<Item=IndexId> + '_ {
         self.index_stores
             .keys()
             .copied()

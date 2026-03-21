@@ -30,7 +30,7 @@ impl ServiceManager {
     pub fn spawn<F, Fut>(&mut self, name: &'static str, factory: F)
     where
         F: FnOnce(CancellationToken, oneshot::Sender<()>) -> Fut + Send + 'static,
-        Fut: Future<Output = anyhow::Result<()>> + Send + 'static,
+        Fut: Future<Output=anyhow::Result<()>> + Send + 'static,
     {
         let token = self.token.clone();
         let (tx, rx) = oneshot::channel();
@@ -58,7 +58,7 @@ impl ServiceManager {
         }
     }
 
-    pub (super) async fn await_ready(&mut self) -> anyhow::Result<()> {
+    pub(super) async fn await_ready(&mut self) -> anyhow::Result<()> {
         info!("Waiting for services to initialize");
 
         for (name, rx) in self.start_checks.drain(..) {
@@ -75,7 +75,7 @@ impl ServiceManager {
         Ok(())
     }
 
-    pub (super) async fn join(&mut self) {
+    pub(super) async fn join(&mut self) {
         while let Some(_) = self.set.join_next().await {}
     }
 }

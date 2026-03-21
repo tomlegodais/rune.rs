@@ -18,9 +18,8 @@ fn decode(mut payload: Bytes) -> IncomingMessage {
     let color = payload.get_u8();
     let effect = payload.get_u8();
 
-    let huffman = Huffman::get();
     let text_len = payload.get_smart() as usize;
-    let message = huffman.decode(&payload, text_len);
+    let message = Huffman::decode(&payload, text_len);
 
     Box::new(PublicChat {
         color,

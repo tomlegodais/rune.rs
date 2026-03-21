@@ -1,4 +1,4 @@
-use crate::{ArchiveId, Cache, CacheResult, IndexId, REFERENCE_INDEX, crc32};
+use crate::{crc32, ArchiveId, Cache, CacheResult, IndexId, REFERENCE_INDEX};
 
 pub fn build_checksum_table(cache: &Cache) -> CacheResult<Vec<u8>> {
     let index_count = cache.index_count() - 1;

@@ -9,7 +9,7 @@ use std::future::Future;
 use std::pin::Pin;
 
 type CommandFn =
-    for<'a> fn(&'a mut Player, &'a str) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
+    for<'a> fn(&'a mut Player, &'a str) -> Pin<Box<dyn Future<Output=()> + Send + 'a>>;
 
 pub struct CommandEntry {
     pub name: &'static str,

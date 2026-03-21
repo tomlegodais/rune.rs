@@ -1,0 +1,18 @@
+[package]
+name = "persistence"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+argon2 = { workspace = true }
+async-trait = { workspace = true }
+num_enum = { workspace = true }
+sea-orm = { workspace = true }
+sea-orm-migration = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+shaku = { workspace = true }
+tracing = { workspace = true }
+util = { path = "../util" }

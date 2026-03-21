@@ -161,11 +161,11 @@ impl ReferenceTable {
         self.archives.get(&id)
     }
 
-    pub fn iter_archives(&self) -> impl Iterator<Item = (ArchiveId, &ArchiveEntry)> {
+    pub fn iter_archives(&self) -> impl Iterator<Item=(ArchiveId, &ArchiveEntry)> {
         self.archives.iter().map(|(&id, entry)| (id, entry))
     }
 
-    pub fn iter_archive_ids(&self) -> impl Iterator<Item = ArchiveId> + '_ {
+    pub fn iter_archive_ids(&self) -> impl Iterator<Item=ArchiveId> + '_ {
         self.archives.keys().copied()
     }
 

@@ -28,6 +28,9 @@ pub enum SessionError {
 
     #[error("Message {0} has illegal size")]
     InvalidMessageSize(u8),
+
+    #[error("Internal error: {0}")]
+    Internal(String),
 }
 
 impl SessionError {

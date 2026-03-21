@@ -1,15 +1,15 @@
 use filesystem::{Cache, FileId, IndexId};
 
-pub struct BootstrapContext<'a> {
+pub struct ProviderContext<'a> {
     pub cache: &'a Cache,
 }
 
 pub trait DataProvider {
-    fn load(&self, ctx: &BootstrapContext) -> anyhow::Result<()>;
+    fn load(&self, ctx: &ProviderContext) -> anyhow::Result<()>;
 }
 
 pub fn load(cache: &Cache) -> anyhow::Result<()> {
-    let ctx = BootstrapContext { cache };
+    let ctx = ProviderContext { cache };
     let providers: Vec<Box<dyn DataProvider>> = vec![Box::new(HuffmanProvider)];
 
     for provider in &providers {
@@ -22,7 +22,7 @@ pub fn load(cache: &Cache) -> anyhow::Result<()> {
 struct HuffmanProvider;
 
 impl DataProvider for HuffmanProvider {
-    fn load(&self, ctx: &BootstrapContext) -> anyhow::Result<()> {
+    fn load(&self, ctx: &ProviderContext) -> anyhow::Result<()> {
         let archive = ctx
             .cache
             .find_archive(IndexId::HUFFMAN, "huffman")?

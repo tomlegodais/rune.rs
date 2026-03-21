@@ -1,5 +1,5 @@
 [workspace]
-members = ["filesystem", "game", "macros", "net", "util"]
+members = ["filesystem", "game", "macros", "net", "persistence", "util"]
 resolver = "2"
 
 [workspace.package]
@@ -8,10 +8,15 @@ edition = "2024"
 
 [workspace.dependencies]
 anyhow = "1"
+argon2 = "0.5"
 async-trait = "0.1"
 config = { version = "0.15", features = ["toml"] }
 num_enum = "0.7"
+sea-orm = { version = "1.1", features = ["sqlx-postgres", "runtime-tokio-native-tls", "macros", "with-chrono", "with-json"] }
+sea-orm-migration = { version = "1.1", features = ["sqlx-postgres", "runtime-tokio-native-tls"] }
 serde = { version = "1.0", features = ["derive"] }
+shaku = "0.6"
+serde_json = "1"
 thiserror = "2"
 tokio = { version = "1", features = ["full"] }
 tokio-util = { version = "0.7", features = ["full"] }

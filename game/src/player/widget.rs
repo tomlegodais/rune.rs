@@ -1,5 +1,5 @@
-use net::{OpenWidget, Outbox, OutboxExt, SetRootWidget};
 use crate::player::ui;
+use net::{OpenWidget, Outbox, OutboxExt, SetRootWidget};
 use std::collections::HashMap;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -203,7 +203,7 @@ impl WidgetManager {
 
     pub async fn open_widgets<I>(&mut self, widgets: I)
     where
-        I: IntoIterator<Item = &'static dyn Widget>,
+        I: IntoIterator<Item=&'static dyn Widget>,
     {
         for widget in widgets {
             self.open_widget(widget).await;

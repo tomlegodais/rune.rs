@@ -1,4 +1,5 @@
 use crate::player::Appearance;
+use persistence::account::Rights;
 use tokio_util::bytes::{BufMut, BytesMut};
 use util::{BytesMutExt, Huffman};
 
@@ -96,6 +97,26 @@ impl MaskBlock {
         Self::default()
     }
 
+    pub fn write(&self, out: &mut BytesMut) {
+        let wire = self.flags.wire_value();
+
+        if wire > 128 {
+            out.put_u8((wire & 0xFF) as u8);
+            out.put_u8((wire >> 8) as u8);
+        } else {
+            out.put_u8(wire as u8);
+        }
+
+        for &order_flag in MASK_ORDER {
+            if !self.flags.contains(order_flag) {
+                continue;
+            }
+            if let Some(mask) = self.masks.iter().find(|m| m.flag == order_flag) {
+                out.put_slice(&mask.data);
+            }
+        }
+    }
+
     pub fn add(&mut self, mask: impl Mask) {
         let flag = mask.flag();
         let mut buf = BytesMut::new();
@@ -119,26 +140,6 @@ impl MaskBlock {
 
     pub fn is_empty(&self) -> bool {
         self.flags.is_empty()
-    }
-
-    pub fn write(&self, out: &mut BytesMut) {
-        let wire = self.flags.wire_value();
-
-        if wire > 128 {
-            out.put_u8((wire & 0xFF) as u8);
-            out.put_u8((wire >> 8) as u8);
-        } else {
-            out.put_u8(wire as u8);
-        }
-
-        for &order_flag in MASK_ORDER {
-            if !self.flags.contains(order_flag) {
-                continue;
-            }
-            if let Some(mask) = self.masks.iter().find(|m| m.flag == order_flag) {
-                out.put_slice(&mask.data);
-            }
-        }
     }
 }
 
@@ -222,7 +223,7 @@ pub struct ChatMask {
     pub message: String,
     pub color: u8,
     pub effect: u8,
-    pub rights: u8,
+    pub rights: Rights,
 }
 
 impl Mask for ChatMask {
@@ -233,10 +234,9 @@ impl Mask for ChatMask {
     fn encode(&self, out: &mut BytesMut) {
         let effects = ((self.color as u16) << 8) | self.effect as u16;
         out.put_u16_add(effects);
-        out.put_u8_add(self.rights);
+        out.put_u8_add(self.rights.into());
 
-        let huffman = Huffman::get();
-        let encoded = huffman.encode(&self.message);
+        let encoded = Huffman::encode(&self.message);
         let total = 1 + encoded.len();
         out.put_u8_add(total as u8);
         out.put_smart(self.message.len() as u16);

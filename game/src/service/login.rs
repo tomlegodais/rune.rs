@@ -1,19 +1,33 @@
-use crate::account::Account;
 use crate::config::GameConfig;
 use crate::world::World;
 use async_trait::async_trait;
 use net::{LoginOutcome, LoginRequest, LoginService, LoginSuccess, SessionError};
+use persistence::account::AccountRepository;
+use persistence::player::{PlayerData, PlayerRepository};
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use tracing::warn;
 
 pub struct WorldLoginService {
     config: GameConfig,
     world: Arc<Mutex<World>>,
+    accounts: Arc<dyn AccountRepository>,
+    players: Arc<dyn PlayerRepository>,
 }
 
 impl WorldLoginService {
-    pub fn new(config: GameConfig, world: Arc<Mutex<World>>) -> Self {
-        Self { config, world }
+    pub fn new(
+        config: GameConfig,
+        world: Arc<Mutex<World>>,
+        accounts: Arc<dyn AccountRepository>,
+        players: Arc<dyn PlayerRepository>,
+    ) -> Self {
+        Self {
+            config,
+            world,
+            accounts,
+            players,
+        }
     }
 
     fn validate_session(
@@ -34,19 +48,16 @@ impl WorldLoginService {
         None
     }
 
-    async fn load_account_by_username(&self, username: &str) -> Result<Account, SessionError> {
-        // TODO: Accounts Service (SQL, Memory, Disk, etc...)
-
-        Ok(Account {
-            id: 1,
-            username: username.to_string(),
-            _password_hash: "fake-hash".to_string(),
-            rights: 2,
-        })
-    }
-
-    async fn verify_password(&self, _account: &Account, _password: &str) -> Option<LoginOutcome> {
-        None
+    async fn load_or_create_player(&self, account_id: i64) -> Result<PlayerData, SessionError> {
+        match self.players.find_by_account_id(account_id).await {
+            Ok(Some(data)) => Ok(data),
+            Ok(None) => self
+                .players
+                .create_default(account_id)
+                .await
+                .map_err(|e| SessionError::Internal(e.to_string())),
+            Err(e) => Err(SessionError::Internal(e.to_string())),
+        }
     }
 }
 
@@ -63,25 +74,28 @@ impl LoginService for WorldLoginService {
             return Ok(outcome);
         }
 
-        let account = match self.load_account_by_username(&req.username).await {
-            Ok(account) => account,
-            Err(_) => return Ok(LoginOutcome::InvalidCredentials),
+        let account = match self.accounts.find_by_username(&req.username).await {
+            Ok(Some(account)) => account,
+            _ => return Ok(LoginOutcome::InvalidCredentials),
         };
 
-        if let Some(outcome) = self.verify_password(&account, &req.password).await {
-            return Ok(outcome);
+        if !account.verify_password(&req.password) {
+            return Ok(LoginOutcome::InvalidCredentials);
         }
 
+        let _ = self.accounts.update_last_login(account.id).await;
+        let player_data = self.load_or_create_player(account.id).await?;
         let (player_index, inbox_tx, outbound_rx) = {
             let mut world = self.world.lock().await;
-            let (player_index, inbox_tx, outbound_rx) = world.register_player(&account, req.display_mode);
+            let (player_index, inbox_tx, outbound_rx) =
+                world.register_player(&account, &player_data, req.display_mode);
 
             world.on_player_login(player_index).await;
             (player_index, inbox_tx, outbound_rx)
         };
 
         let success = LoginSuccess {
-            rights: account.rights,
+            rights: account.rights.into(),
             player_index,
             members: true,
             inbox_tx,
@@ -93,6 +107,11 @@ impl LoginService for WorldLoginService {
 
     async fn logout(&self, player_index: usize) {
         let mut world = self.world.lock().await;
-        world.unregister_player(player_index);
+
+        if let Some(data) = world.unregister_player(player_index) {
+            if let Err(e) = self.players.save(&data).await {
+                warn!("Failed to save player data: {}", e);
+            }
+        }
     }
 }

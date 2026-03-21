@@ -1,5 +1,5 @@
 use crate::player::state::MAX_PLAYERS;
-use crate::player::{Appearance, AppearanceMask, Mask, MaskBlock, MoveTypeMask, PlayerInfo};
+use crate::player::{Appearance, AppearanceMask, MaskBlock, MoveTypeMask, PlayerInfo};
 use crate::world::Position;
 use net::{Frame, Prefix};
 use tokio_util::bytes::BytesMut;
@@ -130,7 +130,7 @@ impl BitEncoder for PlayerAdd<'_> {
                 current_hash,
                 cached_hash: self.cached_hash,
             }
-            .encode(bits, bp, masks);
+                .encode(bits, bp, masks);
         }
 
         bits.put_bits(bp, 6, self.position.x as u32 & 0x3F);
@@ -192,12 +192,12 @@ fn write_local(info: &mut PlayerInfo, bits: &mut BytesMut, masks: &mut BytesMut,
                     None
                 },
             }
-            .encode(bits, &mut bp, masks);
+                .encode(bits, &mut bp, masks);
         } else if has_masks {
             LocalUpdate {
                 block: &info[idx].masks,
             }
-            .encode(bits, &mut bp, masks);
+                .encode(bits, &mut bp, masks);
         } else {
             skip = count_skips(info, idx + 1, true, active, |i| {
                 info.pending_remove.contains(&i)
@@ -243,7 +243,7 @@ fn write_outside(info: &mut PlayerInfo, bits: &mut BytesMut, masks: &mut BytesMu
                 masks: &snap_masks,
                 cached_hash,
             }
-            .encode(bits, &mut bp, masks);
+                .encode(bits, &mut bp, masks);
 
             info[idx].region_hash = position.region_hash();
             info[idx].activity |= 2;

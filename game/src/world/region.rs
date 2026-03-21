@@ -27,7 +27,7 @@ impl RegionId {
         self.0 & 0xFF
     }
 
-    pub fn to(self, other: RegionId) -> impl Iterator<Item = RegionId> {
+    pub fn to(self, other: RegionId) -> impl Iterator<Item=RegionId> {
         (self.x()..=other.x())
             .flat_map(move |x| (self.y()..=other.y()).map(move |y| RegionId::from_coords(x, y)))
     }

@@ -1,8 +1,9 @@
-use crate::account::Account;
 use crate::player::{Player, PlayerSnapshot};
-use crate::world::{Position, RegionMap};
+use crate::world::{RegionMap};
 use net::InboxExt;
 use net::{Frame, IncomingMessage};
+use persistence::account::Account;
+use persistence::player::PlayerData;
 use slab::Slab;
 use tokio::sync::mpsc;
 use tracing::info;
@@ -32,6 +33,7 @@ impl World {
     pub fn register_player(
         &mut self,
         account: &Account,
+        player_data: &PlayerData,
         display_mode: u8,
     ) -> (usize, mpsc::Sender<IncomingMessage>, mpsc::Receiver<Frame>) {
         let (inbox_tx, inbox_rx) = mpsc::channel::<IncomingMessage>(128);
@@ -40,18 +42,12 @@ impl World {
         let snapshots = self.player_snapshots();
         let id = self.players.vacant_key() + 1;
 
-        let position = if id == 1 {
-            Position::default()
-        } else {
-            Position::new(3094, 3493, 0)
-        };
-
         let player = Player::new(
             id,
-            &account,
+            account,
+            player_data,
             inbox_rx,
             outbound_tx,
-            position,
             display_mode,
             &snapshots,
         );
@@ -62,18 +58,22 @@ impl World {
         (id, inbox_tx, outbound_rx)
     }
 
-    pub fn unregister_player(&mut self, player_id: usize) {
+    pub fn unregister_player(&mut self, player_id: usize) -> Option<PlayerData> {
         let key = player_id - 1;
-        if self.players.contains(key) {
-            let player = self.players.remove(key);
-            self.region_map
-                .remove_player(player_id, player.current_region);
-
-            info!(
-                "Player (id={}, username={}) logged out",
-                player.id, player.username
-            );
+        if !self.players.contains(key) {
+            return None;
         }
+
+        let player = self.players.remove(key);
+        self.region_map
+            .remove_player(player_id, player.current_region);
+
+        info!(
+            "Player (id={}, username={}) logged out",
+            player.id, player.username
+        );
+
+        Some(player.to_player_data())
     }
 
     pub async fn on_player_login(&mut self, player_id: usize) {

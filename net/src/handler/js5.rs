@@ -49,7 +49,7 @@ impl Js5Handler {
                 Poll::Pending => None,
             })
         })
-        .await
+            .await
     }
 
     fn read(
@@ -90,9 +90,9 @@ impl Js5Handler {
                 urgent: request.urgent,
             })
         })
-        .await
-        .ok()
-        .flatten();
+            .await
+            .ok()
+            .flatten();
 
         if let Some(outbound) = file_result {
             framed.send(outbound).await?;

@@ -21,7 +21,7 @@ impl<C> XorCodec<C> {
 
 impl<C, Item> Decoder for XorCodec<C>
 where
-    C: Decoder<Item = Item>,
+    C: Decoder<Item=Item>,
 {
     type Item = Item;
     type Error = C::Error;

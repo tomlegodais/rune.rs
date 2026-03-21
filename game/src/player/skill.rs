@@ -39,14 +39,16 @@ pub struct SkillManager {
 }
 
 impl SkillManager {
-    pub fn new(outbox: Outbox) -> Self {
-        let mut levels = [1u8; NUM_SKILLS];
-        let mut xp = [0u32; NUM_SKILLS];
-
-        levels[Skill::Hitpoints as usize] = 10;
-        xp[Skill::Hitpoints as usize] = xp_for_level(10);
-
+    pub fn from_data(outbox: Outbox, levels: [u8; NUM_SKILLS], xp: [u32; NUM_SKILLS]) -> Self {
         Self { outbox, levels, xp }
+    }
+
+    pub fn levels(&self) -> [u8; NUM_SKILLS] {
+        self.levels
+    }
+
+    pub fn xp_values(&self) -> [u32; NUM_SKILLS] {
+        self.xp
     }
 
     pub fn level(&self, skill: Skill) -> u8 {

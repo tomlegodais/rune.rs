@@ -1,10 +1,11 @@
-use crate::account::Account;
 use crate::player::{
-    Appearance, AppearanceMask, MaskBlock, MoveTypeMask, PlayerInfo, SkillManager, Viewport,
-    WidgetManager, gpi,
+    gpi, Appearance, AppearanceMask, MaskBlock, MoveTypeMask, PlayerInfo,
+    SkillManager, Viewport, WidgetManager,
 };
 use crate::world::{Position, RegionId, Teleport};
 use net::{ChatMessage, GameScene, Inbox, Outbox, OutboxExt};
+use persistence::account::{Account, Rights};
+use persistence::player::PlayerData;
 use std::array;
 use tracing::info;
 
@@ -19,9 +20,10 @@ pub struct PlayerSnapshot {
 
 pub struct Player {
     pub id: usize,
+    pub player_data_id: i64,
     pub _account_id: i64,
     pub username: String,
-    pub rights: u8,
+    pub rights: Rights,
 
     pub inbox: Inbox,
     pub outbox: Outbox,
@@ -38,17 +40,19 @@ impl Player {
     pub fn new(
         id: usize,
         account: &Account,
+        data: &PlayerData,
         inbox: Inbox,
         outbox: Outbox,
-        position: Position,
         display_mode: u8,
         snapshots: &[PlayerSnapshot],
     ) -> Self {
+        let username = account.display_name();
+        let position = Position::new(data.x, data.y, data.plane);
         let viewport = Viewport::new(position, 0);
         let current_region = position.region_id();
-        let skills = SkillManager::new(outbox.clone());
+        let skills = SkillManager::from_data(outbox.clone(), data.levels, data.xp);
         let widgets = WidgetManager::new(outbox.clone(), display_mode);
-        let appearance = Appearance::new(&account.username, 3);
+        let appearance = Appearance::from_data(&username, data.male, data.look, data.colors);
         let player_info = PlayerInfo::new(
             id,
             snapshots,
@@ -57,8 +61,9 @@ impl Player {
 
         Self {
             id,
+            player_data_id: data.player_id,
             _account_id: account.id,
-            username: account.username.clone(),
+            username,
             rights: account.rights,
             inbox,
             outbox,
@@ -69,6 +74,20 @@ impl Player {
             skills,
             widgets,
             appearance,
+        }
+    }
+
+    pub fn to_player_data(&self) -> PlayerData {
+        PlayerData {
+            player_id: self.player_data_id,
+            x: self.position.x,
+            y: self.position.y,
+            plane: self.position.plane,
+            male: self.appearance.male,
+            look: self.appearance.look,
+            colors: self.appearance.colors,
+            levels: self.skills.levels(),
+            xp: self.skills.xp_values(),
         }
     }
 

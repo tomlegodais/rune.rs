@@ -1,22 +1,24 @@
-#![cfg_attr(debug_assertions, allow(dead_code, unused_imports, unused_variables))]
+// #![cfg_attr(debug_assertions, allow(dead_code, unused_imports, unused_variables))]
 use crate::config::AppConfig;
 use crate::service::{ServiceManager, WorldLoginService, WorldService};
 use crate::world::World;
 use ::config::{Config, Environment, File};
 use filesystem::CacheBuilder;
 use net::TcpService;
+use persistence::account::AccountRepository;
+use persistence::player::PlayerRepository;
+use persistence::shaku::HasComponent;
 use std::sync::Arc;
 
 use tokio::sync::Mutex;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
-mod account;
-mod bootstrap;
 mod command;
 mod config;
 mod handler;
 mod player;
+mod provider;
 mod service;
 mod world;
 
@@ -31,19 +33,29 @@ async fn main() -> anyhow::Result<()> {
     let app_config: AppConfig = config.try_deserialize()?;
     let filter = EnvFilter::builder()
         .with_default_directive(app_config.log.level.parse()?)
-        .from_env_lossy();
+        .from_env_lossy()
+        .add_directive("sqlx=warn".parse()?)
+        .add_directive("sea_orm_migration=warn".parse()?);
 
     tracing_subscriber::fmt().with_env_filter(filter).init();
 
     let mut service_manager = ServiceManager::new();
     let cache = Arc::new(CacheBuilder::new("cache/").open()?);
-    bootstrap::load(&cache)?;
+    provider::load(&cache)?;
 
+    let db = persistence::connect(&app_config.database).await?;
+    let accounts: Arc<dyn AccountRepository> = db.resolve();
+    let players: Arc<dyn PlayerRepository> = db.resolve();
     let world = Arc::new(Mutex::new(World::new()));
     let world_service = WorldService::new(world.clone());
-    let login_service = Arc::new(WorldLoginService::new(app_config.game, world.clone()));
-    let tcp_service = TcpService::new(app_config.tcp, cache.clone(), login_service)?;
+    let login_service = Arc::new(WorldLoginService::new(
+        app_config.game,
+        world.clone(),
+        accounts,
+        players,
+    ));
 
+    let tcp_service = TcpService::new(app_config.tcp, cache.clone(), login_service)?;
     service_manager.spawn("TCP Service", |cancel, tx| async move {
         tcp_service.run_until(cancel.cancelled(), Some(tx)).await
     });

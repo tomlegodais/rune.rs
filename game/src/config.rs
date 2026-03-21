@@ -1,4 +1,5 @@
 use net::TcpConfig;
+use persistence::DatabaseConfig;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -23,6 +24,9 @@ pub struct AppConfig {
 
     #[serde(default)]
     pub tcp: TcpConfig,
+
+    #[serde(default)]
+    pub database: DatabaseConfig,
 }
 
 impl Default for LogConfig {

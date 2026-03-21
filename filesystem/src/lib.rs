@@ -14,12 +14,12 @@ pub use checksum_table::build_checksum_table;
 pub use codec::Compression;
 pub use error::{CacheError, CacheResult};
 pub use id::{ArchiveId, FileId, IndexId, REFERENCE_INDEX};
-pub use reference::{ArchiveEntry, FileEntry, ReferenceTable, name_hash};
+pub use reference::{name_hash, ArchiveEntry, FileEntry, ReferenceTable};
 
 pub mod prelude {
     pub use crate::{
-        ArchiveId, Cache, CacheBuilder, CacheError, CacheResult, FileId, IndexId, REFERENCE_INDEX,
-        ReferenceTable,
+        ArchiveId, Cache, CacheBuilder, CacheError, CacheResult, FileId, IndexId, ReferenceTable,
+        REFERENCE_INDEX,
     };
 }
 
