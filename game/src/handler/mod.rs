@@ -1,3 +1,4 @@
+mod chat;
 mod command;
 
 use crate::player::Player;

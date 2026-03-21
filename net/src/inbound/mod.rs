@@ -1,3 +1,4 @@
+pub mod chat;
 pub mod command;
 
 use crate::Frame;

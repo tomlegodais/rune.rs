@@ -14,6 +14,15 @@ pub trait BufExt: Buf {
         (self.get_u8() as u32) << 16 | (self.get_u8() as u32) << 8 | self.get_u8() as u32
     }
 
+    fn get_smart(&mut self) -> u16 {
+        let peek = self.chunk()[0];
+        if peek < 128 {
+            self.get_u8() as u16
+        } else {
+            self.get_u16() - 32768
+        }
+    }
+
     fn get_smart_u32(&mut self) -> u32 {
         let peek = self.chunk()[0];
         if peek & 0x80 == 0 {

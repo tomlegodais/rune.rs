@@ -6,11 +6,13 @@ use ::config::{Config, Environment, File};
 use filesystem::CacheBuilder;
 use net::TcpService;
 use std::sync::Arc;
+
 use tokio::sync::Mutex;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
 mod account;
+mod bootstrap;
 mod command;
 mod config;
 mod handler;
@@ -35,6 +37,7 @@ async fn main() -> anyhow::Result<()> {
 
     let mut service_manager = ServiceManager::new();
     let cache = Arc::new(CacheBuilder::new("cache/").open()?);
+    bootstrap::load(&cache)?;
 
     let world = Arc::new(Mutex::new(World::new()));
     let world_service = WorldService::new(world.clone());

@@ -1,6 +1,8 @@
-use crate::player::state::{PlayerState, MAX_PLAYERS};
+use crate::player::Mask;
 use crate::player::PlayerSnapshot;
-use crate::world::Position;
+use crate::player::state::{MAX_PLAYERS, PlayerState};
+use crate::world::{Position, Teleport};
+use std::array;
 use std::ops::{Index, IndexMut};
 
 pub struct PlayerInfo {
@@ -11,9 +13,10 @@ pub struct PlayerInfo {
 }
 
 impl PlayerInfo {
-    pub fn new(self_id: usize, snapshots: &[PlayerSnapshot]) -> Self {
-        let mut players = [PlayerState::default(); MAX_PLAYERS];
+    pub fn new(self_id: usize, snapshots: &[PlayerSnapshot], initial_masks: &[&dyn Mask]) -> Self {
+        let mut players: [PlayerState; MAX_PLAYERS] = array::from_fn(|_| PlayerState::default());
         players[self_id].local = true;
+        players[self_id].masks.extend(initial_masks);
 
         for s in snapshots {
             if s.id != self_id {
@@ -29,14 +32,6 @@ impl PlayerInfo {
         }
     }
 
-    pub fn self_state(&self) -> &PlayerState {
-        &self.players[self.self_id]
-    }
-
-    pub fn self_state_mut(&mut self) -> &mut PlayerState {
-        &mut self.players[self.self_id]
-    }
-
     pub fn sync(&mut self, others: &[PlayerSnapshot], is_within_view: impl Fn(Position) -> bool) {
         for other in others {
             if other.id == self.self_id {
@@ -44,6 +39,7 @@ impl PlayerInfo {
             }
 
             self.players[other.id].teleport = other.teleport;
+            self.players[other.id].masks = other.masks.clone();
 
             let is_local = self.players[other.id].local;
             let in_range = is_within_view(other.position);
@@ -65,12 +61,12 @@ impl PlayerInfo {
         }
     }
 
-    pub fn remove_all_locals(&mut self) {
-        for idx in 1..MAX_PLAYERS {
-            if idx != self.self_id && self.players[idx].local {
-                self.pending_remove.push(idx);
-            }
-        }
+    pub fn add_mask(&mut self, mask: impl Mask) {
+        self.players[self.self_id].masks.add(mask);
+    }
+
+    pub fn teleport(&mut self, teleport: Teleport) {
+        self.players[self.self_id].teleport = Some(teleport);
     }
 
     pub fn reset(&mut self) {
@@ -83,7 +79,12 @@ impl PlayerInfo {
         for i in 1..MAX_PLAYERS {
             self.players[i].activity >>= 1;
             self.players[i].teleport = None;
+            self.players[i].masks.clear();
         }
+    }
+
+    pub fn self_state(&self) -> &PlayerState {
+        &self.players[self.self_id]
     }
 }
 

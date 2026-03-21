@@ -1,10 +1,11 @@
 use crate::account::Account;
 use crate::player::{
-    Appearance, AppearanceEncoder, PlayerInfo, MaskBlock, MaskFlags, MoveTypeMask, SkillManager,
-    Viewport, WidgetManager, gpi,
+    Appearance, AppearanceMask, MaskBlock, MoveTypeMask, PlayerInfo, SkillManager, Viewport,
+    WidgetManager, gpi,
 };
 use crate::world::{Position, RegionId, Teleport};
 use net::{ChatMessage, GameScene, Inbox, Outbox, OutboxExt};
+use std::array;
 use tracing::info;
 
 #[derive(Clone)]
@@ -12,7 +13,7 @@ pub struct PlayerSnapshot {
     pub id: usize,
     pub position: Position,
     pub appearance: Appearance,
-    pub mask_flags: MaskFlags,
+    pub masks: MaskBlock,
     pub teleport: Option<Teleport>,
 }
 
@@ -20,7 +21,7 @@ pub struct Player {
     pub id: usize,
     pub _account_id: i64,
     pub username: String,
-    pub _rights: u8,
+    pub rights: u8,
 
     pub inbox: Inbox,
     pub outbox: Outbox,
@@ -31,7 +32,6 @@ pub struct Player {
     pub skills: SkillManager,
     pub widgets: WidgetManager,
     pub appearance: Appearance,
-    pub mask_flags: MaskFlags,
 }
 
 impl Player {
@@ -45,16 +45,21 @@ impl Player {
         snapshots: &[PlayerSnapshot],
     ) -> Self {
         let viewport = Viewport::new(position, 0);
-        let player_info = PlayerInfo::new(id, snapshots);
         let current_region = position.region_id();
         let skills = SkillManager::new(outbox.clone());
         let widgets = WidgetManager::new(outbox.clone(), display_mode);
+        let appearance = Appearance::new(&account.username, 3);
+        let player_info = PlayerInfo::new(
+            id,
+            snapshots,
+            &[&MoveTypeMask, &AppearanceMask::new(&appearance)],
+        );
 
         Self {
             id,
             _account_id: account.id,
             username: account.username.clone(),
-            _rights: account.rights,
+            rights: account.rights,
             inbox,
             outbox,
             position,
@@ -63,18 +68,19 @@ impl Player {
             player_info,
             skills,
             widgets,
-            appearance: Appearance::new(&account.username, 3),
-            mask_flags: MaskFlags::APPEARANCE | MaskFlags::MOVE_TYPE,
+            appearance,
         }
     }
 
     pub fn snapshot(&self) -> PlayerSnapshot {
+        let state = self.player_info.self_state();
+
         PlayerSnapshot {
             id: self.id,
             position: self.position,
             appearance: self.appearance.clone(),
-            mask_flags: self.mask_flags,
-            teleport: self.player_info.self_state().teleport,
+            masks: state.masks.clone(),
+            teleport: state.teleport,
         }
     }
 
@@ -102,7 +108,7 @@ impl Player {
     }
 
     pub fn teleport(&mut self, destination: Position) {
-        self.player_info.self_state_mut().teleport = Some(Teleport {
+        self.player_info.teleport(Teleport {
             from: self.position,
             to: destination,
         });
@@ -110,13 +116,7 @@ impl Player {
     }
 
     pub async fn send_player_info(&mut self) {
-        let appearance_encoder = AppearanceEncoder::new(&self.appearance);
-        let block = MaskBlock {
-            flags: &self.mask_flags,
-            move_type: &MoveTypeMask,
-            appearance: &appearance_encoder,
-        };
-        let frame = gpi::encode(&mut self.player_info, &block);
+        let frame = gpi::encode(&mut self.player_info);
         let _ = self.outbox.send(frame).await;
     }
 
@@ -130,7 +130,7 @@ impl Player {
                 chunk_x: self.position.chunk_x(),
                 chunk_y: self.position.chunk_y(),
                 region_count: self.viewport.region_ids().len(),
-                region_hashes: core::array::from_fn(|i| self.player_info[i].region_hash),
+                region_hashes: array::from_fn(|i| self.player_info[i].region_hash),
             })
             .await;
     }
@@ -146,6 +146,5 @@ impl Player {
 
     pub fn reset(&mut self) {
         self.player_info.reset();
-        self.mask_flags.clear();
     }
 }
