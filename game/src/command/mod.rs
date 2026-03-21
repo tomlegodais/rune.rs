@@ -1,5 +1,6 @@
 mod pos;
 mod setlevel;
+mod tele;
 
 use crate::player::Player;
 use crate::send_message;

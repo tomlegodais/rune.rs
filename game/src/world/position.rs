@@ -47,6 +47,12 @@ impl Position {
     }
 }
 
+#[derive(Copy, Clone)]
+pub struct Teleport {
+    pub from: Position,
+    pub to: Position,
+}
+
 impl Default for Position {
     fn default() -> Self {
         Position::new(3093, 3493, 0)

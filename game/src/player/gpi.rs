@@ -1,12 +1,11 @@
+use crate::player::state::MAX_PLAYERS;
 use crate::player::{
-    Appearance, AppearanceEncoder, MaskBlock, MaskEncoder, MaskFlags, MoveTypeMask, Viewport,
+    Appearance, AppearanceEncoder, MaskBlock, MaskEncoder, MaskFlags, MoveTypeMask, PlayerInfo,
 };
 use crate::world::Position;
 use net::{Frame, Prefix};
 use tokio_util::bytes::{BufMut, BytesMut};
 use util::BitsMut;
-
-const MAX_PLAYERS: usize = 2048;
 
 trait BitEncoder {
     fn encode(&self, bits: &mut BytesMut, bp: &mut usize, masks: &mut BytesMut);
@@ -45,6 +44,43 @@ impl BitEncoder for LocalUpdate<'_> {
         bits.put_bits(bp, 1, 1);
         bits.put_bits(bp, 2, 0);
         write_masks(masks, self.block);
+    }
+}
+
+struct TeleportUpdate<'a> {
+    from: Position,
+    to: Position,
+    block: Option<&'a MaskBlock<'a>>,
+}
+
+impl BitEncoder for TeleportUpdate<'_> {
+    fn encode(&self, bits: &mut BytesMut, bp: &mut usize, masks: &mut BytesMut) {
+        let has_masks = self.block.is_some();
+        let dx = self.to.x - self.from.x;
+        let dy = self.to.y - self.from.y;
+        let dp = self.to.plane - self.from.plane;
+
+        bits.put_bits(bp, 1, 1);
+        bits.put_bits(bp, 1, has_masks as u32);
+        bits.put_bits(bp, 2, 3);
+
+        if dx.abs() <= 14 && dy.abs() <= 14 {
+            let x = if dx < 0 { dx + 32 } else { dx } as u32;
+            let y = if dy < 0 { dy + 32 } else { dy } as u32;
+            bits.put_bits(bp, 1, 0);
+            bits.put_bits(bp, 12, y + (x << 5) + ((dp as u32 & 0x3) << 10));
+        } else {
+            bits.put_bits(bp, 1, 1);
+            bits.put_bits(
+                bp,
+                30,
+                (dy as u32 & 0x3fff) + ((dx as u32 & 0x3fff) << 14) + ((dp as u32 & 0x3) << 28),
+            );
+        }
+
+        if let Some(block) = self.block {
+            write_masks(masks, block);
+        }
     }
 }
 
@@ -117,14 +153,14 @@ impl BitEncoder for PlayerAdd<'_> {
     }
 }
 
-pub fn encode(viewport: &mut Viewport, self_index: usize, block: &MaskBlock) -> Frame {
+pub fn encode(info: &mut PlayerInfo, block: &MaskBlock) -> Frame {
     let mut bits = BytesMut::new();
     let mut masks = BytesMut::new();
 
-    write_local(viewport, &mut bits, &mut masks, self_index, block, false);
-    write_local(viewport, &mut bits, &mut masks, self_index, block, true);
-    write_outside(viewport, &mut bits, &mut masks, true);
-    write_outside(viewport, &mut bits, &mut masks, false);
+    write_local(info, &mut bits, &mut masks, block, false);
+    write_local(info, &mut bits, &mut masks, block, true);
+    write_outside(info, &mut bits, &mut masks, true);
+    write_outside(info, &mut bits, &mut masks, false);
 
     bits.extend_from_slice(&masks);
 
@@ -136,10 +172,9 @@ pub fn encode(viewport: &mut Viewport, self_index: usize, block: &MaskBlock) -> 
 }
 
 fn write_local(
-    viewport: &mut Viewport,
+    info: &mut PlayerInfo,
     bits: &mut BytesMut,
     masks: &mut BytesMut,
-    self_index: usize,
     block: &MaskBlock,
     active: bool,
 ) {
@@ -147,63 +182,72 @@ fn write_local(
     let mut skip = 0u32;
 
     for idx in 1..MAX_PLAYERS {
-        let state = &viewport.players[idx];
+        let state = &info[idx];
         if !state.local || (state.activity & 1 != 0) != active {
             continue;
         }
 
         if skip > 0 {
             skip -= 1;
-            viewport.players[idx].activity |= 2;
+            info[idx].activity |= 2;
             continue;
         }
 
-        let removing = viewport.pending_remove.contains(&idx);
-        let needs_update = idx == self_index && !block.flags.is_empty();
+        let removing = info.pending_remove.contains(&idx);
+        let is_self = idx == info.self_id;
+        let needs_update = is_self && !block.flags.is_empty();
 
         if removing {
-            let cached_hash = viewport.players[idx].region_hash;
+            let cached_hash = info[idx].region_hash;
             PlayerRemove { cached_hash }.encode(bits, &mut bp, masks);
+        } else if let Some(tele) = info[idx].teleport {
+            TeleportUpdate {
+                from: tele.from,
+                to: tele.to,
+                block: if needs_update { Some(block) } else { None },
+            }
+            .encode(bits, &mut bp, masks);
         } else if needs_update {
             LocalUpdate { block }.encode(bits, &mut bp, masks);
         } else {
-            skip = count_skips(viewport, idx + 1, true, active, |i| {
-                viewport.pending_remove.contains(&i)
-                    || (i == self_index && !block.flags.is_empty())
+            skip = count_skips(info, idx + 1, true, active, |i| {
+                info.pending_remove.contains(&i)
+                    || info[i].teleport.is_some()
+                    || (i == info.self_id && !block.flags.is_empty())
             });
 
             Skip(skip).encode(bits, &mut bp, masks);
-            viewport.players[idx].activity |= 2;
+            info[idx].activity |= 2;
         }
     }
 
     bits.bits_end(bp);
 }
 
-fn write_outside(viewport: &mut Viewport, bits: &mut BytesMut, masks: &mut BytesMut, active: bool) {
+fn write_outside(info: &mut PlayerInfo, bits: &mut BytesMut, masks: &mut BytesMut, active: bool) {
     let mut bp = bits.bits_start();
     let mut skip = 0u32;
 
     for idx in 1..MAX_PLAYERS {
-        let state = &viewport.players[idx];
+        let state = &info[idx];
         if state.local || (state.activity & 1 != 0) != active {
             continue;
         }
 
         if skip > 0 {
             skip -= 1;
-            viewport.players[idx].activity |= 2;
+            info[idx].activity |= 2;
             continue;
         }
 
-        let pending_data = viewport
+        let pending_data = info
             .pending_add
             .iter()
             .find(|p| p.id == idx)
             .map(|p| (p.position, p.appearance.clone(), p.mask_flags));
 
         if let Some((position, appearance, mask_flags)) = pending_data {
-            let cached_hash = viewport.players[idx].region_hash;
+            let cached_hash = info[idx].region_hash;
 
             PlayerAdd {
                 position,
@@ -213,15 +257,15 @@ fn write_outside(viewport: &mut Viewport, bits: &mut BytesMut, masks: &mut Bytes
             }
             .encode(bits, &mut bp, masks);
 
-            viewport.players[idx].region_hash = position.region_hash();
-            viewport.players[idx].activity |= 2;
+            info[idx].region_hash = position.region_hash();
+            info[idx].activity |= 2;
         } else {
-            skip = count_skips(viewport, idx + 1, false, active, |i| {
-                viewport.pending_add.iter().any(|p| p.id == i)
+            skip = count_skips(info, idx + 1, false, active, |i| {
+                info.pending_add.iter().any(|p| p.id == i)
             });
 
             Skip(skip).encode(bits, &mut bp, masks);
-            viewport.players[idx].activity |= 2;
+            info[idx].activity |= 2;
         }
     }
 
@@ -229,7 +273,7 @@ fn write_outside(viewport: &mut Viewport, bits: &mut BytesMut, masks: &mut Bytes
 }
 
 fn count_skips(
-    viewport: &Viewport,
+    info: &PlayerInfo,
     from: usize,
     want_local: bool,
     active: bool,
@@ -237,7 +281,7 @@ fn count_skips(
 ) -> u32 {
     let mut count = 0;
     for idx in from..MAX_PLAYERS {
-        let state = &viewport.players[idx];
+        let state = &info[idx];
         if state.local != want_local || (state.activity & 1 != 0) != active {
             continue;
         }
