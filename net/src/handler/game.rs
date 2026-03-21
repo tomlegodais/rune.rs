@@ -1,6 +1,6 @@
 use crate::codec::GameCodec;
 use crate::crypto::StreamCipher;
-use crate::{Frame, SessionError};
+use crate::{Frame, IncomingMessage, SessionError};
 use futures_util::{SinkExt, StreamExt};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
@@ -13,7 +13,7 @@ impl GameHandler {
         stream: TcpStream,
         in_cipher: CIn,
         out_cipher: COut,
-        inbox_tx: mpsc::Sender<Frame>,
+        inbox_tx: mpsc::Sender<IncomingMessage>,
         mut outbox_rx: mpsc::Receiver<Frame>,
     ) -> Result<(), SessionError>
     where
@@ -31,8 +31,10 @@ impl GameHandler {
                         None => break,
                     };
 
-                    if inbox_tx.send(msg).await.is_err() {
-                        break;
+                    if let Some(decoded) = crate::inbound::decode(msg) {
+                        if inbox_tx.send(decoded).await.is_err() {
+                            break;
+                        }
                     }
                 }
 

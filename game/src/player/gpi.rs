@@ -1,4 +1,3 @@
-use crate::player::viewport::PlayerState;
 use crate::player::{
     Appearance, AppearanceEncoder, MaskBlock, MaskEncoder, MaskFlags, MoveTypeMask, Viewport,
 };

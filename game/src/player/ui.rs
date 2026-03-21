@@ -1,26 +1,6 @@
-macro_rules! widget_group {
-    (
-        $(
-            $vis:vis const $name:ident : $ty:ty = $expr:expr;
-        )+
-    ) => {
-        $(
-            $vis const $name: $ty = $expr;
-        )+
-
-        pub fn widgets() -> impl Iterator<Item = &'static dyn $crate::player::widget::Widget> {
-            [
-                $(
-                    &$name as &dyn $crate::player::Widget,
-                )+
-            ]
-            .into_iter()
-        }
-    };
-}
-
 pub mod tabs {
     use crate::player::ScreenWidget;
+    use crate::widget_group;
 
     widget_group! {
         pub const ATTACK: ScreenWidget = ScreenWidget::with_position(884, 152, 33);
@@ -44,7 +24,8 @@ pub mod tabs {
 }
 
 pub mod orbs {
-    use crate::player::{ScreenWidget, Widget};
+    use crate::player::ScreenWidget;
+    use crate::widget_group;
 
     widget_group! {
         pub const SUMMONING: ScreenWidget = ScreenWidget::with_position(747, 139, 172);
@@ -55,7 +36,8 @@ pub mod orbs {
 }
 
 pub mod chat {
-    use crate::player::{ChatboxWidget, ScreenWidget, Widget};
+    use crate::player::{ChatboxWidget, ScreenWidget};
+    use crate::widget_group;
 
     widget_group! {
         pub const CHAT_FRAME: ScreenWidget = ScreenWidget::with_position(752, 142, 18);

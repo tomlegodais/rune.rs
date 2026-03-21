@@ -97,7 +97,7 @@ enum State {
     Opcode,
     Size {
         opcode: u8,
-        size_marker: i16,
+        prefix: Prefix,
     },
     Payload {
         opcode: u8,
@@ -151,51 +151,40 @@ where
                         return Err(SessionError::InvalidMessageSize(opcode));
                     }
 
+                    let prefix = match size_marker {
+                        -1 => Prefix::Byte,
+                        _ => Prefix::Fixed,
+                    };
+
                     if size_marker < 0 {
-                        self.state = State::Size {
-                            opcode,
-                            size_marker,
-                        };
+                        self.state = State::Size { opcode, prefix };
                     } else {
                         self.state = State::Payload {
                             opcode,
-                            prefix: Prefix::Fixed,
+                            prefix,
                             size: size_marker as usize,
                         };
                     }
                 }
 
-                State::Size {
+                State::Size { opcode, prefix } => {
+                    if src.len() < 1 {
+                        return Ok(None);
+                    }
+
+                    let size = src.get_u8();
+                    self.state = State::Payload {
+                        opcode,
+                        prefix,
+                        size: size as usize,
+                    };
+                }
+
+                State::Payload {
                     opcode,
-                    size_marker,
-                } => match size_marker {
-                    -1 => {
-                        if src.len() < 1 {
-                            return Ok(None);
-                        }
-
-                        let size = src.get_u8() as usize;
-                        self.state = State::Payload {
-                            opcode,
-                            prefix: Prefix::Byte,
-                            size,
-                        };
-                    }
-                    -2 => {
-                        if src.len() < 2 {
-                            return Ok(None);
-                        }
-                        let size = src.get_u16() as usize;
-                        self.state = State::Payload {
-                            opcode,
-                            prefix: Prefix::Short,
-                            size,
-                        };
-                    }
-                    _ => unreachable!("size_marker must be -1 or -2 in Size state"),
-                },
-
-                State::Payload { opcode, prefix, size } => {
+                    prefix,
+                    size,
+                } => {
                     if src.len() < size {
                         return Ok(None);
                     }

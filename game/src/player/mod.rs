@@ -1,3 +1,5 @@
+mod macros;
+
 mod appearance;
 mod gpi;
 mod mask;

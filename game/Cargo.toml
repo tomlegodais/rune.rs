@@ -7,8 +7,9 @@ edition.workspace = true
 [dependencies]
 anyhow = { workspace = true }
 async-trait = { workspace = true }
-codec = { path = "../codec" }
 config = { workspace = true }
+inventory = "0.3"
+macros = { path = "../macros" }
 filesystem = { path = "../filesystem" }
 net = { path = "../net" }
 serde = { workspace = true }
@@ -17,3 +18,4 @@ tokio-util = { workspace = true }
 util = { path = "../util" }
 tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+num_enum.workspace = true

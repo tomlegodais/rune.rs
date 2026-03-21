@@ -1,4 +1,4 @@
-use codec::{OpenWidget, Outbox, OutboxExt, SetRootWidget};
+use net::{OpenWidget, Outbox, OutboxExt, SetRootWidget};
 use crate::player::ui;
 use std::collections::HashMap;
 

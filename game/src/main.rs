@@ -11,7 +11,9 @@ use tracing::info;
 use tracing_subscriber::EnvFilter;
 
 mod account;
+mod command;
 mod config;
+mod handler;
 mod player;
 mod service;
 mod world;

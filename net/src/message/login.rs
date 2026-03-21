@@ -1,4 +1,4 @@
-use crate::Frame;
+use crate::{Frame, IncomingMessage};
 use num_enum::IntoPrimitive;
 use tokio::sync::mpsc;
 use tokio_util::bytes::{BufMut, Bytes, BytesMut};
@@ -43,7 +43,7 @@ pub struct LoginSuccess {
     pub rights: u8,
     pub player_index: usize,
     pub members: bool,
-    pub inbox_tx: mpsc::Sender<Frame>,
+    pub inbox_tx: mpsc::Sender<IncomingMessage>,
     pub outbound_rx: mpsc::Receiver<Frame>,
 }
 

@@ -1,6 +1,7 @@
-use codec::{Outbox, OutboxExt, UpdateSkill};
+use net::{Outbox, OutboxExt, UpdateSkill};
+use num_enum::TryFromPrimitive;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive)]
 #[repr(usize)]
 pub enum Skill {
     Attack = 0,
@@ -43,7 +44,7 @@ impl SkillManager {
         let mut xp = [0u32; NUM_SKILLS];
 
         levels[Skill::Hitpoints as usize] = 10;
-        xp[Skill::Hitpoints as usize] = 1154;
+        xp[Skill::Hitpoints as usize] = xp_for_level(10);
 
         Self { outbox, levels, xp }
     }
@@ -57,29 +58,54 @@ impl SkillManager {
     }
 
     pub fn set_level(&mut self, skill: Skill, level: u8) {
-        self.levels[skill as usize] = level;
+        let i = skill as usize;
+        self.levels[i] = level;
+        self.xp[i] = xp_for_level(level);
     }
 
     pub fn set_xp(&mut self, skill: Skill, xp: u32) {
-        self.xp[skill as usize] = xp;
+        let i = skill as usize;
+        self.xp[i] = xp;
+        self.levels[i] = level_for_xp(xp);
     }
 
     pub async fn flush(&mut self) {
         for i in 0..NUM_SKILLS {
-            self.outbox.write(UpdateSkill {
-                id: i as u8,
-                level: self.levels[i],
-                xp: self.xp[i],
-            }).await;
+            self.outbox
+                .write(UpdateSkill {
+                    id: i as u8,
+                    level: self.levels[i],
+                    xp: self.xp[i],
+                })
+                .await;
         }
     }
 
     pub async fn send_skill(&mut self, skill: Skill) {
         let i = skill as usize;
-        self.outbox.write(UpdateSkill {
-            id: i as u8,
-            level: self.levels[i],
-            xp: self.xp[i],
-        }).await;
+        self.outbox
+            .write(UpdateSkill {
+                id: i as u8,
+                level: self.levels[i],
+                xp: self.xp[i],
+            })
+            .await;
     }
+}
+
+fn xp_for_level(level: u8) -> u32 {
+    let mut total = 0u32;
+    for lvl in 1..level as u32 {
+        total += (lvl as f64 + 300.0 * 2.0_f64.powf(lvl as f64 / 7.0)) as u32;
+    }
+    total / 4
+}
+
+fn level_for_xp(xp: u32) -> u8 {
+    for level in (1..=99u8).rev() {
+        if xp >= xp_for_level(level) {
+            return level;
+        }
+    }
+    1
 }

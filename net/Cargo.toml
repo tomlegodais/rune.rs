@@ -16,5 +16,7 @@ serde = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
+inventory = "0.3"
+macros = { path = "../macros" }
 tracing = { workspace = true }
 util = { path = "../util" }

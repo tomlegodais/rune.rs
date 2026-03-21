@@ -1,4 +1,4 @@
-mod game;
+pub(crate) mod frame;
 mod handshake;
 mod js5;
 mod login;
@@ -9,5 +9,5 @@ pub(crate) use js5::{FileRequest, Js5Inbound, Js5Outbound, PriorityRequest, Requ
 pub(crate) use login::{LoginInbound, LoginOutbound, LoginState};
 pub(crate) use worldlist::{Country, CountryFlag, World, WorldFlag, WorldListOutbound};
 
-pub use game::{Encodable, Frame, Prefix};
+pub use frame::{Encodable, Frame, Prefix};
 pub use login::{LoginOutcome, LoginRequest, LoginResponse, LoginSuccess, StatusCode};

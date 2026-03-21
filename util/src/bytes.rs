@@ -71,6 +71,11 @@ pub trait BytesMutExt: BufMut {
         }
     }
 
+    fn put_string(&mut self, value: &str) {
+        self.put_slice(value.as_bytes());
+        self.put_u8(NULL_TERMINATOR);
+    }
+
     fn put_versioned_string(&mut self, version: u8, value: &str) {
         self.put_u8(version);
         self.put_slice(value.as_bytes());

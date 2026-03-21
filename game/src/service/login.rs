@@ -41,7 +41,7 @@ impl WorldLoginService {
             id: 1,
             username: username.to_string(),
             _password_hash: "fake-hash".to_string(),
-            rights: 0,
+            rights: 2,
         })
     }
 

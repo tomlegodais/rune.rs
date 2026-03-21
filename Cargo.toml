@@ -1,5 +1,5 @@
 [workspace]
-members = ["codec", "filesystem", "game", "net", "util"]
+members = ["filesystem", "game", "macros", "net", "util"]
 resolver = "2"
 
 [workspace.package]

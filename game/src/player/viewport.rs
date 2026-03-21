@@ -1,4 +1,4 @@
-use crate::player::{Appearance, PlayerSnapshot};
+use crate::player::PlayerSnapshot;
 use crate::world::{Position, RegionId};
 
 const VIEW_DISTANCES: [i32; 4] = [104, 120, 136, 168];

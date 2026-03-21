@@ -4,8 +4,7 @@ use crate::player::{
     WidgetManager, gpi,
 };
 use crate::world::{Position, RegionId};
-use codec::{GameScene, Inbox, Outbox, OutboxExt};
-use net::Frame;
+use net::{ChatMessage, GameScene, Inbox, Outbox, OutboxExt};
 use tracing::info;
 
 #[derive(Clone)]
@@ -83,10 +82,11 @@ impl Player {
         self.viewport.sync(self.id, snapshots);
     }
 
-    pub async fn on_login(&mut self, snapshots: &[PlayerSnapshot]) {
+    pub async fn on_login(&mut self) {
         self.send_game_scene(true).await;
         self.widgets.on_login().await;
         self.skills.flush().await;
+        self.send_message("Welcome to RuneScape.").await;
 
         info!("Player ({}) logged in", self.username);
     }
@@ -113,6 +113,15 @@ impl Player {
                 chunk_y: self.position.chunk_y(),
                 region_count: self.viewport.region_ids().len(),
                 region_hashes: core::array::from_fn(|i| self.viewport.players[i].region_hash),
+            })
+            .await;
+    }
+
+    pub async fn send_message(&mut self, text: &str) {
+        self.outbox
+            .write(ChatMessage {
+                msg_type: 0,
+                text: text.to_string(),
             })
             .await;
     }

@@ -1,8 +1,8 @@
 use crate::account::Account;
 use crate::player::{Player, PlayerSnapshot};
 use crate::world::{Position, RegionMap};
-use codec::InboxExt;
-use net::Frame;
+use net::InboxExt;
+use net::{Frame, IncomingMessage};
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 
@@ -25,21 +25,17 @@ impl World {
         for player in self.players.values_mut() {
             let messages = player.inbox.try_recv_all();
             for message in messages {
-                Self::handle_message(player, message).await;
+                crate::handler::handle(player, message).await;
             }
         }
-    }
-
-    async fn handle_message(_player: &mut Player, _msg: Frame) {
-        // TODO: handle incoming messages
     }
 
     pub fn register_player(
         &mut self,
         account: &Account,
         display_mode: u8,
-    ) -> (usize, mpsc::Sender<Frame>, mpsc::Receiver<Frame>) {
-        let (inbox_tx, inbox_rx) = mpsc::channel::<Frame>(128);
+    ) -> (usize, mpsc::Sender<IncomingMessage>, mpsc::Receiver<Frame>) {
+        let (inbox_tx, inbox_rx) = mpsc::channel::<IncomingMessage>(128);
         let (outbound_tx, outbound_rx) = mpsc::channel::<Frame>(128);
 
         let id = self.next_index;
@@ -52,7 +48,15 @@ impl World {
         };
 
         let snapshots = self.player_snapshots();
-        let player = Player::new(id, &account, inbox_rx, outbound_tx, position, display_mode, &snapshots);
+        let player = Player::new(
+            id,
+            &account,
+            inbox_rx,
+            outbound_tx,
+            position,
+            display_mode,
+            &snapshots,
+        );
 
         let region_id = player.position.region_id();
         self.region_map.add_player(player.id, region_id);
@@ -61,9 +65,8 @@ impl World {
     }
 
     pub async fn on_player_login(&mut self, player_id: usize) {
-        let snapshots = self.player_snapshots();
         if let Some(player) = self.players.get_mut(&player_id) {
-            player.on_login(&snapshots).await;
+            player.on_login().await;
         }
     }
 

@@ -97,16 +97,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "codec"
-version = "0.1.0"
-dependencies = [
- "net",
- "tokio",
- "tokio-util",
- "util",
-]
-
-[[package]]
 name = "config"
 version = "0.15.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -327,10 +317,12 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "codec",
  "config",
  "filesystem",
+ "inventory",
+ "macros",
  "net",
+ "num_enum",
  "serde",
  "tokio",
  "tokio-util",
@@ -429,6 +421,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "inventory"
+version = "0.3.22"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "009ae045c87e7082cb72dab0ccd01ae075dd00141ddc108f43a0ea150a9e7227"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -485,6 +486,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
 
 [[package]]
+name = "macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "matchers"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -538,6 +548,8 @@ dependencies = [
  "bitflags",
  "filesystem",
  "futures-util",
+ "inventory",
+ "macros",
  "num_enum",
  "rand",
  "serde",

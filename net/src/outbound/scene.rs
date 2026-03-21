@@ -1,4 +1,4 @@
-use net::{Encodable, Frame, Prefix};
+use crate::{Encodable, Frame, Prefix};
 use tokio_util::bytes::{BufMut, BytesMut};
 use util::{BitsMut, BytesMutExt};
 
