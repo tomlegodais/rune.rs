@@ -90,4 +90,9 @@ impl LoginService for WorldLoginService {
 
         Ok(LoginOutcome::Success(success))
     }
+
+    async fn logout(&self, player_index: usize) {
+        let mut world = self.world.lock().await;
+        world.unregister_player(player_index);
+    }
 }

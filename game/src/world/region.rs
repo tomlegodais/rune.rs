@@ -57,6 +57,12 @@ impl RegionMap {
         self.region_mut(region_id).players.insert(player_id);
     }
 
+    pub fn remove_player(&mut self, player_id: usize, region_id: RegionId) {
+        if let Some(region) = self.regions.get_mut(&region_id) {
+            region.players.remove(&player_id);
+        }
+    }
+
     pub fn update_player_region(
         &mut self,
         player_id: usize,

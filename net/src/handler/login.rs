@@ -1,14 +1,14 @@
+use crate::LoginOutcome;
 use crate::codec::LoginCodec;
+use crate::crypto::NoopCipher;
 use crate::error::SessionError;
+use crate::handler::GameHandler;
 use crate::message::{LoginInbound, LoginOutbound, LoginResponse};
 use crate::service::LoginService;
 use futures_util::{SinkExt, StreamExt};
 use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio_util::codec::Framed;
-use crate::crypto::NoopCipher;
-use crate::handler::GameHandler;
-use crate::LoginOutcome;
 
 pub struct LoginHandler;
 
@@ -36,12 +36,19 @@ impl LoginHandler {
 
         match outcome {
             LoginOutcome::Success(s) => {
+                let player_index = s.player_index;
                 let parts = framed.into_parts();
                 let stream = parts.io;
                 let in_cipher = NoopCipher;
                 let out_cipher = NoopCipher;
 
-                GameHandler::run(stream, in_cipher, out_cipher, s.inbox_tx, s.outbound_rx).await
+                let result =
+                    GameHandler::run(stream, in_cipher, out_cipher, s.inbox_tx, s.outbound_rx)
+                        .await;
+
+                service.logout(player_index).await;
+
+                result
             }
             _ => Ok(()),
         }

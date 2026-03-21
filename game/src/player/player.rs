@@ -88,7 +88,10 @@ impl Player {
         self.skills.flush().await;
         self.send_message("Welcome to RuneScape.").await;
 
-        info!("Player ({}) logged in", self.username);
+        info!(
+            "Player (id={}, username={}) logged in",
+            self.id, self.username
+        );
     }
 
     pub async fn send_player_info(&mut self) {

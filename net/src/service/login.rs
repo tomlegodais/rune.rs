@@ -10,4 +10,6 @@ pub trait LoginService: Send + Sync {
         req: LoginRequest,
         session_key: i64,
     ) -> Result<LoginOutcome, SessionError>;
+
+    async fn logout(&self, player_index: usize);
 }

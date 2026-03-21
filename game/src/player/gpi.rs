@@ -48,6 +48,19 @@ impl BitEncoder for LocalUpdate<'_> {
     }
 }
 
+struct PlayerRemove {
+    cached_hash: u32,
+}
+
+impl BitEncoder for PlayerRemove {
+    fn encode(&self, bits: &mut BytesMut, bp: &mut usize, _masks: &mut BytesMut) {
+        bits.put_bits(bp, 1, 1);
+        bits.put_bits(bp, 1, 0);
+        bits.put_bits(bp, 2, 0);
+        bits.put_bits(bp, 1, 0);
+    }
+}
+
 struct RegionUpdate {
     current_hash: u32,
     cached_hash: u32,
@@ -145,12 +158,18 @@ fn write_local(
             continue;
         }
 
+        let removing = viewport.pending_remove.contains(&idx);
         let needs_update = idx == self_index && !block.flags.is_empty();
-        if needs_update {
+
+        if removing {
+            let cached_hash = viewport.players[idx].region_hash;
+            PlayerRemove { cached_hash }.encode(bits, &mut bp, masks);
+        } else if needs_update {
             LocalUpdate { block }.encode(bits, &mut bp, masks);
         } else {
             skip = count_skips(viewport, idx + 1, true, active, |i| {
-                i == self_index && !block.flags.is_empty()
+                viewport.pending_remove.contains(&i)
+                    || (i == self_index && !block.flags.is_empty())
             });
 
             Skip(skip).encode(bits, &mut bp, masks);

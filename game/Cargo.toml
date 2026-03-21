@@ -19,3 +19,4 @@ util = { path = "../util" }
 tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 num_enum.workspace = true
+slab = "0.4.12"

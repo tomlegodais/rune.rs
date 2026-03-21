@@ -93,6 +93,15 @@ impl Viewport {
                 self.pending_remove.push(other.id);
             }
         }
+
+        for idx in 1..MAX_PLAYERS {
+            if idx == self_id || !self.players[idx].local {
+                continue;
+            }
+            if !others.iter().any(|s| s.id == idx) {
+                self.pending_remove.push(idx);
+            }
+        }
     }
 
     pub fn reset(&mut self) {
