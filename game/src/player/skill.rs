@@ -1,7 +1,7 @@
 use net::{Outbox, OutboxExt, UpdateSkill};
-use num_enum::TryFromPrimitive;
+use num_enum::{IntoPrimitive, TryFromPrimitive};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive, IntoPrimitive)]
 #[repr(usize)]
 pub enum Skill {
     Attack = 0,
@@ -51,10 +51,12 @@ impl SkillManager {
         self.xp
     }
 
+    #[allow(dead_code)]
     pub fn level(&self, skill: Skill) -> u8 {
         self.levels[skill as usize]
     }
 
+    #[allow(dead_code)]
     pub fn xp(&self, skill: Skill) -> u32 {
         self.xp[skill as usize]
     }
@@ -65,6 +67,7 @@ impl SkillManager {
         self.xp[i] = xp_for_level(level);
     }
 
+    #[allow(dead_code)]
     pub fn set_xp(&mut self, skill: Skill, xp: u32) {
         let i = skill as usize;
         self.xp[i] = xp;
@@ -72,19 +75,14 @@ impl SkillManager {
     }
 
     pub async fn flush(&mut self) {
-        for i in 0..NUM_SKILLS {
-            self.outbox
-                .write(UpdateSkill {
-                    id: i as u8,
-                    level: self.levels[i],
-                    xp: self.xp[i],
-                })
-                .await;
+        let skills: Vec<_> = (0..NUM_SKILLS).filter_map(|i| Skill::try_from(i).ok()).collect();
+        for skill in skills {
+            self.send_skill(skill).await;
         }
     }
 
     pub async fn send_skill(&mut self, skill: Skill) {
-        let i = skill as usize;
+        let i: usize = skill.into();
         self.outbox
             .write(UpdateSkill {
                 id: i as u8,

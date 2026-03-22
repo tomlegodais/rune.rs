@@ -1,13 +1,13 @@
-// #![cfg_attr(debug_assertions, allow(dead_code, unused_imports, unused_variables))]
 use crate::config::AppConfig;
-use crate::service::{ServiceManager, WorldLoginService, WorldService};
+use crate::service::{
+    GameLoginService, ServiceManager, WorldLoginService, WorldLoginServiceParameters, WorldService,
+};
 use crate::world::World;
 use ::config::{Config, Environment, File};
 use filesystem::CacheBuilder;
 use net::TcpService;
-use persistence::account::AccountRepository;
-use persistence::player::PlayerRepository;
-use persistence::shaku::HasComponent;
+use persistence::PersistenceModuleInterface;
+use shaku::{module, HasComponent};
 use std::sync::Arc;
 
 use tokio::sync::Mutex;
@@ -21,6 +21,21 @@ mod player;
 mod provider;
 mod service;
 mod world;
+
+module! {
+    GameModule {
+        components = [WorldLoginService],
+        providers = [],
+
+        use dyn PersistenceModuleInterface {
+            components = [
+                dyn persistence::account::AccountRepository,
+                dyn persistence::player::PlayerRepository,
+            ],
+            providers = []
+        }
+    }
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -43,19 +58,20 @@ async fn main() -> anyhow::Result<()> {
     let cache = Arc::new(CacheBuilder::new("cache/").open()?);
     provider::load(&cache)?;
 
-    let db = persistence::connect(&app_config.database).await?;
-    let accounts: Arc<dyn AccountRepository> = db.resolve();
-    let players: Arc<dyn PlayerRepository> = db.resolve();
     let world = Arc::new(Mutex::new(World::new()));
-    let world_service = WorldService::new(world.clone());
-    let login_service = Arc::new(WorldLoginService::new(
-        app_config.game,
-        world.clone(),
-        accounts,
-        players,
-    ));
+    let persistence = Arc::new(persistence::connect(&app_config.database).await?);
 
+    let game = GameModule::builder(persistence)
+        .with_component_parameters::<WorldLoginService>(WorldLoginServiceParameters {
+            config: app_config.game,
+            world: world.clone(),
+        })
+        .build();
+
+    let login_service: Arc<dyn GameLoginService> = game.resolve();
+    let world_service = WorldService::new(world.clone());
     let tcp_service = TcpService::new(app_config.tcp, cache.clone(), login_service)?;
+
     service_manager.spawn("TCP Service", |cancel, tx| async move {
         tcp_service.run_until(cancel.cancelled(), Some(tx)).await
     });

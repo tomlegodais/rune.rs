@@ -1,3 +1,3 @@
-pub mod appearance;
-pub mod player;
-pub mod skills;
+pub(crate) mod appearance;
+pub(crate) mod player;
+pub(crate) mod skills;

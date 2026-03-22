@@ -8,6 +8,7 @@ use slab::Slab;
 use tokio::sync::mpsc;
 use tracing::info;
 
+#[derive(Default)]
 pub struct World {
     pub players: Slab<Player>,
     region_map: RegionMap,

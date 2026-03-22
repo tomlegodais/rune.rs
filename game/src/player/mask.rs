@@ -1,6 +1,6 @@
 use crate::player::Appearance;
-use persistence::account::Rights;
 use tokio_util::bytes::{BufMut, BytesMut};
+use persistence::Rights;
 use util::{BytesMutExt, Huffman};
 
 #[derive(Clone, Copy, Default, PartialEq, Eq)]

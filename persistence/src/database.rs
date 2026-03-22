@@ -1,13 +1,18 @@
-use crate::account::{PgAccountRepository, PgAccountRepositoryParameters};
+use crate::account::{AccountRepository, PgAccountRepository, PgAccountRepositoryParameters};
 use crate::config::DatabaseConfig;
 use crate::migration::Migrator;
-use crate::player::{PgPlayerRepository, PgPlayerRepositoryParameters};
+use crate::player::{PgPlayerRepository, PgPlayerRepositoryParameters, PlayerRepository};
 use sea_orm::{ConnectOptions, Database as SeaDatabase};
 use sea_orm_migration::MigratorTrait;
 use shaku::module;
 
+pub trait PersistenceModuleInterface:
+    shaku::HasComponent<dyn AccountRepository> + shaku::HasComponent<dyn PlayerRepository>
+{
+}
+
 module! {
-    pub PersistenceModule {
+    pub PersistenceModule: PersistenceModuleInterface {
         components = [PgAccountRepository, PgPlayerRepository],
         providers = []
     }
@@ -24,9 +29,7 @@ pub async fn connect(config: &DatabaseConfig) -> anyhow::Result<PersistenceModul
         .with_component_parameters::<PgAccountRepository>(PgAccountRepositoryParameters {
             db: db.clone(),
         })
-        .with_component_parameters::<PgPlayerRepository>(PgPlayerRepositoryParameters {
-            db,
-        })
+        .with_component_parameters::<PgPlayerRepository>(PgPlayerRepositoryParameters { db })
         .build();
 
     Ok(module)

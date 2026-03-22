@@ -33,6 +33,7 @@ pub struct ChatboxWidget {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[allow(dead_code)]
 pub struct InventoryWidget(pub u16);
 
 pub struct WidgetManager {
@@ -66,6 +67,7 @@ impl RootWidget {
 }
 
 impl ScreenWidget {
+    #[allow(dead_code)]
     pub const fn new(interface: u16) -> Self {
         Self::with_position(interface, 6, 9)
     }
@@ -101,6 +103,7 @@ impl Widget for ScreenWidget {
 }
 
 impl ChatboxWidget {
+    #[allow(dead_code)]
     pub const fn new(interface: u16) -> Self {
         Self::with_static_position(interface, 13)
     }
@@ -210,6 +213,7 @@ impl WidgetManager {
         }
     }
 
+    #[allow(dead_code)]
     pub fn is_open(&self, widget: impl Widget) -> bool {
         let position = widget.position(self.display_mode);
         self.widgets.get(&position) == Some(&widget.interface())

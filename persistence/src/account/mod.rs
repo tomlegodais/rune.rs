@@ -1,7 +1,8 @@
-pub mod entity;
+pub(crate) mod entity;
 mod repository;
 
-pub use repository::{AccountRepository, PgAccountRepository, PgAccountRepositoryParameters};
+pub use repository::AccountRepository;
+pub(crate) use repository::{PgAccountRepository, PgAccountRepositoryParameters};
 
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
@@ -29,7 +30,11 @@ impl Account {
 
     pub fn verify_password(&self, password: &str) -> bool {
         PasswordHash::new(&self.password_hash)
-            .map(|hash| Argon2::default().verify_password(password.as_bytes(), &hash).is_ok())
+            .map(|hash| {
+                Argon2::default()
+                    .verify_password(password.as_bytes(), &hash)
+                    .is_ok()
+            })
             .unwrap_or(false)
     }
 }

@@ -1,10 +1,10 @@
 pub mod account;
+mod config;
+mod database;
 mod migration;
 pub mod player;
 
-mod config;
-mod database;
-
+pub use account::Rights;
 pub use config::DatabaseConfig;
-pub use database::{connect, PersistenceModule};
+pub use database::{connect, PersistenceModule, PersistenceModuleInterface};
 pub use shaku;

@@ -9,11 +9,11 @@ pub struct Region {
     pub players: HashSet<usize>,
 }
 
+#[derive(Default)]
 pub struct RegionMap {
     regions: HashMap<RegionId, Region>,
 }
 
-#[allow(dead_code)]
 impl RegionId {
     pub fn from_coords(x: u16, y: u16) -> Self {
         Self((x << 8) | y)
@@ -27,7 +27,7 @@ impl RegionId {
         self.0 & 0xFF
     }
 
-    pub fn to(self, other: RegionId) -> impl Iterator<Item=RegionId> {
+    pub fn to(self, other: RegionId) -> impl Iterator<Item = RegionId> {
         (self.x()..=other.x())
             .flat_map(move |x| (self.y()..=other.y()).map(move |y| RegionId::from_coords(x, y)))
     }

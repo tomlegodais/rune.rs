@@ -15,6 +15,7 @@ net = { path = "../net" }
 num_enum = { workspace = true }
 persistence = { path = "../persistence" }
 serde = { workspace = true }
+shaku = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
 util = { path = "../util" }

@@ -4,32 +4,32 @@ use async_trait::async_trait;
 use net::{LoginOutcome, LoginRequest, LoginService, LoginSuccess, SessionError};
 use persistence::account::AccountRepository;
 use persistence::player::{PlayerData, PlayerRepository};
+use shaku::{Component, Interface};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::warn;
 
+pub trait GameLoginService: LoginService + Interface {}
+
+#[derive(Component)]
+#[shaku(interface = GameLoginService)]
 pub struct WorldLoginService {
-    config: GameConfig,
-    world: Arc<Mutex<World>>,
+    #[shaku(inject)]
     accounts: Arc<dyn AccountRepository>,
+
+    #[shaku(inject)]
     players: Arc<dyn PlayerRepository>,
+
+    #[shaku(default)]
+    config: GameConfig,
+
+    #[shaku(default)]
+    world: Arc<Mutex<World>>,
 }
 
-impl WorldLoginService {
-    pub fn new(
-        config: GameConfig,
-        world: Arc<Mutex<World>>,
-        accounts: Arc<dyn AccountRepository>,
-        players: Arc<dyn PlayerRepository>,
-    ) -> Self {
-        Self {
-            config,
-            world,
-            accounts,
-            players,
-        }
-    }
+impl GameLoginService for WorldLoginService {}
 
+impl WorldLoginService {
     fn validate_session(
         &self,
         session_key: i64,

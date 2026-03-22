@@ -946,6 +946,7 @@ dependencies = [
  "num_enum",
  "persistence",
  "serde",
+ "shaku",
  "slab",
  "tokio",
  "tokio-util",
