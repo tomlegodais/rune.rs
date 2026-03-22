@@ -1,6 +1,6 @@
-use crate::player::state::MAX_PLAYERS;
+use crate::player::state::{MoveStep, MAX_PLAYERS};
 use crate::player::{Appearance, AppearanceMask, MaskBlock, MoveTypeMask, PlayerInfo};
-use crate::world::Position;
+use crate::world::{Direction, Position};
 use net::{Frame, Prefix};
 use tokio_util::bytes::BytesMut;
 use util::BitsMut;
@@ -42,6 +42,42 @@ impl BitEncoder for LocalUpdate<'_> {
         bits.put_bits(bp, 1, 1);
         bits.put_bits(bp, 2, 0);
         self.block.write(masks);
+    }
+}
+
+struct WalkUpdate<'a> {
+    direction: Direction,
+    block: Option<&'a MaskBlock>,
+}
+
+impl BitEncoder for WalkUpdate<'_> {
+    fn encode(&self, bits: &mut BytesMut, bp: &mut usize, masks: &mut BytesMut) {
+        bits.put_bits(bp, 1, 1);
+        bits.put_bits(bp, 1, self.block.is_some() as u32);
+        bits.put_bits(bp, 2, 1);
+        bits.put_bits(bp, 3, self.direction as u32);
+
+        if let Some(block) = self.block {
+            block.write(masks);
+        }
+    }
+}
+
+struct RunUpdate<'a> {
+    opcode: u8,
+    block: Option<&'a MaskBlock>,
+}
+
+impl BitEncoder for RunUpdate<'_> {
+    fn encode(&self, bits: &mut BytesMut, bp: &mut usize, masks: &mut BytesMut) {
+        bits.put_bits(bp, 1, 1);
+        bits.put_bits(bp, 1, self.block.is_some() as u32);
+        bits.put_bits(bp, 2, 2);
+        bits.put_bits(bp, 4, self.opcode as u32);
+
+        if let Some(block) = self.block {
+            block.write(masks);
+        }
     }
 }
 
@@ -114,6 +150,7 @@ struct PlayerAdd<'a> {
     appearance: &'a Appearance,
     masks: &'a MaskBlock,
     cached_hash: u32,
+    running: bool,
 }
 
 impl BitEncoder for PlayerAdd<'_> {
@@ -130,7 +167,7 @@ impl BitEncoder for PlayerAdd<'_> {
                 current_hash,
                 cached_hash: self.cached_hash,
             }
-                .encode(bits, bp, masks);
+            .encode(bits, bp, masks);
         }
 
         bits.put_bits(bp, 6, self.position.x as u32 & 0x3F);
@@ -138,7 +175,10 @@ impl BitEncoder for PlayerAdd<'_> {
         bits.put_bits(bp, 1, 1);
 
         let mut add_masks = self.masks.clone();
-        add_masks.extend(&[&MoveTypeMask, &AppearanceMask::new(self.appearance)]);
+        add_masks.extend(&[
+            &MoveTypeMask(self.running),
+            &AppearanceMask::new(self.appearance),
+        ]);
         add_masks.write(masks);
     }
 }
@@ -179,6 +219,7 @@ fn write_local(info: &mut PlayerInfo, bits: &mut BytesMut, masks: &mut BytesMut,
 
         let removing = info.pending_remove.contains(&idx);
         let has_masks = !info[idx].masks.is_empty();
+        let move_step = info[idx].move_step;
 
         if removing {
             PlayerRemove.encode(bits, &mut bp, masks);
@@ -186,22 +227,31 @@ fn write_local(info: &mut PlayerInfo, bits: &mut BytesMut, masks: &mut BytesMut,
             TeleportUpdate {
                 from: tele.from,
                 to: tele.to,
-                block: if has_masks {
-                    Some(&info[idx].masks)
-                } else {
-                    None
-                },
+                block: has_masks.then(|| &info[idx].masks),
             }
-                .encode(bits, &mut bp, masks);
+            .encode(bits, &mut bp, masks);
+        } else if let MoveStep::Run(opcode) = move_step {
+            RunUpdate {
+                opcode,
+                block: has_masks.then(|| &info[idx].masks),
+            }
+            .encode(bits, &mut bp, masks);
+        } else if let MoveStep::Walk(direction) = move_step {
+            WalkUpdate {
+                direction,
+                block: has_masks.then(|| &info[idx].masks),
+            }
+            .encode(bits, &mut bp, masks);
         } else if has_masks {
             LocalUpdate {
                 block: &info[idx].masks,
             }
-                .encode(bits, &mut bp, masks);
+            .encode(bits, &mut bp, masks);
         } else {
             skip = count_skips(info, idx + 1, true, active, |i| {
                 info.pending_remove.contains(&i)
                     || info[i].teleport.is_some()
+                    || !matches!(info[i].move_step, MoveStep::None)
                     || !info[i].masks.is_empty()
             });
 
@@ -236,14 +286,16 @@ fn write_outside(info: &mut PlayerInfo, bits: &mut BytesMut, masks: &mut BytesMu
             let appearance = snapshot.appearance.clone();
             let snap_masks = snapshot.masks.clone();
             let cached_hash = info[idx].region_hash;
+            let running = snapshot.running;
 
             PlayerAdd {
                 position,
                 appearance: &appearance,
                 masks: &snap_masks,
                 cached_hash,
+                running,
             }
-                .encode(bits, &mut bp, masks);
+            .encode(bits, &mut bp, masks);
 
             info[idx].region_hash = position.region_hash();
             info[idx].activity |= 2;

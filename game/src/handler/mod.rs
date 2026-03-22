@@ -1,5 +1,6 @@
 mod chat;
 mod command;
+mod walk;
 
 use crate::player::Player;
 use net::IncomingMessage;

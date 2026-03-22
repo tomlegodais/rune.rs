@@ -10,6 +10,7 @@ pub struct PlayerData {
     pub x: i32,
     pub y: i32,
     pub plane: i32,
+    pub running: bool,
     pub male: bool,
     pub look: [u16; 7],
     pub colors: [u8; 5],
@@ -64,6 +65,7 @@ impl PlayerData {
             x: player.x,
             y: player.y,
             plane: player.plane,
+            running: player.running,
             male: appearance.male,
             look,
             colors,
@@ -136,6 +138,7 @@ impl PlayerRepository for PgPlayerRepository {
             .col_expr(player::Column::X, Expr::value(data.x))
             .col_expr(player::Column::Y, Expr::value(data.y))
             .col_expr(player::Column::Plane, Expr::value(data.plane))
+            .col_expr(player::Column::Running, Expr::value(data.running))
             .exec(&self.db)
             .await?;
 

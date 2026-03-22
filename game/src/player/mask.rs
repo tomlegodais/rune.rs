@@ -1,4 +1,5 @@
 use crate::player::Appearance;
+use num_enum::IntoPrimitive;
 use persistence::Rights;
 use tokio_util::bytes::{BufMut, BytesMut};
 use util::{BytesMutExt, Huffman};
@@ -143,7 +144,7 @@ impl MaskBlock {
     }
 }
 
-pub struct MoveTypeMask;
+pub struct MoveTypeMask(pub bool);
 
 impl Mask for MoveTypeMask {
     fn flag(&self) -> MaskFlags {
@@ -151,7 +152,26 @@ impl Mask for MoveTypeMask {
     }
 
     fn encode(&self, out: &mut BytesMut) {
-        out.put_u8(0u8.wrapping_sub(1));
+        out.put_u8(0u8.wrapping_sub(if self.0 { 2 } else { 1 }));
+    }
+}
+
+#[derive(Clone, Copy, IntoPrimitive)]
+#[repr(u8)]
+pub enum TempMoveTypeMask {
+    Walk = 1,
+    Run = 2,
+    Teleport = 127,
+}
+
+impl Mask for TempMoveTypeMask {
+    fn flag(&self) -> MaskFlags {
+        MaskFlags::TEMP_MOVE_TYPE
+    }
+
+    fn encode(&self, out: &mut BytesMut) {
+        let value: u8 = (*self).into();
+        out.put_u8(0u8.wrapping_sub(value));
     }
 }
 

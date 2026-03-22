@@ -1,12 +1,14 @@
+use crate::player::state::MoveStep;
 use crate::player::{
     gpi, Appearance, AppearanceMask, MaskBlock, MoveTypeMask, PlayerInfo,
-    SkillManager, Viewport, WidgetManager,
+    SkillManager, TempMoveTypeMask, Viewport, WidgetManager,
 };
-use crate::world::{Position, RegionId, Teleport};
+use crate::world::{running_direction, Position, RegionId, Teleport};
 use net::{ChatMessage, GameScene, Inbox, Outbox, OutboxExt};
 use persistence::account::{Account, Rights};
 use persistence::player::PlayerData;
 use std::array;
+use std::collections::VecDeque;
 use tracing::info;
 
 #[derive(Clone)]
@@ -16,6 +18,8 @@ pub struct PlayerSnapshot {
     pub appearance: Appearance,
     pub masks: MaskBlock,
     pub teleport: Option<Teleport>,
+    pub move_step: MoveStep,
+    pub running: bool,
 }
 
 pub struct Player {
@@ -34,6 +38,8 @@ pub struct Player {
     pub skills: SkillManager,
     pub widgets: WidgetManager,
     pub appearance: Appearance,
+    pub walk_queue: VecDeque<Position>,
+    pub running: bool,
 }
 
 impl Player {
@@ -56,7 +62,10 @@ impl Player {
         let player_info = PlayerInfo::new(
             id,
             snapshots,
-            &[&MoveTypeMask, &AppearanceMask::new(&appearance)],
+            &[
+                &MoveTypeMask(data.running),
+                &AppearanceMask::new(&appearance),
+            ],
         );
 
         Self {
@@ -74,6 +83,8 @@ impl Player {
             skills,
             widgets,
             appearance,
+            walk_queue: VecDeque::new(),
+            running: data.running,
         }
     }
 
@@ -83,6 +94,7 @@ impl Player {
             x: self.position.x,
             y: self.position.y,
             plane: self.position.plane,
+            running: self.running,
             male: self.appearance.male,
             look: self.appearance.look,
             colors: self.appearance.colors,
@@ -100,6 +112,8 @@ impl Player {
             appearance: self.appearance.clone(),
             masks: state.masks.clone(),
             teleport: state.teleport,
+            move_step: state.move_step,
+            running: self.running,
         }
     }
 
@@ -126,11 +140,54 @@ impl Player {
         );
     }
 
+    pub fn walk_to(&mut self, dest: Position, force_run: bool) {
+        self.walk_queue.clear();
+        self.running = force_run;
+
+        let mut current = self.position;
+        while current != dest {
+            let Some(dir) = current.direction_to(dest) else {
+                break;
+            };
+            current = current.step(dir);
+            self.walk_queue.push_back(current);
+        }
+    }
+
+    pub fn process_movement(&mut self) {
+        let Some(next) = self.walk_queue.pop_front() else {
+            return;
+        };
+        let Some(walk_dir) = self.position.direction_to(next) else {
+            return;
+        };
+
+        self.position = next;
+
+        if self.running {
+            if let Some(run_pos) = self.walk_queue.pop_front() {
+                if let Some(run_dir) = self.position.direction_to(run_pos) {
+                    if let Some(opcode) = running_direction(walk_dir, run_dir) {
+                        self.position = run_pos;
+                        self.player_info.set_move_step(MoveStep::Run(opcode));
+                        self.player_info.add_mask(TempMoveTypeMask::Run);
+                        return;
+                    }
+                }
+            }
+        }
+
+        self.player_info.set_move_step(MoveStep::Walk(walk_dir));
+        self.player_info.add_mask(TempMoveTypeMask::Walk);
+    }
+
     pub fn teleport(&mut self, destination: Position) {
+        self.walk_queue.clear();
         self.player_info.teleport(Teleport {
             from: self.position,
             to: destination,
         });
+        self.player_info.add_mask(TempMoveTypeMask::Teleport);
         self.position = destination;
     }
 

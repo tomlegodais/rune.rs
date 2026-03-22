@@ -1,5 +1,7 @@
 pub mod chat;
 pub mod command;
+pub mod minimap_walk;
+pub mod walk;
 
 use crate::Frame;
 use std::any::Any;

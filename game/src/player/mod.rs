@@ -13,7 +13,7 @@ mod widget;
 
 pub(crate) use appearance::Appearance;
 pub(crate) use info::PlayerInfo;
-pub(crate) use mask::{AppearanceMask, ChatMask, Mask, MaskBlock, MoveTypeMask};
+pub(crate) use mask::{AppearanceMask, ChatMask, Mask, MaskBlock, MoveTypeMask, TempMoveTypeMask};
 pub(crate) use player::{Player, PlayerSnapshot};
 pub(crate) use skill::{Skill, SkillManager};
 pub(crate) use viewport::Viewport;

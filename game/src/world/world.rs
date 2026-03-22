@@ -1,6 +1,5 @@
 use crate::player::{Player, PlayerSnapshot};
 use crate::world::RegionMap;
-use net::InboxExt;
 use net::{Frame, IncomingMessage};
 use persistence::account::Account;
 use persistence::player::PlayerData;
@@ -11,7 +10,7 @@ use tracing::info;
 #[derive(Default)]
 pub struct World {
     pub players: Slab<Player>,
-    region_map: RegionMap,
+    pub(super) region_map: RegionMap,
 }
 
 impl World {
@@ -72,42 +71,7 @@ impl World {
         }
     }
 
-    pub async fn tick(&mut self) {
-        for (_, player) in self.players.iter_mut() {
-            for message in player.inbox.try_recv_all() {
-                crate::handler::handle(player, message).await;
-            }
-        }
-
-        let snapshots = self.player_snapshots();
-        for (_, player) in self.players.iter_mut() {
-            Self::process_player_tick(player, &snapshots, &mut self.region_map).await;
-        }
-
-        for (_, player) in self.players.iter_mut() {
-            player.send_player_info().await;
-        }
-
-        for (_, player) in self.players.iter_mut() {
-            player.reset();
-        }
-    }
-
-    async fn process_player_tick(
-        player: &mut Player,
-        snapshots: &[PlayerSnapshot],
-        region_map: &mut RegionMap,
-    ) {
-        let new_region = player.position.region_id();
-        if new_region != player.current_region {
-            region_map.update_player_region(player.id, player.current_region, new_region);
-            player.current_region = new_region;
-        }
-
-        player.tick(snapshots).await;
-    }
-
-    fn player_snapshots(&self) -> Vec<PlayerSnapshot> {
+    pub(super) fn player_snapshots(&self) -> Vec<PlayerSnapshot> {
         self.players.iter().map(|(_, p)| p.snapshot()).collect()
     }
 }

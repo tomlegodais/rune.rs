@@ -21,14 +21,13 @@ impl Viewport {
     }
 
     pub fn needs_rebuild(&self, position: Position) -> bool {
-        let local_x = position.x - self.region_base.x;
-        let local_y = position.y - self.region_base.y;
+        let half_chunks = VIEW_DISTANCES[self.view_distance] >> 4;
+        let center_cx = self.region_base.chunk_x() + half_chunks;
+        let center_cy = self.region_base.chunk_y() + half_chunks;
+        let threshold = ((VIEW_DISTANCES[self.view_distance] >> 3) / 2) - 1;
 
-        let map_size = VIEW_DISTANCES[self.view_distance];
-        let lower = map_size >> 4;
-        let upper = map_size - lower;
-
-        local_x < lower || local_x >= upper || local_y < lower || local_y >= upper
+        (position.chunk_x() - center_cx).abs() >= threshold
+            || (position.chunk_y() - center_cy).abs() >= threshold
     }
 
     pub fn rebuild(&mut self, position: Position) {

@@ -1,4 +1,4 @@
-use crate::player::state::{PlayerState, MAX_PLAYERS};
+use crate::player::state::{MoveStep, PlayerState, MAX_PLAYERS};
 use crate::player::Mask;
 use crate::player::PlayerSnapshot;
 use crate::world::{Position, Teleport};
@@ -39,6 +39,7 @@ impl PlayerInfo {
             }
 
             self.players[other.id].teleport = other.teleport;
+            self.players[other.id].move_step = other.move_step;
             self.players[other.id].masks = other.masks.clone();
 
             let is_local = self.players[other.id].local;
@@ -69,6 +70,10 @@ impl PlayerInfo {
         self.players[self.self_id].teleport = Some(teleport);
     }
 
+    pub fn set_move_step(&mut self, step: MoveStep) {
+        self.players[self.self_id].move_step = step;
+    }
+
     pub fn reset(&mut self) {
         for pending in self.pending_add.drain(..) {
             self.players[pending.id].local = true;
@@ -79,6 +84,7 @@ impl PlayerInfo {
         for i in 1..MAX_PLAYERS {
             self.players[i].activity >>= 1;
             self.players[i].teleport = None;
+            self.players[i].move_step = MoveStep::None;
             self.players[i].masks.clear();
         }
     }

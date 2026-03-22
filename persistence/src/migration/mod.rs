@@ -3,6 +3,7 @@ use sea_orm_migration::prelude::*;
 mod m001_create_accounts;
 mod m002_seed_accounts;
 mod m003_create_players;
+mod m004_add_running;
 
 pub struct Migrator;
 
@@ -13,6 +14,7 @@ impl MigratorTrait for Migrator {
             Box::new(m001_create_accounts::Migration),
             Box::new(m002_seed_accounts::Migration),
             Box::new(m003_create_players::Migration),
+            Box::new(m004_add_running::Migration),
         ]
     }
 }
