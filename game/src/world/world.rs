@@ -1,5 +1,5 @@
 use crate::player::{Player, PlayerSnapshot};
-use crate::world::{RegionMap};
+use crate::world::RegionMap;
 use net::InboxExt;
 use net::{Frame, IncomingMessage};
 use persistence::account::Account;
