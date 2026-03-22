@@ -22,15 +22,6 @@ impl World {
         }
     }
 
-    pub async fn process_messages(&mut self) {
-        for (_, player) in self.players.iter_mut() {
-            let messages = player.inbox.try_recv_all();
-            for message in messages {
-                crate::handler::handle(player, message).await;
-            }
-        }
-    }
-
     pub fn register_player(
         &mut self,
         account: &Account,
@@ -39,10 +30,8 @@ impl World {
     ) -> (usize, mpsc::Sender<IncomingMessage>, mpsc::Receiver<Frame>) {
         let (inbox_tx, inbox_rx) = mpsc::channel::<IncomingMessage>(128);
         let (outbound_tx, outbound_rx) = mpsc::channel::<Frame>(128);
-
         let snapshots = self.player_snapshots();
         let id = self.players.vacant_key() + 1;
-
         let player = Player::new(
             id,
             account,
@@ -84,6 +73,12 @@ impl World {
     }
 
     pub async fn tick(&mut self) {
+        for (_, player) in self.players.iter_mut() {
+            for message in player.inbox.try_recv_all() {
+                crate::handler::handle(player, message).await;
+            }
+        }
+
         let snapshots = self.player_snapshots();
         for (_, player) in self.players.iter_mut() {
             Self::process_player_tick(player, &snapshots, &mut self.region_map).await;
