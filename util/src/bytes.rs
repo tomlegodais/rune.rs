@@ -33,6 +33,18 @@ pub trait BufExt: Buf {
         }
     }
 
+    fn get_extended_smart(&mut self) -> u32 {
+        let mut total = 0u32;
+        loop {
+            let value = self.get_smart() as u32;
+            total += value;
+            if value < 32767 {
+                break;
+            }
+        }
+        total
+    }
+
     fn get_string(&mut self) -> String {
         let mut bytes = Vec::new();
 

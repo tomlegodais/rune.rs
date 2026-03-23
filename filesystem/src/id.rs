@@ -20,7 +20,7 @@ impl IndexId {
     pub const FONTMETRICS: Self = Self(13);
     pub const VORBIS: Self = Self(14);
     pub const INSTRUMENTS: Self = Self(15);
-    pub const WORLDMAPDATA: Self = Self(16);
+    pub const LOCS: Self = Self(16);
     pub const WORLDMAP: Self = Self(17);
     pub const NPCS: Self = Self(18);
     pub const ITEMS: Self = Self(19);
@@ -69,7 +69,7 @@ impl IndexId {
             13 => "fontmetrics",
             14 => "vorbis",
             15 => "instruments",
-            16 => "worldmapdata",
+            16 => "locs",
             17 => "worldmap",
             18 => "npcs",
             19 => "items",

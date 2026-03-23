@@ -1,0 +1,39 @@
+use crate::definition::LocDefinition;
+use crate::{Cache, CacheResult, IndexId};
+use std::collections::HashMap;
+use std::panic;
+
+pub struct LocLoader {
+    definitions: HashMap<u32, LocDefinition>,
+}
+
+impl LocLoader {
+    pub fn load(cache: &Cache) -> CacheResult<Self> {
+        let mut definitions = HashMap::new();
+        let ref_table = cache.reference_table(IndexId::LOCS)?;
+
+        for archive_id in ref_table.iter_archive_ids() {
+            let files = cache.read_all_files(IndexId::LOCS, archive_id)?;
+            for (file_id, data) in files {
+                let loc_id = archive_id.as_u32() * 256 + file_id.as_u32();
+                let data = data.clone();
+                match panic::catch_unwind(move || LocDefinition::decode(loc_id, &data)) {
+                    Ok(def) => {
+                        definitions.insert(loc_id, def);
+                    }
+                    Err(_) => {}
+                }
+            }
+        }
+
+        Ok(Self { definitions })
+    }
+
+    pub fn get(&self, id: u32) -> Option<&LocDefinition> {
+        self.definitions.get(&id)
+    }
+
+    pub fn len(&self) -> usize {
+        self.definitions.len()
+    }
+}

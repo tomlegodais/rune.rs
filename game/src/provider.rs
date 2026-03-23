@@ -1,16 +1,19 @@
+use crate::world::Collision;
 use filesystem::{Cache, FileId, IndexId};
+use std::sync::Arc;
 
 pub struct ProviderContext<'a> {
-    pub cache: &'a Cache,
+    pub cache: &'a Arc<Cache>,
 }
 
 pub trait DataProvider {
     fn load(&self, ctx: &ProviderContext) -> anyhow::Result<()>;
 }
 
-pub fn load(cache: &Cache) -> anyhow::Result<()> {
+pub fn load(cache: &Arc<Cache>) -> anyhow::Result<()> {
     let ctx = ProviderContext { cache };
-    let providers: Vec<Box<dyn DataProvider>> = vec![Box::new(HuffmanProvider)];
+    let providers: Vec<Box<dyn DataProvider>> =
+        vec![Box::new(HuffmanProvider), Box::new(CollisionProvider)];
 
     for provider in &providers {
         provider.load(&ctx)?;
@@ -33,6 +36,15 @@ impl DataProvider for HuffmanProvider {
             .read_file(IndexId::HUFFMAN, archive, FileId::new(0))?;
 
         util::Huffman::init(&table);
+        Ok(())
+    }
+}
+
+struct CollisionProvider;
+
+impl DataProvider for CollisionProvider {
+    fn load(&self, ctx: &ProviderContext) -> anyhow::Result<()> {
+        Collision::init(ctx.cache);
         Ok(())
     }
 }

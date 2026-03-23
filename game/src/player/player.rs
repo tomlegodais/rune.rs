@@ -141,17 +141,10 @@ impl Player {
     }
 
     pub fn walk_to(&mut self, dest: Position, force_run: bool) {
-        self.walk_queue.clear();
-        self.running = force_run;
-
-        let mut current = self.position;
-        while current != dest {
-            let Some(dir) = current.direction_to(dest) else {
-                break;
-            };
-            current = current.step(dir);
-            self.walk_queue.push_back(current);
+        if force_run {
+            self.running = true;
         }
+        self.walk_queue = crate::world::find_path(self.position, dest);
     }
 
     pub fn process_movement(&mut self) {
@@ -159,19 +152,29 @@ impl Player {
             return;
         };
         let Some(walk_dir) = self.position.direction_to(next) else {
+            self.walk_queue.clear();
             return;
         };
+
+        if !crate::world::Collision::can_move(self.position, walk_dir) {
+            self.walk_queue.clear();
+            return;
+        }
 
         self.position = next;
 
         if self.running {
-            if let Some(run_pos) = self.walk_queue.pop_front() {
-                if let Some(run_dir) = self.position.direction_to(run_pos) {
-                    if let Some(opcode) = running_direction(walk_dir, run_dir) {
-                        self.position = run_pos;
-                        self.player_info.set_move_step(MoveStep::Run(opcode));
-                        self.player_info.add_mask(TempMoveTypeMask::Run);
-                        return;
+            if let Some(&run_pos) = self.walk_queue.front() {
+                let run_dir = self.position.direction_to(run_pos);
+                if let Some(run_dir) = run_dir {
+                    if crate::world::Collision::can_move(self.position, run_dir) {
+                        if let Some(opcode) = running_direction(walk_dir, run_dir) {
+                            self.walk_queue.pop_front();
+                            self.position = run_pos;
+                            self.player_info.set_move_step(MoveStep::Run(opcode));
+                            self.player_info.add_mask(TempMoveTypeMask::Run);
+                            return;
+                        }
                     }
                 }
             }

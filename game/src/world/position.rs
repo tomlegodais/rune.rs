@@ -94,6 +94,13 @@ impl Direction {
         }
     }
 
+    pub fn is_diagonal(self) -> bool {
+        matches!(
+            self,
+            Self::SouthWest | Self::SouthEast | Self::NorthWest | Self::NorthEast
+        )
+    }
+
     pub fn delta(self) -> (i32, i32) {
         match self {
             Self::SouthWest => (-1, -1),
