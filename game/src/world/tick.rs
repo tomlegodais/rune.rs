@@ -34,7 +34,7 @@ impl TickPhase for ProcessMovement {
     fn context(&self, _: &World) -> Self::Context {}
 
     async fn execute(&self, player: &mut Player, _: &(), _: &mut RegionMap) {
-        player.process_movement();
+        player.process_movement().await;
     }
 }
 

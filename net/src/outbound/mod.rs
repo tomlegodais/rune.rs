@@ -1,12 +1,14 @@
+mod chat;
+mod minimap;
 mod scene;
 mod skill;
 mod widget;
-mod chat;
 
 use crate::{Encodable, Frame};
 use tokio::sync::mpsc;
 
 pub use chat::ChatMessage;
+pub use minimap::MinimapFlag;
 pub use scene::GameScene;
 pub use skill::UpdateSkill;
 pub use widget::{OpenWidget, SetRootWidget};

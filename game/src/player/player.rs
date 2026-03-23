@@ -4,7 +4,7 @@ use crate::player::{
     SkillManager, TempMoveTypeMask, Viewport, WidgetManager,
 };
 use crate::world::{running_direction, Position, RegionId, Teleport};
-use net::{ChatMessage, GameScene, Inbox, Outbox, OutboxExt};
+use net::{ChatMessage, GameScene, Inbox, MinimapFlag, Outbox, OutboxExt};
 use persistence::account::{Account, Rights};
 use persistence::player::PlayerData;
 use std::array;
@@ -140,24 +140,30 @@ impl Player {
         );
     }
 
-    pub fn walk_to(&mut self, dest: Position, force_run: bool) {
+    pub async fn walk_to(&mut self, dest: Position, force_run: bool) {
         if force_run {
             self.running = true;
         }
         self.walk_queue = crate::world::find_path(self.position, dest);
+        match self.walk_queue.back().copied() {
+            Some(end) => self.set_minimap_flag(end).await,
+            None => self.reset_minimap_flag().await,
+        }
     }
 
-    pub fn process_movement(&mut self) {
+    pub async fn process_movement(&mut self) {
         let Some(next) = self.walk_queue.pop_front() else {
             return;
         };
         let Some(walk_dir) = self.position.direction_to(next) else {
             self.walk_queue.clear();
+            self.reset_minimap_flag().await;
             return;
         };
 
         if !crate::world::Collision::can_move(self.position, walk_dir) {
             self.walk_queue.clear();
+            self.reset_minimap_flag().await;
             return;
         }
 
@@ -184,7 +190,7 @@ impl Player {
         self.player_info.add_mask(TempMoveTypeMask::Walk);
     }
 
-    pub fn teleport(&mut self, destination: Position) {
+    pub async fn teleport(&mut self, destination: Position) {
         self.walk_queue.clear();
         self.player_info.teleport(Teleport {
             from: self.position,
@@ -192,6 +198,7 @@ impl Player {
         });
         self.player_info.add_mask(TempMoveTypeMask::Teleport);
         self.position = destination;
+        self.reset_minimap_flag().await;
     }
 
     pub async fn send_player_info(&mut self) {
@@ -221,6 +228,16 @@ impl Player {
                 text: text.to_string(),
             })
             .await;
+    }
+
+    async fn set_minimap_flag(&mut self, dest: Position) {
+        let x = (dest.x - self.viewport.region_base.x) as u8;
+        let y = (dest.y - self.viewport.region_base.y) as u8;
+        self.outbox.write(MinimapFlag { x, y }).await;
+    }
+
+    async fn reset_minimap_flag(&mut self) {
+        self.outbox.write(MinimapFlag::reset()).await;
     }
 
     pub fn reset(&mut self) {

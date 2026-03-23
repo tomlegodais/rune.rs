@@ -13,5 +13,7 @@ pub use config::TcpConfig;
 pub use error::SessionError;
 pub use inbound::{Inbox, InboxExt, IncomingMessage};
 pub use message::{Encodable, Frame, LoginOutcome, LoginRequest, LoginSuccess, Prefix, StatusCode};
-pub use outbound::{ChatMessage, GameScene, OpenWidget, Outbox, OutboxExt, SetRootWidget, UpdateSkill};
+pub use outbound::{
+    ChatMessage, GameScene, MinimapFlag, OpenWidget, Outbox, OutboxExt, SetRootWidget, UpdateSkill,
+};
 pub use service::{LoginService, TcpService};

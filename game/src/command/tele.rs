@@ -8,6 +8,6 @@ use macros::command;
 async fn handle(player: &mut Player, x: i32, y: i32, plane: Option<i32>) {
     let plane = plane.unwrap_or(0);
     let dest = Position::new(x, y, plane);
-    player.teleport(dest);
+    player.teleport(dest).await;
     send_message!(player, "Teleporting to {}, {}, {}", x, y, plane);
 }

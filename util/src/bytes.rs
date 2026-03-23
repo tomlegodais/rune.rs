@@ -69,6 +69,10 @@ pub trait BytesMutExt: BufMut {
         self.put_u8(value.wrapping_add(128));
     }
 
+    fn put_u8_neg(&mut self, value: u8) {
+        self.put_u8(0u8.wrapping_sub(value));
+    }
+
     fn put_u16_add(&mut self, value: u16) {
         let hi = (value >> 8) as u8;
         let lo = (value & 0xFF) as u8;
