@@ -13,17 +13,27 @@ pub trait Widget: Send + Sync {
     fn interface(&self) -> u16;
     fn parent(&self, root: RootWidget) -> u16;
     fn position(&self, mode: DisplayMode) -> u16;
+    fn transparent(&self) -> bool;
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct RootWidget(pub u16);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ScreenWidget {
+#[allow(dead_code)]
+pub struct ScreenWidget(pub u16);
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct WindowWidget {
     pub interface: u16,
     pub fixed_position: u16,
     pub resizable_position: u16,
+    pub transparent: bool,
 }
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[allow(dead_code)]
+pub struct OverlayWidget(u16);
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct ChatboxWidget {
@@ -66,26 +76,45 @@ impl RootWidget {
     const RESIZABLE: RootWidget = Self(746);
 }
 
-impl ScreenWidget {
-    #[allow(dead_code)]
-    pub const fn new(interface: u16) -> Self {
-        Self::with_position(interface, 6, 9)
+impl Widget for ScreenWidget {
+    fn interface(&self) -> u16 {
+        self.0
     }
 
-    pub const fn with_position(
-        interface: u16,
-        fixed_position: u16,
-        resizable_position: u16,
-    ) -> Self {
+    fn parent(&self, root: RootWidget) -> u16 {
+        root.0
+    }
+
+    fn position(&self, mode: DisplayMode) -> u16 {
+        match mode {
+            DisplayMode::Fixed => 6,
+            DisplayMode::Resizable | DisplayMode::FullScreen => 8,
+        }
+    }
+
+    fn transparent(&self) -> bool {
+        false
+    }
+}
+
+impl WindowWidget {
+    pub const fn new(interface: u16, fixed_position: u16, resizable_position: u16) -> Self {
         Self {
             interface,
             fixed_position,
             resizable_position,
+            transparent: true,
         }
+    }
+
+    #[allow(dead_code)]
+    pub const fn opaque(mut self) -> Self {
+        self.transparent = false;
+        self
     }
 }
 
-impl Widget for ScreenWidget {
+impl Widget for WindowWidget {
     fn interface(&self) -> u16 {
         self.interface
     }
@@ -99,6 +128,31 @@ impl Widget for ScreenWidget {
             DisplayMode::Fixed => self.fixed_position,
             DisplayMode::Resizable | DisplayMode::FullScreen => self.resizable_position,
         }
+    }
+
+    fn transparent(&self) -> bool {
+        self.transparent
+    }
+}
+
+impl Widget for OverlayWidget {
+    fn interface(&self) -> u16 {
+        self.0
+    }
+
+    fn parent(&self, root: RootWidget) -> u16 {
+        root.0
+    }
+
+    fn position(&self, mode: DisplayMode) -> u16 {
+        match mode {
+            DisplayMode::Fixed => 1,
+            DisplayMode::Resizable | DisplayMode::FullScreen => 0,
+        }
+    }
+
+    fn transparent(&self) -> bool {
+        true
     }
 }
 
@@ -140,6 +194,10 @@ impl Widget for ChatboxWidget {
             DisplayMode::Resizable | DisplayMode::FullScreen => self.resizable_position,
         }
     }
+
+    fn transparent(&self) -> bool {
+        true
+    }
 }
 
 impl Widget for InventoryWidget {
@@ -156,6 +214,10 @@ impl Widget for InventoryWidget {
             DisplayMode::Fixed => 147,
             DisplayMode::Resizable | DisplayMode::FullScreen => 30,
         }
+    }
+
+    fn transparent(&self) -> bool {
+        false
     }
 }
 
@@ -199,14 +261,14 @@ impl WidgetManager {
                 parent: widget.parent(self.root),
                 position,
                 interface,
-                click_through: false,
+                transparent: widget.transparent(),
             })
             .await;
     }
 
     pub async fn open_widgets<I>(&mut self, widgets: I)
     where
-        I: IntoIterator<Item=&'static dyn Widget>,
+        I: IntoIterator<Item = &'static dyn Widget>,
     {
         for widget in widgets {
             self.open_widget(widget).await;

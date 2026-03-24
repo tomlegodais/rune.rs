@@ -1,7 +1,7 @@
 use crate::player::state::MoveStep;
 use crate::player::{
     gpi, Appearance, AppearanceMask, MaskBlock, MoveTypeMask, PlayerInfo,
-    SkillManager, TempMoveTypeMask, Viewport, WidgetManager,
+    SkillManager, TempMoveTypeMask, VarpManager, Viewport, WidgetManager,
 };
 use crate::world::{running_direction, Position, RegionId, Teleport};
 use net::{ChatMessage, GameScene, Inbox, MinimapFlag, Outbox, OutboxExt};
@@ -36,6 +36,7 @@ pub struct Player {
     pub viewport: Viewport,
     pub player_info: PlayerInfo,
     pub skills: SkillManager,
+    pub varps: VarpManager,
     pub widgets: WidgetManager,
     pub appearance: Appearance,
     pub walk_queue: VecDeque<Position>,
@@ -57,6 +58,7 @@ impl Player {
         let viewport = Viewport::new(position, 0);
         let current_region = position.region_id();
         let skills = SkillManager::from_data(outbox.clone(), data.levels, data.xp);
+        let varps = VarpManager::new(outbox.clone());
         let widgets = WidgetManager::new(outbox.clone(), display_mode);
         let appearance = Appearance::from_data(&username, data.male, data.look, data.colors);
         let player_info = PlayerInfo::new(
@@ -81,6 +83,7 @@ impl Player {
             viewport,
             player_info,
             skills,
+            varps,
             widgets,
             appearance,
             walk_queue: VecDeque::new(),
@@ -132,6 +135,7 @@ impl Player {
         self.send_game_scene(true).await;
         self.widgets.on_login().await;
         self.skills.flush().await;
+        self.varps.on_login().await;
         self.send_message("Welcome to RuneScape.").await;
 
         info!(

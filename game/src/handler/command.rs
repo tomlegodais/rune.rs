@@ -9,5 +9,5 @@ async fn handle(player: &mut Player, msg: ClientCommand) {
     let name = parts.next().unwrap_or("");
     let args = parts.next().unwrap_or("");
 
-    crate::command::dispatch(player, name, args).await;
+    crate::command::dispatch(player, msg.client_sent, name, args).await;
 }

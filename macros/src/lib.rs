@@ -73,6 +73,18 @@ impl syn::parse::Parse for CommandAttr {
     }
 }
 
+fn is_raw_args_type(ty: &Type) -> bool {
+    if let Type::Path(type_path) = ty {
+        type_path
+            .path
+            .segments
+            .last()
+            .map_or(false, |s| s.ident == "RawArgs")
+    } else {
+        false
+    }
+}
+
 fn extract_option_inner(ty: &Type) -> Option<&Type> {
     if let Type::Path(type_path) = ty {
         let segment = type_path.path.segments.last()?;
@@ -101,7 +113,8 @@ pub fn command(attr: TokenStream, item: TokenStream) -> TokenStream {
     let func_name = &func.sig.ident;
     let cmd_name = &attr.name;
     let wrapper_name = format_ident!("__{}_command_wrapper", func_name);
-    let params: Vec<_> = func
+
+    let all_params: Vec<_> = func
         .sig
         .inputs
         .iter()
@@ -115,8 +128,20 @@ pub fn command(attr: TokenStream, item: TokenStream) -> TokenStream {
         })
         .collect();
 
+    let has_client_sent = all_params
+        .first()
+        .map(|(name, _)| name == "client_sent")
+        .unwrap_or(false);
+
+    let params = if has_client_sent {
+        &all_params[1..]
+    } else {
+        &all_params[..]
+    };
+
     let usage_parts: Vec<String> = params
         .iter()
+        .filter(|(_, ty)| !is_raw_args_type(ty))
         .map(|(name, ty)| {
             if extract_option_inner(ty).is_some() {
                 format!("[{}]", name)
@@ -136,7 +161,11 @@ pub fn command(attr: TokenStream, item: TokenStream) -> TokenStream {
     for (i, (name, ty)) in params.iter().enumerate() {
         param_names.push(name.clone());
 
-        if let Some(inner_ty) = extract_option_inner(ty) {
+        if is_raw_args_type(ty) {
+            parse_stmts.push(quote! {
+                let #name = crate::command::RawArgs(__raw_args.to_string());
+            });
+        } else if let Some(inner_ty) = extract_option_inner(ty) {
             parse_stmts.push(quote! {
                 let #name: Option<#inner_ty> = __args.get(#i)
                     .and_then(|s| s.parse().ok());
@@ -154,11 +183,18 @@ pub fn command(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
 
+    let client_sent_arg = if has_client_sent {
+        quote! { __client_sent, }
+    } else {
+        quote! {}
+    };
+
     let expanded = quote! {
         #func
 
         fn #wrapper_name<'a>(
             player: &'a mut crate::player::Player,
+            __client_sent: bool,
             __raw_args: &'a str,
         ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'a>> {
             Box::pin(async move {
@@ -170,7 +206,7 @@ pub fn command(attr: TokenStream, item: TokenStream) -> TokenStream {
 
                 #(#parse_stmts)*
 
-                #func_name(player, #(#param_names),*).await;
+                #func_name(player, #client_sent_arg #(#param_names),*).await;
             })
         }
 

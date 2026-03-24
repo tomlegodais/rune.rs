@@ -87,6 +87,13 @@ pub trait BytesMutExt: BufMut {
         self.put_u8(hi);
     }
 
+    fn put_u32_mid_le(&mut self, value: u32) {
+        self.put_u8((value >> 8) as u8);
+        self.put_u8(value as u8);
+        self.put_u8((value >> 24) as u8);
+        self.put_u8((value >> 16) as u8);
+    }
+
     fn put_smart(&mut self, value: u16) {
         if value < 128 {
             self.put_u8(value as u8);

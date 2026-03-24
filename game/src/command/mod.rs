@@ -1,6 +1,8 @@
 mod pos;
 mod setlevel;
 mod tele;
+mod test;
+mod varbit;
 
 use crate::player::Player;
 use crate::send_message;
@@ -8,8 +10,10 @@ use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
 
+pub struct RawArgs(pub String);
+
 type CommandFn =
-    for<'a> fn(&'a mut Player, &'a str) -> Pin<Box<dyn Future<Output=()> + Send + 'a>>;
+    for<'a> fn(&'a mut Player, bool, &'a str) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
 
 pub struct CommandEntry {
     pub name: &'static str,
@@ -27,9 +31,9 @@ static COMMANDS: std::sync::LazyLock<HashMap<&'static str, CommandFn>> =
         map
     });
 
-pub async fn dispatch(player: &mut Player, name: &str, args: &str) {
+pub async fn dispatch(player: &mut Player, client_sent: bool, name: &str, args: &str) {
     match COMMANDS.get(name) {
-        Some(handler) => handler(player, args).await,
+        Some(handler) => handler(player, client_sent, args).await,
         None => send_message!(player, "Unknown command: {}", name),
     }
 }

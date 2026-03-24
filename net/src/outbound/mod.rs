@@ -2,6 +2,7 @@ mod chat;
 mod minimap;
 mod scene;
 mod skill;
+mod varp;
 mod widget;
 
 use crate::{Encodable, Frame};
@@ -11,6 +12,7 @@ pub use chat::ChatMessage;
 pub use minimap::MinimapFlag;
 pub use scene::GameScene;
 pub use skill::UpdateSkill;
+pub use varp::{LargeVarbit, LargeVarp, SmallVarbit, SmallVarp};
 pub use widget::{OpenWidget, SetRootWidget};
 
 pub type Outbox = mpsc::Sender<Frame>;

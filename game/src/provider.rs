@@ -1,4 +1,4 @@
-use crate::world::Collision;
+use crate::world::{Collision, Varbits};
 use filesystem::{Cache, FileId, IndexId};
 use std::sync::Arc;
 
@@ -12,8 +12,11 @@ pub trait DataProvider {
 
 pub fn load(cache: &Arc<Cache>) -> anyhow::Result<()> {
     let ctx = ProviderContext { cache };
-    let providers: Vec<Box<dyn DataProvider>> =
-        vec![Box::new(HuffmanProvider), Box::new(CollisionProvider)];
+    let providers: Vec<Box<dyn DataProvider>> = vec![
+        Box::new(HuffmanProvider),
+        Box::new(CollisionProvider),
+        Box::new(VarbitProvider),
+    ];
 
     for provider in &providers {
         provider.load(&ctx)?;
@@ -45,6 +48,15 @@ struct CollisionProvider;
 impl DataProvider for CollisionProvider {
     fn load(&self, ctx: &ProviderContext) -> anyhow::Result<()> {
         Collision::init(ctx.cache);
+        Ok(())
+    }
+}
+
+struct VarbitProvider;
+
+impl DataProvider for VarbitProvider {
+    fn load(&self, ctx: &ProviderContext) -> anyhow::Result<()> {
+        Varbits::init(ctx.cache);
         Ok(())
     }
 }

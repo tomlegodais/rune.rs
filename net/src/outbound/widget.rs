@@ -23,13 +23,13 @@ pub struct OpenWidget {
     pub parent: u16,
     pub position: u16,
     pub interface: u16,
-    pub click_through: bool,
+    pub transparent: bool,
 }
 
 impl Encodable for OpenWidget {
     fn encode(self) -> Frame {
         let mut buf = BytesMut::new();
-        buf.put_u8_sub(self.click_through as u8);
+        buf.put_u8_sub(self.transparent as u8);
         buf.put_u16_add(0);
         buf.put_u32(self.to_hash());
         buf.put_u16_le(self.interface);
