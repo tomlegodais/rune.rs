@@ -1,5 +1,6 @@
 mod chat;
 mod energy;
+mod logout;
 mod minimap;
 mod scene;
 mod skill;
@@ -11,6 +12,7 @@ use tokio::sync::mpsc;
 
 pub use chat::ChatMessage;
 pub use energy::RunEnergy;
+pub use logout::Logout;
 pub use minimap::MinimapFlag;
 pub use scene::GameScene;
 pub use skill::UpdateSkill;

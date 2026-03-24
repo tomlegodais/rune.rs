@@ -9,6 +9,8 @@ pub enum StatusCode {
     SessionKey = 0,
     OK = 2,
     InvalidCredentials = 3,
+    AccountDisabled = 4,
+    AlreadyOnline = 5,
     GameUpdated = 6,
     BadSessionId = 10,
 }
@@ -34,6 +36,8 @@ pub struct LoginResponse {
 pub enum LoginOutcome {
     Success(LoginSuccess),
     InvalidCredentials,
+    AccountDisabled,
+    AlreadyOnline,
     GameUpdated,
     BadSessionId,
 }
@@ -84,6 +88,8 @@ impl LoginOutcome {
     fn status_code(&self) -> StatusCode {
         match self {
             LoginOutcome::InvalidCredentials => StatusCode::InvalidCredentials,
+            LoginOutcome::AccountDisabled => StatusCode::AccountDisabled,
+            LoginOutcome::AlreadyOnline => StatusCode::AlreadyOnline,
             LoginOutcome::GameUpdated => StatusCode::GameUpdated,
             LoginOutcome::BadSessionId => StatusCode::BadSessionId,
             LoginOutcome::Success(_) => StatusCode::OK,

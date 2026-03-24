@@ -11,6 +11,7 @@ pub struct PlayerData {
     pub y: i32,
     pub plane: i32,
     pub running: bool,
+    pub run_energy: u16,
     pub male: bool,
     pub look: [u16; 7],
     pub colors: [u8; 5],
@@ -38,8 +39,8 @@ impl PlayerData {
         appearance: appearance::Model,
         skill_model: skills::Model,
     ) -> Result<Self, DbErr> {
-        let skill_entries: Vec<SkillEntry> = serde_json::from_value(skill_model.skills)
-            .map_err(|e| DbErr::Type(e.to_string()))?;
+        let skill_entries: Vec<SkillEntry> =
+            serde_json::from_value(skill_model.skills).map_err(|e| DbErr::Type(e.to_string()))?;
 
         let mut levels = [1u8; 24];
         let mut xp = [0u32; 24];
@@ -48,13 +49,17 @@ impl PlayerData {
             xp[i] = entry.xp;
         }
 
-        let look: [u16; 7] = appearance.look.iter()
+        let look: [u16; 7] = appearance
+            .look
+            .iter()
             .map(|&v| v as u16)
             .collect::<Vec<_>>()
             .try_into()
             .map_err(|_| DbErr::Type("invalid look array length".to_string()))?;
 
-        let colors: [u8; 5] = appearance.colors.iter()
+        let colors: [u8; 5] = appearance
+            .colors
+            .iter()
             .map(|&v| v as u8)
             .collect::<Vec<_>>()
             .try_into()
@@ -66,6 +71,7 @@ impl PlayerData {
             y: player.y,
             plane: player.plane,
             running: player.running,
+            run_energy: player.run_energy as u16,
             male: appearance.male,
             look,
             colors,
@@ -104,34 +110,36 @@ impl PlayerRepository for PgPlayerRepository {
             account_id: Set(account_id),
             ..Default::default()
         }
-            .insert(&self.db)
-            .await?;
+        .insert(&self.db)
+        .await?;
 
         let appearance = appearance::ActiveModel {
             player_id: Set(player.id),
             ..Default::default()
         }
-            .insert(&self.db)
-            .await?;
+        .insert(&self.db)
+        .await?;
 
         let skills = skills::ActiveModel {
             player_id: Set(player.id),
             ..Default::default()
         }
-            .insert(&self.db)
-            .await?;
+        .insert(&self.db)
+        .await?;
 
         PlayerData::from_models(player, appearance, skills)
     }
 
     async fn save(&self, data: &PlayerData) -> Result<(), DbErr> {
-        let skill_entries: Vec<SkillEntry> = data.levels.iter()
+        let skill_entries: Vec<SkillEntry> = data
+            .levels
+            .iter()
             .zip(data.xp.iter())
             .map(|(&level, &xp)| SkillEntry { level, xp })
             .collect();
 
-        let skills_json = serde_json::to_value(&skill_entries)
-            .map_err(|e| DbErr::Type(e.to_string()))?;
+        let skills_json =
+            serde_json::to_value(&skill_entries).map_err(|e| DbErr::Type(e.to_string()))?;
 
         player::Entity::update_many()
             .filter(player::Column::Id.eq(data.player_id))
@@ -139,14 +147,24 @@ impl PlayerRepository for PgPlayerRepository {
             .col_expr(player::Column::Y, Expr::value(data.y))
             .col_expr(player::Column::Plane, Expr::value(data.plane))
             .col_expr(player::Column::Running, Expr::value(data.running))
+            .col_expr(
+                player::Column::RunEnergy,
+                Expr::value(data.run_energy as i16),
+            )
             .exec(&self.db)
             .await?;
 
         appearance::Entity::update_many()
             .filter(appearance::Column::PlayerId.eq(data.player_id))
             .col_expr(appearance::Column::Male, Expr::value(data.male))
-            .col_expr(appearance::Column::Look, Expr::value(data.look.map(|v| v as i16).to_vec()))
-            .col_expr(appearance::Column::Colors, Expr::value(data.colors.map(|v| v as i16).to_vec()))
+            .col_expr(
+                appearance::Column::Look,
+                Expr::value(data.look.map(|v| v as i16).to_vec()),
+            )
+            .col_expr(
+                appearance::Column::Colors,
+                Expr::value(data.colors.map(|v| v as i16).to_vec()),
+            )
             .exec(&self.db)
             .await?;
 

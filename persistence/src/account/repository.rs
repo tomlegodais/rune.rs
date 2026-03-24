@@ -9,14 +9,15 @@ impl TryFrom<entity::Model> for Account {
     type Error = DbErr;
 
     fn try_from(model: entity::Model) -> Result<Self, Self::Error> {
-        let rights = Rights::try_from(model.rights as u8)
-            .map_err(|e| DbErr::Type(e.to_string()))?;
+        let rights =
+            Rights::try_from(model.rights as u8).map_err(|e| DbErr::Type(e.to_string()))?;
 
         Ok(Account {
             id: model.id,
             username: model.username,
             password_hash: model.password_hash,
             rights,
+            disabled: model.disabled,
         })
     }
 }
@@ -39,7 +40,6 @@ impl AccountRepository for PgAccountRepository {
     async fn find_by_username(&self, username: &str) -> Result<Option<Account>, DbErr> {
         AccountEntity::find()
             .filter(Column::Username.eq(username))
-            .filter(Column::Disabled.eq(false))
             .one(&self.db)
             .await?
             .map(Account::try_from)

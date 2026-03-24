@@ -63,6 +63,7 @@ impl WorldLoginService {
 
 #[async_trait]
 impl LoginService for WorldLoginService {
+    #[rustfmt::skip]
     async fn authenticate(
         &self,
         req: LoginRequest,
@@ -79,8 +80,14 @@ impl LoginService for WorldLoginService {
             _ => return Ok(LoginOutcome::InvalidCredentials),
         };
 
-        if !account.verify_password(&req.password) {
-            return Ok(LoginOutcome::InvalidCredentials);
+        if !account.verify_password(&req.password) { return Ok(LoginOutcome::InvalidCredentials); }
+        if account.disabled { return Ok(LoginOutcome::AccountDisabled); }
+
+        {
+            let world = self.world.lock().await;
+            if world.is_online(account.id) {
+                return Ok(LoginOutcome::AlreadyOnline);
+            }
         }
 
         let _ = self.accounts.update_last_login(account.id).await;

@@ -20,12 +20,12 @@ pub struct MovementContext<'a> {
 }
 
 impl Movement {
-    pub fn new(outbox: Outbox, running: bool) -> Self {
+    pub fn new(outbox: Outbox, running: bool, run_energy: u16) -> Self {
         Self {
             outbox,
             walk_queue: VecDeque::new(),
             running,
-            run_energy: 10_000,
+            run_energy,
         }
     }
 
@@ -140,10 +140,6 @@ impl Movement {
         self.reset_minimap_flag().await;
     }
 
-    fn weight(&self) -> i32 {
-        0
-    }
-
     fn drain_rate(&self, agility: u8) -> u16 {
         let weight = self.weight().clamp(0, 64);
         let base = 60 + (67 * weight / 64);
@@ -168,5 +164,13 @@ impl Movement {
 
     async fn reset_minimap_flag(&mut self) {
         self.outbox.write(MinimapFlag::reset()).await;
+    }
+
+    fn weight(&self) -> i32 {
+        0
+    }
+
+    pub fn run_energy(&self) -> u16 {
+        self.run_energy
     }
 }

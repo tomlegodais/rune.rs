@@ -10,6 +10,7 @@ pub struct Model {
     pub y: i32,
     pub plane: i32,
     pub running: bool,
+    pub run_energy: i16,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

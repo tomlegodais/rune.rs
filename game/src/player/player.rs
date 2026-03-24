@@ -5,7 +5,7 @@ use crate::player::{
     SkillManager, TempMoveTypeMask, VarpManager, Viewport, WidgetManager,
 };
 use crate::world::{Position, RegionId, Teleport};
-use net::{ChatMessage, GameScene, Inbox, Outbox, OutboxExt};
+use net::{ChatMessage, GameScene, Inbox, Logout, Outbox, OutboxExt};
 use persistence::account::{Account, Rights};
 use persistence::player::PlayerData;
 use std::array;
@@ -60,7 +60,7 @@ impl Player {
         let varps = VarpManager::new(outbox.clone());
         let widgets = WidgetManager::new(outbox.clone(), display_mode);
         let appearance = Appearance::from_data(&username, data.male, data.look, data.colors);
-        let movement = Movement::new(outbox.clone(), data.running);
+        let movement = Movement::new(outbox.clone(), data.running, data.run_energy);
         let player_info = PlayerInfo::new(
             id,
             snapshots,
@@ -100,6 +100,7 @@ impl Player {
             male: self.appearance.male,
             look: self.appearance.look,
             colors: self.appearance.colors,
+            run_energy: self.movement.run_energy(),
             levels: self.skills.levels(),
             xp: self.skills.xp_values(),
         }
@@ -181,6 +182,10 @@ impl Player {
                 text: text.to_string(),
             })
             .await;
+    }
+
+    pub async fn logout(&mut self) {
+        self.outbox.write(Logout).await;
     }
 
     pub fn reset(&mut self) {

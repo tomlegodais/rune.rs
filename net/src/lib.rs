@@ -14,7 +14,7 @@ pub use error::SessionError;
 pub use inbound::{Inbox, InboxExt, IncomingMessage};
 pub use message::{Encodable, Frame, LoginOutcome, LoginRequest, LoginSuccess, Prefix, StatusCode};
 pub use outbound::{
-    ChatMessage, GameScene, LargeVarbit, LargeVarp, MinimapFlag, OpenWidget, Outbox, OutboxExt,
-    RunEnergy, SetRootWidget, SmallVarbit, SmallVarp, UpdateSkill,
+    ChatMessage, GameScene, LargeVarbit, LargeVarp, Logout, MinimapFlag, OpenWidget, Outbox,
+    OutboxExt, RunEnergy, SetRootWidget, SmallVarbit, SmallVarp, UpdateSkill,
 };
 pub use service::{LoginService, TcpService};

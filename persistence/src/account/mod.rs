@@ -21,6 +21,7 @@ pub struct Account {
     pub username: String,
     pub password_hash: String,
     pub rights: Rights,
+    pub disabled: bool,
 }
 
 impl Account {
