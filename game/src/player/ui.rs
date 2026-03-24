@@ -1,6 +1,5 @@
 pub mod tabs {
     use crate::player::WindowWidget;
-    use crate::widget_group;
 
     widget_group! {
         pub const ATTACK: WindowWidget = WindowWidget::new(884, 152, 33);
@@ -25,7 +24,6 @@ pub mod tabs {
 
 pub mod orbs {
     use crate::player::WindowWidget;
-    use crate::widget_group;
 
     widget_group! {
         pub const SUMMONING: WindowWidget = WindowWidget::new(747, 139, 172);
@@ -37,7 +35,6 @@ pub mod orbs {
 
 pub mod chat {
     use crate::player::{ChatboxWidget, WindowWidget};
-    use crate::widget_group;
 
     widget_group! {
         pub const CHAT_FRAME: WindowWidget = WindowWidget::new(752, 142, 18);

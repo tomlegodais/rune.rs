@@ -1,9 +1,11 @@
+#[macro_use]
 mod macros;
 
 mod appearance;
 mod gpi;
 mod info;
 mod mask;
+mod movement;
 mod player;
 mod skill;
 mod state;
@@ -15,6 +17,8 @@ mod widget;
 pub(crate) use appearance::Appearance;
 pub(crate) use info::PlayerInfo;
 pub(crate) use mask::{AppearanceMask, ChatMask, Mask, MaskBlock, MoveTypeMask, TempMoveTypeMask};
+#[allow(unused_imports)]
+pub(crate) use movement::MovementContext;
 pub(crate) use player::{Player, PlayerSnapshot};
 pub(crate) use skill::{Skill, SkillManager};
 pub(crate) use varp::VarpManager;

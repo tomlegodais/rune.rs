@@ -1,3 +1,4 @@
+pub mod button;
 pub mod chat;
 pub mod command;
 pub mod minimap_walk;

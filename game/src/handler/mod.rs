@@ -1,3 +1,4 @@
+mod button;
 mod chat;
 mod command;
 mod walk;
@@ -11,7 +12,7 @@ use std::pin::Pin;
 use tracing::debug;
 
 type HandlerFn =
-    for<'a> fn(&'a mut Player, IncomingMessage) -> Pin<Box<dyn Future<Output=()> + Send + 'a>>;
+    for<'a> fn(&'a mut Player, IncomingMessage) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
 
 pub struct MessageHandler {
     pub type_id_fn: fn() -> TypeId,

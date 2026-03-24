@@ -1,4 +1,5 @@
 mod chat;
+mod energy;
 mod minimap;
 mod scene;
 mod skill;
@@ -9,6 +10,7 @@ use crate::{Encodable, Frame};
 use tokio::sync::mpsc;
 
 pub use chat::ChatMessage;
+pub use energy::RunEnergy;
 pub use minimap::MinimapFlag;
 pub use scene::GameScene;
 pub use skill::UpdateSkill;

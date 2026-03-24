@@ -1,14 +1,14 @@
+use crate::player::movement::Movement;
 use crate::player::state::MoveStep;
 use crate::player::{
     gpi, Appearance, AppearanceMask, MaskBlock, MoveTypeMask, PlayerInfo,
     SkillManager, TempMoveTypeMask, VarpManager, Viewport, WidgetManager,
 };
-use crate::world::{running_direction, Position, RegionId, Teleport};
-use net::{ChatMessage, GameScene, Inbox, MinimapFlag, Outbox, OutboxExt};
+use crate::world::{Position, RegionId, Teleport};
+use net::{ChatMessage, GameScene, Inbox, Outbox, OutboxExt};
 use persistence::account::{Account, Rights};
 use persistence::player::PlayerData;
 use std::array;
-use std::collections::VecDeque;
 use tracing::info;
 
 #[derive(Clone)]
@@ -39,8 +39,7 @@ pub struct Player {
     pub varps: VarpManager,
     pub widgets: WidgetManager,
     pub appearance: Appearance,
-    pub walk_queue: VecDeque<Position>,
-    pub running: bool,
+    pub movement: Movement,
 }
 
 impl Player {
@@ -61,6 +60,7 @@ impl Player {
         let varps = VarpManager::new(outbox.clone());
         let widgets = WidgetManager::new(outbox.clone(), display_mode);
         let appearance = Appearance::from_data(&username, data.male, data.look, data.colors);
+        let movement = Movement::new(outbox.clone(), data.running);
         let player_info = PlayerInfo::new(
             id,
             snapshots,
@@ -86,8 +86,7 @@ impl Player {
             varps,
             widgets,
             appearance,
-            walk_queue: VecDeque::new(),
-            running: data.running,
+            movement,
         }
     }
 
@@ -97,7 +96,7 @@ impl Player {
             x: self.position.x,
             y: self.position.y,
             plane: self.position.plane,
-            running: self.running,
+            running: self.movement.running,
             male: self.appearance.male,
             look: self.appearance.look,
             colors: self.appearance.colors,
@@ -116,7 +115,7 @@ impl Player {
             masks: state.masks.clone(),
             teleport: state.teleport,
             move_step: state.move_step,
-            running: self.running,
+            running: self.movement.running,
         }
     }
 
@@ -136,6 +135,7 @@ impl Player {
         self.widgets.on_login().await;
         self.skills.flush().await;
         self.varps.on_login().await;
+        self.movement.on_login(&mut self.varps).await;
         self.send_message("Welcome to RuneScape.").await;
 
         info!(
@@ -144,65 +144,14 @@ impl Player {
         );
     }
 
-    pub async fn walk_to(&mut self, dest: Position, force_run: bool) {
-        if force_run {
-            self.running = true;
-        }
-        self.walk_queue = crate::world::find_path(self.position, dest);
-        match self.walk_queue.back().copied() {
-            Some(end) => self.set_minimap_flag(end).await,
-            None => self.reset_minimap_flag().await,
-        }
-    }
-
-    pub async fn process_movement(&mut self) {
-        let Some(next) = self.walk_queue.pop_front() else {
-            return;
-        };
-        let Some(walk_dir) = self.position.direction_to(next) else {
-            self.walk_queue.clear();
-            self.reset_minimap_flag().await;
-            return;
-        };
-
-        if !crate::world::Collision::can_move(self.position, walk_dir) {
-            self.walk_queue.clear();
-            self.reset_minimap_flag().await;
-            return;
-        }
-
-        self.position = next;
-
-        if self.running {
-            if let Some(&run_pos) = self.walk_queue.front() {
-                let run_dir = self.position.direction_to(run_pos);
-                if let Some(run_dir) = run_dir {
-                    if crate::world::Collision::can_move(self.position, run_dir) {
-                        if let Some(opcode) = running_direction(walk_dir, run_dir) {
-                            self.walk_queue.pop_front();
-                            self.position = run_pos;
-                            self.player_info.set_move_step(MoveStep::Run(opcode));
-                            self.player_info.add_mask(TempMoveTypeMask::Run);
-                            return;
-                        }
-                    }
-                }
-            }
-        }
-
-        self.player_info.set_move_step(MoveStep::Walk(walk_dir));
-        self.player_info.add_mask(TempMoveTypeMask::Walk);
-    }
-
     pub async fn teleport(&mut self, destination: Position) {
-        self.walk_queue.clear();
+        self.movement.stop().await;
         self.player_info.teleport(Teleport {
             from: self.position,
             to: destination,
         });
         self.player_info.add_mask(TempMoveTypeMask::Teleport);
         self.position = destination;
-        self.reset_minimap_flag().await;
     }
 
     pub async fn send_player_info(&mut self) {
@@ -232,16 +181,6 @@ impl Player {
                 text: text.to_string(),
             })
             .await;
-    }
-
-    async fn set_minimap_flag(&mut self, dest: Position) {
-        let x = (dest.x - self.viewport.region_base.x) as u8;
-        let y = (dest.y - self.viewport.region_base.y) as u8;
-        self.outbox.write(MinimapFlag { x, y }).await;
-    }
-
-    async fn reset_minimap_flag(&mut self) {
-        self.outbox.write(MinimapFlag::reset()).await;
     }
 
     pub fn reset(&mut self) {

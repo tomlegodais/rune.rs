@@ -15,6 +15,6 @@ pub use inbound::{Inbox, InboxExt, IncomingMessage};
 pub use message::{Encodable, Frame, LoginOutcome, LoginRequest, LoginSuccess, Prefix, StatusCode};
 pub use outbound::{
     ChatMessage, GameScene, LargeVarbit, LargeVarp, MinimapFlag, OpenWidget, Outbox, OutboxExt,
-    SetRootWidget, SmallVarbit, SmallVarp, UpdateSkill,
+    RunEnergy, SetRootWidget, SmallVarbit, SmallVarp, UpdateSkill,
 };
 pub use service::{LoginService, TcpService};
