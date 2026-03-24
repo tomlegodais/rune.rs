@@ -1,21 +1,27 @@
 #[macro_export]
-macro_rules! movement_ctx {
-    ($self:ident) => {
-        &mut $crate::player::MovementContext {
-            position: &mut $self.position,
-            player_info: &mut $self.player_info,
-            varps: &mut $self.varps,
-            agility_level: $self.skills.level($crate::player::Skill::Agility),
-            region_base: $self.viewport.region_base,
-        }
-    };
-}
-
-#[macro_export]
 macro_rules! send_message {
     ($player:expr, $($arg:tt)*) => {
         $player.send_message(&format!($($arg)*)).await
     };
+}
+
+#[macro_export]
+macro_rules! with_movement {
+    ($player:expr, |$m:ident, $ctx:ident| $body:expr) => {{
+        let mut $m = $player.systems.guard::<$crate::player::Movement>();
+        let mut varps = $player.systems.guard::<$crate::player::VarpManager>();
+        let agility_level = $player.system::<$crate::player::SkillManager>().level($crate::player::Skill::Agility);
+
+        let mut $ctx = $crate::player::MovementContext {
+            position: &mut $player.position,
+            player_info: &mut $player.player_info,
+            varps: &mut varps,
+            agility_level,
+            region_base: $player.viewport.region_base,
+        };
+
+        $body
+    }};
 }
 
 macro_rules! widget_group {

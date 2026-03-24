@@ -1,5 +1,5 @@
-use crate::movement_ctx;
 use crate::player::{Player, PlayerSnapshot};
+use crate::with_movement;
 use crate::world::{RegionMap, World};
 use net::InboxExt;
 
@@ -35,7 +35,7 @@ impl TickPhase for ProcessMovement {
     fn context(&self, _: &World) -> Self::Context {}
 
     async fn execute(&self, player: &mut Player, _: &(), _: &mut RegionMap) {
-        player.movement.process(movement_ctx!(player)).await;
+        with_movement!(player, |m, ctx| m.process(&mut ctx).await);
     }
 }
 

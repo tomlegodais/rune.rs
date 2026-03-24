@@ -1,7 +1,7 @@
 use super::{CommandEntry, RawArgs};
 use crate::player::Player;
-use crate::send_message;
 use crate::world::Position;
+use crate::{send_message, with_movement};
 use macros::command;
 
 #[command(name = "tele")]
@@ -30,6 +30,7 @@ async fn handle(player: &mut Player, client_sent: bool, args: RawArgs) {
         (parts[0], parts[1], parts.get(2).copied().unwrap_or(0))
     };
 
-    player.teleport(Position::new(x, y, plane)).await;
+    let dest = Position::new(x, y, plane);
+    with_movement!(player, |m, ctx| m.teleport(&mut ctx, dest).await);
     send_message!(player, "Teleporting to {}, {}, {}", x, y, plane);
 }

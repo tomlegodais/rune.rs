@@ -65,12 +65,6 @@ impl World {
         Some(player.to_player_data())
     }
 
-    pub async fn on_player_login(&mut self, player_id: usize) {
-        if let Some(player) = self.players.get_mut(player_id - 1) {
-            player.on_login().await;
-        }
-    }
-
     pub fn is_online(&self, account_id: i64) -> bool {
         self.players
             .iter()
@@ -79,5 +73,11 @@ impl World {
 
     pub(super) fn player_snapshots(&self) -> Vec<PlayerSnapshot> {
         self.players.iter().map(|(_, p)| p.snapshot()).collect()
+    }
+
+    pub async fn on_player_login(&mut self, player_id: usize) {
+        if let Some(player) = self.players.get_mut(player_id - 1) {
+            player.on_login().await;
+        }
     }
 }

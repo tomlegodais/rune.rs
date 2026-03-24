@@ -1,7 +1,8 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
-    parse_macro_input, FnArg, GenericArgument, ItemFn, LitStr, Pat, PathArguments, Token, Type,
+    parse_macro_input, FnArg, GenericArgument, ItemFn, ItemImpl, LitStr, Pat, PathArguments, Token,
+    Type,
 };
 
 #[proc_macro_attribute]
@@ -214,6 +215,33 @@ pub fn command(attr: TokenStream, item: TokenStream) -> TokenStream {
             CommandEntry {
                 name: #cmd_name,
                 handle: #wrapper_name,
+            }
+        }
+    };
+
+    expanded.into()
+}
+
+#[proc_macro_attribute]
+pub fn player_system(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    let impl_block = parse_macro_input!(item as ItemImpl);
+
+    let self_ty = &impl_block.self_ty;
+
+    let expanded = quote! {
+        #impl_block
+
+        inventory::submit! {
+            crate::player::system::SystemRegistration {
+                type_id: || std::any::TypeId::of::<#self_ty>(),
+                deps: <#self_ty as crate::player::system::PlayerSystem>::dependencies,
+                factory: |ctx| Box::new(<#self_ty as crate::player::system::PlayerSystem>::create(ctx)),
+                persist: |any, data| {
+                    any.downcast_ref::<#self_ty>().unwrap().persist(data);
+                },
+                on_login: |any, ctx| {
+                    any.downcast_mut::<#self_ty>().unwrap().on_login(ctx)
+                },
             }
         }
     };

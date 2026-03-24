@@ -24,6 +24,13 @@ const CORNER_NE: u32 = 0x4;
 const CORNER_SE: u32 = 0x10;
 const CORNER_SW: u32 = 0x40;
 
+const REGION_SIZE: usize = 64;
+const PLANES: usize = 4;
+
+type RegionKey = (u16, u16);
+type TileFlags = [[[u32; REGION_SIZE]; REGION_SIZE]; PLANES];
+type TileSettings = [[[u8; REGION_SIZE]; REGION_SIZE]; PLANES];
+
 type WallClip = (u32, i32, i32, u32);
 type CornerClip = (u32, i32, i32, u32, i32, i32, u32);
 type SideCheck = (i32, i32, u32);
@@ -71,20 +78,6 @@ const DIAGONAL_SIDES: [[SideCheck; 2]; 8] = [
     [(1, 0, BLOCKED | WALL_W), (0, 1, BLOCKED | WALL_S)],
 ];
 
-const REGION_SIZE: usize = 64;
-const PLANES: usize = 4;
-
-type RegionKey = (u16, u16);
-type TileFlags = [[[u32; REGION_SIZE]; REGION_SIZE]; PLANES];
-type TileSettings = [[[u8; REGION_SIZE]; REGION_SIZE]; PLANES];
-
-struct CollisionMap {
-    cache: Arc<Cache>,
-    loc_loader: Option<LocLoader>,
-    archive_index: HashMap<i32, ArchiveId>,
-    regions: RwLock<HashMap<RegionKey, Arc<TileFlags>>>,
-}
-
 pub struct Collision;
 
 impl Collision {
@@ -92,13 +85,20 @@ impl Collision {
         INSTANCE.get_or_init(|| CollisionMap::new(Arc::clone(cache)));
     }
 
-    fn get() -> &'static CollisionMap {
-        INSTANCE.get().expect("collision map not initialized")
-    }
-
     pub fn can_move(from: Position, dir: Direction) -> bool {
         Self::get().can_move(from, dir)
     }
+
+    fn get() -> &'static CollisionMap {
+        INSTANCE.get().expect("collision map not initialized")
+    }
+}
+
+struct CollisionMap {
+    cache: Arc<Cache>,
+    loc_loader: Option<LocLoader>,
+    archive_index: HashMap<i32, ArchiveId>,
+    regions: RwLock<HashMap<RegionKey, Arc<TileFlags>>>,
 }
 
 impl CollisionMap {
@@ -126,6 +126,26 @@ impl CollisionMap {
             archive_index,
             regions: RwLock::new(HashMap::new()),
         }
+    }
+
+    fn can_move(&self, from: Position, dir: Direction) -> bool {
+        let to = from.step(dir);
+        let di = dir as usize;
+
+        if self.flag_at(to) & DEST_BLOCK[di] != 0 {
+            return false;
+        }
+
+        let (dx, dy) = dir.delta();
+        if dx != 0 && dy != 0 {
+            for &(sx, sy, mask) in &DIAGONAL_SIDES[di] {
+                if self.flag_at(Position::new(from.x + sx, from.y + sy, from.plane)) & mask != 0 {
+                    return false;
+                }
+            }
+        }
+
+        true
     }
 
     fn flag_at(&self, pos: Position) -> u32 {
@@ -181,26 +201,6 @@ impl CollisionMap {
         }
 
         flags
-    }
-
-    fn can_move(&self, from: Position, dir: Direction) -> bool {
-        let to = from.step(dir);
-        let di = dir as usize;
-
-        if self.flag_at(to) & DEST_BLOCK[di] != 0 {
-            return false;
-        }
-
-        let (dx, dy) = dir.delta();
-        if dx != 0 && dy != 0 {
-            for &(sx, sy, mask) in &DIAGONAL_SIDES[di] {
-                if self.flag_at(Position::new(from.x + sx, from.y + sy, from.plane)) & mask != 0 {
-                    return false;
-                }
-            }
-        }
-
-        true
     }
 }
 
@@ -330,23 +330,6 @@ fn parse_loc_placements(
     }
 }
 
-fn add_object(flags: &mut TileFlags, plane: usize, lx: usize, ly: usize, sx: usize, sy: usize) {
-    for dx in 0..sx {
-        for dy in 0..sy {
-            let (x, y) = (lx + dx, ly + dy);
-            if x < REGION_SIZE && y < REGION_SIZE {
-                flags[plane][x][y] |= OBJ;
-            }
-        }
-    }
-}
-
-fn add_floor_deco(flags: &mut TileFlags, plane: usize, x: usize, y: usize) {
-    if x < REGION_SIZE && y < REGION_SIZE {
-        flags[plane][x][y] |= FLOOR_DECO_BLOCKED;
-    }
-}
-
 fn set_flag(flags: &mut TileFlags, plane: usize, x: i32, y: i32, flag: u32) {
     let (ux, uy) = (x as usize, y as usize);
     if ux < REGION_SIZE && uy < REGION_SIZE {
@@ -379,5 +362,22 @@ fn add_wall(flags: &mut TileFlags, plane: usize, x: usize, y: usize, loc_type: u
             set_flag(flags, plane, ix + dx2, iy + dy2, nf2);
         }
         _ => {}
+    }
+}
+
+fn add_object(flags: &mut TileFlags, plane: usize, lx: usize, ly: usize, sx: usize, sy: usize) {
+    for dx in 0..sx {
+        for dy in 0..sy {
+            let (x, y) = (lx + dx, ly + dy);
+            if x < REGION_SIZE && y < REGION_SIZE {
+                flags[plane][x][y] |= OBJ;
+            }
+        }
+    }
+}
+
+fn add_floor_deco(flags: &mut TileFlags, plane: usize, x: usize, y: usize) {
+    if x < REGION_SIZE && y < REGION_SIZE {
+        flags[plane][x][y] |= FLOOR_DECO_BLOCKED;
     }
 }

@@ -3,17 +3,6 @@ use std::collections::{HashMap, HashSet};
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct RegionId(pub u16);
 
-#[allow(dead_code)]
-pub struct Region {
-    pub id: RegionId,
-    pub players: HashSet<usize>,
-}
-
-#[derive(Default)]
-pub struct RegionMap {
-    regions: HashMap<RegionId, Region>,
-}
-
 impl RegionId {
     pub fn from_coords(x: u16, y: u16) -> Self {
         Self((x << 8) | y)
@@ -27,10 +16,16 @@ impl RegionId {
         self.0 & 0xFF
     }
 
-    pub fn to(self, other: RegionId) -> impl Iterator<Item=RegionId> {
+    pub fn to(self, other: RegionId) -> impl Iterator<Item = RegionId> {
         (self.x()..=other.x())
             .flat_map(move |x| (self.y()..=other.y()).map(move |y| RegionId::from_coords(x, y)))
     }
+}
+
+#[allow(dead_code)]
+pub struct Region {
+    pub id: RegionId,
+    pub players: HashSet<usize>,
 }
 
 impl Region {
@@ -42,15 +37,16 @@ impl Region {
     }
 }
 
+#[derive(Default)]
+pub struct RegionMap {
+    regions: HashMap<RegionId, Region>,
+}
+
 impl RegionMap {
     pub fn new() -> Self {
         Self {
             regions: HashMap::new(),
         }
-    }
-
-    fn region_mut(&mut self, id: RegionId) -> &mut Region {
-        self.regions.entry(id).or_insert_with(|| Region::new(id))
     }
 
     pub fn add_player(&mut self, player_id: usize, region_id: RegionId) {
@@ -78,5 +74,9 @@ impl RegionMap {
         }
 
         self.region_mut(new_region).players.insert(player_id);
+    }
+
+    fn region_mut(&mut self, id: RegionId) -> &mut Region {
+        self.regions.entry(id).or_insert_with(|| Region::new(id))
     }
 }

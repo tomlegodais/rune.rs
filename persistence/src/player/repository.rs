@@ -19,6 +19,24 @@ pub struct PlayerData {
     pub xp: [u32; 24],
 }
 
+impl Clone for PlayerData {
+    fn clone(&self) -> Self {
+        Self {
+            player_id: self.player_id,
+            x: self.x,
+            y: self.y,
+            plane: self.plane,
+            running: self.running,
+            run_energy: self.run_energy,
+            male: self.male,
+            look: self.look,
+            colors: self.colors,
+            levels: self.levels,
+            xp: self.xp,
+        }
+    }
+}
+
 #[async_trait]
 pub trait PlayerRepository: Interface {
     async fn find_by_account_id(&self, account_id: i64) -> Result<Option<PlayerData>, DbErr>;

@@ -1,56 +1,16 @@
+use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContext};
 use crate::player::ui;
+use macros::player_system;
 use net::{OpenWidget, Outbox, OutboxExt, SetRootWidget};
 use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum DisplayMode {
     Fixed = 1,
     Resizable = 2,
     FullScreen = 3,
-}
-
-pub trait Widget: Send + Sync {
-    fn interface(&self) -> u16;
-    fn parent(&self, root: RootWidget) -> u16;
-    fn position(&self, mode: DisplayMode) -> u16;
-    fn transparent(&self) -> bool;
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct RootWidget(pub u16);
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[allow(dead_code)]
-pub struct ScreenWidget(pub u16);
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct WindowWidget {
-    pub interface: u16,
-    pub fixed_position: u16,
-    pub resizable_position: u16,
-    pub transparent: bool,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[allow(dead_code)]
-pub struct OverlayWidget(u16);
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct ChatboxWidget {
-    pub interface: u16,
-    pub fixed_position: u16,
-    pub resizable_position: u16,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[allow(dead_code)]
-pub struct InventoryWidget(pub u16);
-
-pub struct WidgetManager {
-    outbox: Outbox,
-    display_mode: DisplayMode,
-    root: RootWidget,
-    widgets: HashMap<u16, u16>,
 }
 
 impl DisplayMode {
@@ -71,10 +31,24 @@ impl DisplayMode {
     }
 }
 
+pub trait Widget: Send + Sync {
+    fn interface(&self) -> u16;
+    fn parent(&self, root: RootWidget) -> u16;
+    fn position(&self, mode: DisplayMode) -> u16;
+    fn transparent(&self) -> bool;
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct RootWidget(pub u16);
+
 impl RootWidget {
     const FIXED: RootWidget = Self(548);
     const RESIZABLE: RootWidget = Self(746);
 }
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[allow(dead_code)]
+pub struct ScreenWidget(pub u16);
 
 impl Widget for ScreenWidget {
     fn interface(&self) -> u16 {
@@ -95,6 +69,14 @@ impl Widget for ScreenWidget {
     fn transparent(&self) -> bool {
         false
     }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct WindowWidget {
+    pub interface: u16,
+    pub fixed_position: u16,
+    pub resizable_position: u16,
+    pub transparent: bool,
 }
 
 impl WindowWidget {
@@ -135,6 +117,10 @@ impl Widget for WindowWidget {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[allow(dead_code)]
+pub struct OverlayWidget(u16);
+
 impl Widget for OverlayWidget {
     fn interface(&self) -> u16 {
         self.0
@@ -154,6 +140,13 @@ impl Widget for OverlayWidget {
     fn transparent(&self) -> bool {
         true
     }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct ChatboxWidget {
+    pub interface: u16,
+    pub fixed_position: u16,
+    pub resizable_position: u16,
 }
 
 impl ChatboxWidget {
@@ -200,6 +193,10 @@ impl Widget for ChatboxWidget {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[allow(dead_code)]
+pub struct InventoryWidget(pub u16);
+
 impl Widget for InventoryWidget {
     fn interface(&self) -> u16 {
         self.0
@@ -221,6 +218,13 @@ impl Widget for InventoryWidget {
     }
 }
 
+pub struct WidgetManager {
+    outbox: Outbox,
+    display_mode: DisplayMode,
+    root: RootWidget,
+    widgets: HashMap<u16, u16>,
+}
+
 impl WidgetManager {
     pub fn new(outbox: Outbox, display_mode: u8) -> Self {
         let display_mode = DisplayMode::from_u8(display_mode).unwrap_or(DisplayMode::Fixed);
@@ -231,13 +235,6 @@ impl WidgetManager {
             root: display_mode.root_widget(),
             widgets: HashMap::new(),
         }
-    }
-
-    pub async fn on_login(&mut self) {
-        self.set_root_widget(self.root).await;
-        self.open_widgets(ui::tabs::widgets()).await;
-        self.open_widgets(ui::orbs::widgets()).await;
-        self.open_widgets(ui::chat::widgets()).await;
     }
 
     pub async fn set_root_widget(&mut self, root: RootWidget) {
@@ -279,5 +276,24 @@ impl WidgetManager {
     pub fn is_open(&self, widget: impl Widget) -> bool {
         let position = widget.position(self.display_mode);
         self.widgets.get(&position) == Some(&widget.interface())
+    }
+}
+
+#[player_system]
+impl PlayerSystem for WidgetManager {
+    fn create(ctx: &PlayerInitContext) -> Self {
+        Self::new(ctx.outbox.clone(), ctx.display_mode)
+    }
+
+    fn on_login<'a>(
+        &'a mut self,
+        _ctx: &'a mut SystemContext<'_>,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+        Box::pin(async {
+            self.set_root_widget(self.root).await;
+            self.open_widgets(ui::tabs::widgets()).await;
+            self.open_widgets(ui::orbs::widgets()).await;
+            self.open_widgets(ui::chat::widgets()).await;
+        })
     }
 }

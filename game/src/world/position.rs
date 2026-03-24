@@ -7,17 +7,15 @@ pub struct Position {
     pub plane: i32,
 }
 
+impl Default for Position {
+    fn default() -> Self {
+        Position::new(3093, 3493, 0)
+    }
+}
+
 impl Position {
     pub fn new(x: i32, y: i32, plane: i32) -> Self {
         Self { x, y, plane }
-    }
-
-    pub fn chunk_x(self) -> i32 {
-        self.x >> 3
-    }
-
-    pub fn chunk_y(self) -> i32 {
-        self.y >> 3
     }
 
     pub fn from_chunks(chunk_x: i32, chunk_y: i32) -> Self {
@@ -26,6 +24,20 @@ impl Position {
             y: chunk_y << 3,
             plane: 0,
         }
+    }
+
+    pub fn to_bits(self) -> u32 {
+        ((self.plane as u32 & 0x3) << 28)
+            | ((self.x as u32 & 0x3fff) << 14)
+            | (self.y as u32 & 0x3fff)
+    }
+
+    pub fn chunk_x(self) -> i32 {
+        self.x >> 3
+    }
+
+    pub fn chunk_y(self) -> i32 {
+        self.y >> 3
     }
 
     pub fn region_id(self) -> RegionId {
@@ -47,23 +59,8 @@ impl Position {
     }
 
     pub fn step(self, dir: Direction) -> Position {
-        let (dx, dy) = match dir {
-            Direction::SouthWest => (-1, -1),
-            Direction::South => (0, -1),
-            Direction::SouthEast => (1, -1),
-            Direction::West => (-1, 0),
-            Direction::East => (1, 0),
-            Direction::NorthWest => (-1, 1),
-            Direction::North => (0, 1),
-            Direction::NorthEast => (1, 1),
-        };
+        let (dx, dy) = dir.delta();
         Position::new(self.x + dx, self.y + dy, self.plane)
-    }
-
-    pub fn to_bits(self) -> u32 {
-        ((self.plane as u32 & 0x3) << 28)
-            | ((self.x as u32 & 0x3fff) << 14)
-            | (self.y as u32 & 0x3fff)
     }
 }
 
@@ -94,13 +91,6 @@ impl Direction {
         }
     }
 
-    pub fn is_diagonal(self) -> bool {
-        matches!(
-            self,
-            Self::SouthWest | Self::SouthEast | Self::NorthWest | Self::NorthEast
-        )
-    }
-
     pub fn delta(self) -> (i32, i32) {
         match self {
             Self::SouthWest => (-1, -1),
@@ -112,6 +102,13 @@ impl Direction {
             Self::North => (0, 1),
             Self::NorthEast => (1, 1),
         }
+    }
+
+    pub fn is_diagonal(self) -> bool {
+        matches!(
+            self,
+            Self::SouthWest | Self::SouthEast | Self::NorthWest | Self::NorthEast
+        )
     }
 }
 
@@ -144,10 +141,4 @@ pub fn running_direction(walk_dir: Direction, run_dir: Direction) -> Option<u8> 
 pub struct Teleport {
     pub from: Position,
     pub to: Position,
-}
-
-impl Default for Position {
-    fn default() -> Self {
-        Position::new(3093, 3493, 0)
-    }
 }

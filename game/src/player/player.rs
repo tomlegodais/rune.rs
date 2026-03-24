@@ -1,8 +1,8 @@
 use crate::player::movement::Movement;
 use crate::player::state::MoveStep;
+use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContextFields, SystemStore};
 use crate::player::{
-    gpi, Appearance, AppearanceMask, MaskBlock, MoveTypeMask, PlayerInfo,
-    SkillManager, TempMoveTypeMask, VarpManager, Viewport, WidgetManager,
+    gpi, Appearance, AppearanceMask, MaskBlock, MoveTypeMask, PlayerInfo, Viewport,
 };
 use crate::world::{Position, RegionId, Teleport};
 use net::{ChatMessage, GameScene, Inbox, Logout, Outbox, OutboxExt};
@@ -35,11 +35,9 @@ pub struct Player {
     pub current_region: RegionId,
     pub viewport: Viewport,
     pub player_info: PlayerInfo,
-    pub skills: SkillManager,
-    pub varps: VarpManager,
-    pub widgets: WidgetManager,
     pub appearance: Appearance,
-    pub movement: Movement,
+
+    pub systems: SystemStore,
 }
 
 impl Player {
@@ -55,12 +53,7 @@ impl Player {
         let username = account.display_name();
         let position = Position::new(data.x, data.y, data.plane);
         let viewport = Viewport::new(position, 0);
-        let current_region = position.region_id();
-        let skills = SkillManager::from_data(outbox.clone(), data.levels, data.xp);
-        let varps = VarpManager::new(outbox.clone());
-        let widgets = WidgetManager::new(outbox.clone(), display_mode);
         let appearance = Appearance::from_data(&username, data.male, data.look, data.colors);
-        let movement = Movement::new(outbox.clone(), data.running, data.run_energy);
         let player_info = PlayerInfo::new(
             id,
             snapshots,
@@ -69,6 +62,12 @@ impl Player {
                 &AppearanceMask::new(&appearance),
             ],
         );
+
+        let init_ctx = PlayerInitContext {
+            outbox: outbox.clone(),
+            data: PlayerData::clone(data),
+            display_mode,
+        };
 
         Self {
             id,
@@ -79,35 +78,26 @@ impl Player {
             inbox,
             outbox,
             position,
-            current_region,
+            current_region: position.region_id(),
             viewport,
             player_info,
-            skills,
-            varps,
-            widgets,
             appearance,
-            movement,
+            systems: SystemStore::from_init(&init_ctx),
         }
     }
 
-    pub fn to_player_data(&self) -> PlayerData {
-        PlayerData {
-            player_id: self.player_data_id,
-            x: self.position.x,
-            y: self.position.y,
-            plane: self.position.plane,
-            running: self.movement.running,
-            male: self.appearance.male,
-            look: self.appearance.look,
-            colors: self.appearance.colors,
-            run_energy: self.movement.run_energy(),
-            levels: self.skills.levels(),
-            xp: self.skills.xp_values(),
-        }
+    pub fn system<T: PlayerSystem>(&self) -> &T {
+        self.systems.get::<T>()
+    }
+
+    #[allow(dead_code)]
+    pub fn system_mut<T: PlayerSystem>(&mut self) -> &mut T {
+        self.systems.get_mut::<T>()
     }
 
     pub fn snapshot(&self) -> PlayerSnapshot {
         let state = self.player_info.self_state();
+        let running = self.systems.get::<Movement>().running;
 
         PlayerSnapshot {
             id: self.id,
@@ -116,8 +106,47 @@ impl Player {
             masks: state.masks.clone(),
             teleport: state.teleport,
             move_step: state.move_step,
-            running: self.movement.running,
+            running,
         }
+    }
+
+    pub fn to_player_data(&self) -> PlayerData {
+        let mut data = PlayerData {
+            player_id: self.player_data_id,
+            x: self.position.x,
+            y: self.position.y,
+            plane: self.position.plane,
+            running: false,
+            run_energy: 0,
+            male: self.appearance.male,
+            look: self.appearance.look,
+            colors: self.appearance.colors,
+            levels: [1; 24],
+            xp: [0; 24],
+        };
+        self.systems.for_each_persist(&mut data);
+        data
+    }
+
+    pub async fn on_login(&mut self) {
+        self.send_game_scene(true).await;
+
+        self.systems
+            .on_login(&mut SystemContextFields {
+                outbox: &self.outbox,
+                position: &mut self.position,
+                player_info: &mut self.player_info,
+                viewport: &self.viewport,
+                appearance: &self.appearance,
+            })
+            .await;
+
+        self.send_message("Welcome to RuneScape.").await;
+
+        info!(
+            "Player (id={}, username={}) logged in",
+            self.id, self.username
+        );
     }
 
     pub async fn tick(&mut self, snapshots: &[PlayerSnapshot]) {
@@ -131,33 +160,26 @@ impl Player {
             .sync(snapshots, |pos| viewport.is_within_view(pos));
     }
 
-    pub async fn on_login(&mut self) {
-        self.send_game_scene(true).await;
-        self.widgets.on_login().await;
-        self.skills.flush().await;
-        self.varps.on_login().await;
-        self.movement.on_login(&mut self.varps).await;
-        self.send_message("Welcome to RuneScape.").await;
-
-        info!(
-            "Player (id={}, username={}) logged in",
-            self.id, self.username
-        );
+    pub async fn logout(&mut self) {
+        self.outbox.write(Logout).await;
     }
 
-    pub async fn teleport(&mut self, destination: Position) {
-        self.movement.stop().await;
-        self.player_info.teleport(Teleport {
-            from: self.position,
-            to: destination,
-        });
-        self.player_info.add_mask(TempMoveTypeMask::Teleport);
-        self.position = destination;
+    pub fn reset(&mut self) {
+        self.player_info.reset();
     }
 
     pub async fn send_player_info(&mut self) {
         let frame = gpi::encode(&mut self.player_info);
         let _ = self.outbox.send(frame).await;
+    }
+
+    pub async fn send_message(&mut self, text: &str) {
+        self.outbox
+            .write(ChatMessage {
+                msg_type: 0,
+                text: text.to_string(),
+            })
+            .await;
     }
 
     async fn send_game_scene(&mut self, init: bool) {
@@ -173,22 +195,5 @@ impl Player {
                 region_hashes: array::from_fn(|i| self.player_info[i].region_hash),
             })
             .await;
-    }
-
-    pub async fn send_message(&mut self, text: &str) {
-        self.outbox
-            .write(ChatMessage {
-                msg_type: 0,
-                text: text.to_string(),
-            })
-            .await;
-    }
-
-    pub async fn logout(&mut self) {
-        self.outbox.write(Logout).await;
-    }
-
-    pub fn reset(&mut self) {
-        self.player_info.reset();
     }
 }

@@ -1,5 +1,10 @@
+use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContext};
+use macros::player_system;
 use net::{Outbox, OutboxExt, UpdateSkill};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
+use persistence::player::PlayerData;
+use std::future::Future;
+use std::pin::Pin;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive, IntoPrimitive)]
 #[repr(usize)]
@@ -75,7 +80,9 @@ impl SkillManager {
     }
 
     pub async fn flush(&mut self) {
-        let skills: Vec<_> = (0..NUM_SKILLS).filter_map(|i| Skill::try_from(i).ok()).collect();
+        let skills: Vec<_> = (0..NUM_SKILLS)
+            .filter_map(|i| Skill::try_from(i).ok())
+            .collect();
         for skill in skills {
             self.send_skill(skill).await;
         }
@@ -108,4 +115,23 @@ fn level_for_xp(xp: u32) -> u8 {
         }
     }
     1
+}
+
+#[player_system]
+impl PlayerSystem for SkillManager {
+    fn create(ctx: &PlayerInitContext) -> Self {
+        Self::from_data(ctx.outbox.clone(), ctx.data.levels, ctx.data.xp)
+    }
+
+    fn on_login<'a>(
+        &'a mut self,
+        _ctx: &'a mut SystemContext<'_>,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+        Box::pin(self.flush())
+    }
+
+    fn persist(&self, data: &mut PlayerData) {
+        data.levels = self.levels();
+        data.xp = self.xp_values();
+    }
 }

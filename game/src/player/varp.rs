@@ -1,6 +1,10 @@
+use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContext};
 use crate::world::Varbits;
+use macros::player_system;
 use net::{LargeVarbit, LargeVarp, Outbox, OutboxExt, SmallVarbit, SmallVarp};
 use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
 
 pub struct VarpManager {
     outbox: Outbox,
@@ -13,12 +17,6 @@ impl VarpManager {
             outbox,
             varps: HashMap::new(),
         }
-    }
-
-    pub async fn on_login(&mut self) {
-        self.send_varp(281, 1000).await;
-        self.send_varp(1160, -1).await;
-        self.send_varp(1159, 1).await;
     }
 
     pub fn get(&self, id: u16) -> i32 {
@@ -68,5 +66,23 @@ impl VarpManager {
                 })
                 .await;
         }
+    }
+}
+
+#[player_system]
+impl PlayerSystem for VarpManager {
+    fn create(ctx: &PlayerInitContext) -> Self {
+        Self::new(ctx.outbox.clone())
+    }
+
+    fn on_login<'a>(
+        &'a mut self,
+        _ctx: &'a mut SystemContext<'_>,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+        Box::pin(async {
+            self.send_varp(281, 1000).await;
+            self.send_varp(1160, -1).await;
+            self.send_varp(1159, 1).await;
+        })
     }
 }

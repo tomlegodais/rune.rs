@@ -1,5 +1,5 @@
 use super::CommandEntry;
-use crate::player::Player;
+use crate::player::{Player, VarpManager};
 use crate::send_message;
 use crate::world::Varbits;
 use macros::command;
@@ -22,6 +22,9 @@ async fn inspect(player: &mut Player, id: u32) {
 
 #[command(name = "setvarbit")]
 async fn set(player: &mut Player, id: u32, value: i32) {
-    player.varps.send_varbit(id, value).await;
+    {
+        let mut varps = player.systems.guard::<VarpManager>();
+        varps.send_varbit(id, value).await;
+    }
     send_message!(player, "varbit {} = {}", id, value);
 }

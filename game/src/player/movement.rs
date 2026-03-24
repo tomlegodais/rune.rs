@@ -1,8 +1,14 @@
 use crate::player::state::MoveStep;
+use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContext};
 use crate::player::{MoveTypeMask, PlayerInfo, TempMoveTypeMask, VarpManager};
-use crate::world::{running_direction, Direction, Position};
+use crate::world::{running_direction, Direction, Position, Teleport};
+use macros::player_system;
 use net::{MinimapFlag, Outbox, OutboxExt, RunEnergy};
+use persistence::player::PlayerData;
+use std::any::TypeId;
 use std::collections::VecDeque;
+use std::future::Future;
+use std::pin::Pin;
 
 pub struct Movement {
     outbox: Outbox,
@@ -29,15 +35,18 @@ impl Movement {
         }
     }
 
-    pub async fn on_login(&mut self, varps: &mut VarpManager) {
-        varps.send_varp(173, if self.running { 1 } else { 0 }).await;
-        self.send_run_energy().await;
+    pub fn run_energy(&self) -> u16 {
+        self.run_energy
     }
 
-    pub async fn set_run(&mut self, ctx: &mut MovementContext<'_>, enabled: bool) {
-        self.running = enabled;
-        ctx.varps.send_varp(173, if enabled { 1 } else { 0 }).await;
-        ctx.player_info.add_mask(MoveTypeMask(self.running));
+    pub async fn teleport(&mut self, ctx: &mut MovementContext<'_>, destination: Position) {
+        self.stop().await;
+        ctx.player_info.teleport(Teleport {
+            from: *ctx.position,
+            to: destination,
+        });
+        ctx.player_info.add_mask(TempMoveTypeMask::Teleport);
+        *ctx.position = destination;
     }
 
     pub async fn walk_to(
@@ -55,6 +64,12 @@ impl Movement {
             Some(end) => self.set_minimap_flag(end, ctx.region_base).await,
             None => self.reset_minimap_flag().await,
         }
+    }
+
+    pub async fn set_run(&mut self, ctx: &mut MovementContext<'_>, enabled: bool) {
+        self.running = enabled;
+        ctx.varps.send_varp(173, if enabled { 1 } else { 0 }).await;
+        ctx.player_info.add_mask(MoveTypeMask(self.running));
     }
 
     #[rustfmt::skip]
@@ -81,6 +96,11 @@ impl Movement {
 
         ctx.player_info.set_move_step(MoveStep::Walk(walk_dir));
         ctx.player_info.add_mask(TempMoveTypeMask::Walk);
+    }
+
+    pub async fn stop(&mut self) {
+        self.walk_queue.clear();
+        self.reset_minimap_flag().await;
     }
 
     #[rustfmt::skip]
@@ -135,11 +155,6 @@ impl Movement {
         }
     }
 
-    pub async fn stop(&mut self) {
-        self.walk_queue.clear();
-        self.reset_minimap_flag().await;
-    }
-
     fn drain_rate(&self, agility: u8) -> u16 {
         let weight = self.weight().clamp(0, 64);
         let base = 60 + (67 * weight / 64);
@@ -148,6 +163,10 @@ impl Movement {
 
     fn restore_rate(&self, agility: u8) -> u16 {
         agility as u16 / 10 + 15
+    }
+
+    fn weight(&self) -> i32 {
+        0
     }
 
     async fn send_run_energy(&mut self) {
@@ -165,12 +184,32 @@ impl Movement {
     async fn reset_minimap_flag(&mut self) {
         self.outbox.write(MinimapFlag::reset()).await;
     }
+}
 
-    fn weight(&self) -> i32 {
-        0
+#[player_system]
+impl PlayerSystem for Movement {
+    fn create(ctx: &PlayerInitContext) -> Self {
+        Self::new(ctx.outbox.clone(), ctx.data.running, ctx.data.run_energy)
     }
 
-    pub fn run_energy(&self) -> u16 {
-        self.run_energy
+    fn dependencies() -> Vec<TypeId> {
+        vec![TypeId::of::<VarpManager>()]
+    }
+
+    fn on_login<'a>(
+        &'a mut self,
+        ctx: &'a mut SystemContext<'_>,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+        Box::pin(async {
+            let mut varps = ctx.take::<VarpManager>();
+            varps.send_varp(173, if self.running { 1 } else { 0 }).await;
+            ctx.put_back(varps);
+            self.send_run_energy().await;
+        })
+    }
+
+    fn persist(&self, data: &mut PlayerData) {
+        data.running = self.running;
+        data.run_energy = self.run_energy();
     }
 }
