@@ -5,6 +5,7 @@ use sea_orm::prelude::Expr;
 use sea_orm::*;
 use shaku::{Component, Interface};
 
+#[derive(Clone)]
 pub struct PlayerData {
     pub player_id: i64,
     pub x: i32,
@@ -17,24 +18,6 @@ pub struct PlayerData {
     pub colors: [u8; 5],
     pub levels: [u8; 24],
     pub xp: [u32; 24],
-}
-
-impl Clone for PlayerData {
-    fn clone(&self) -> Self {
-        Self {
-            player_id: self.player_id,
-            x: self.x,
-            y: self.y,
-            plane: self.plane,
-            running: self.running,
-            run_energy: self.run_energy,
-            male: self.male,
-            look: self.look,
-            colors: self.colors,
-            levels: self.levels,
-            xp: self.xp,
-        }
-    }
 }
 
 #[async_trait]

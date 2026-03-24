@@ -65,7 +65,7 @@ impl Player {
 
         let init_ctx = PlayerInitContext {
             outbox: outbox.clone(),
-            data: PlayerData::clone(data),
+            data: data.clone(),
             display_mode,
         };
 
