@@ -25,10 +25,9 @@ pub struct PlayerSnapshot {
 pub struct Player {
     pub id: usize,
     pub player_data_id: i64,
-    pub _account_id: i64,
+    pub account_id: i64,
     pub username: String,
     pub rights: Rights,
-
     pub inbox: Inbox,
     pub outbox: Outbox,
     pub position: Position,
@@ -36,7 +35,6 @@ pub struct Player {
     pub viewport: Viewport,
     pub player_info: PlayerInfo,
     pub appearance: Appearance,
-
     pub systems: SystemStore,
 }
 
@@ -72,7 +70,7 @@ impl Player {
         Self {
             id,
             player_data_id: data.player_id,
-            _account_id: account.id,
+            account_id: account.id,
             username,
             rights: account.rights,
             inbox,
@@ -123,7 +121,9 @@ impl Player {
             colors: self.appearance.colors,
             levels: [1; 24],
             xp: [0; 24],
+            inventory: vec![None; 28],
         };
+
         self.systems.for_each_persist(&mut data);
         data
     }

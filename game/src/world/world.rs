@@ -68,7 +68,7 @@ impl World {
     pub fn is_online(&self, account_id: i64) -> bool {
         self.players
             .iter()
-            .any(|(_, p)| p._account_id == account_id)
+            .any(|(_, p)| p.account_id == account_id)
     }
 
     pub(super) fn player_snapshots(&self) -> Vec<PlayerSnapshot> {

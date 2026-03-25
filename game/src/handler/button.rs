@@ -2,7 +2,7 @@ use super::MessageHandler;
 use crate::player::{Movement, Player};
 use crate::{send_message, with_movement};
 use macros::message_handler;
-use net::inbound::button::ButtonClick;
+use net::ButtonClick;
 
 #[message_handler]
 async fn handle(player: &mut Player, msg: ButtonClick) {

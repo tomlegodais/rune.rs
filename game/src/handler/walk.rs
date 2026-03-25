@@ -3,7 +3,7 @@ use crate::player::Player;
 use crate::with_movement;
 use crate::world::Position;
 use macros::message_handler;
-use net::inbound::walk::WalkRequest;
+use net::WalkRequest;
 
 #[message_handler]
 async fn handle(player: &mut Player, msg: WalkRequest) {

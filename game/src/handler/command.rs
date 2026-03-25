@@ -1,7 +1,7 @@
 use super::MessageHandler;
 use crate::player::Player;
 use macros::message_handler;
-use net::inbound::command::ClientCommand;
+use net::ClientCommand;
 
 #[message_handler]
 async fn handle(player: &mut Player, msg: ClientCommand) {

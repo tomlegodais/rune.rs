@@ -1,5 +1,6 @@
+use super::entity::inventory::InventoryEntry;
 use super::entity::skills::SkillEntry;
-use super::entity::{appearance, player, skills};
+use super::entity::{appearance, inventory, player, skills};
 use async_trait::async_trait;
 use sea_orm::prelude::Expr;
 use sea_orm::*;
@@ -18,6 +19,7 @@ pub struct PlayerData {
     pub colors: [u8; 5],
     pub levels: [u8; 24],
     pub xp: [u32; 24],
+    pub inventory: Vec<Option<(u16, u32)>>,
 }
 
 #[async_trait]
@@ -39,6 +41,7 @@ impl PlayerData {
         player: player::Model,
         appearance: appearance::Model,
         skill_model: skills::Model,
+        inventory_model: inventory::Model,
     ) -> Result<Self, DbErr> {
         let skill_entries: Vec<SkillEntry> =
             serde_json::from_value(skill_model.skills).map_err(|e| DbErr::Type(e.to_string()))?;
@@ -66,6 +69,14 @@ impl PlayerData {
             .try_into()
             .map_err(|_| DbErr::Type("invalid colors array length".to_string()))?;
 
+        let inv_entries: Vec<Option<InventoryEntry>> =
+            serde_json::from_value(inventory_model.items)
+                .map_err(|e| DbErr::Type(e.to_string()))?;
+        let inventory = inv_entries
+            .into_iter()
+            .map(|e| e.map(|e| (e.item_id, e.amount)))
+            .collect();
+
         Ok(PlayerData {
             player_id: player.id,
             x: player.x,
@@ -78,6 +89,7 @@ impl PlayerData {
             colors,
             levels,
             xp,
+            inventory,
         })
     }
 }
@@ -103,7 +115,12 @@ impl PlayerRepository for PgPlayerRepository {
             .await?
             .ok_or_else(|| DbErr::RecordNotFound("player_skills".to_string()))?;
 
-        PlayerData::from_models(player, appearance, skills).map(Some)
+        let inv = inventory::Entity::find_by_id(player.id)
+            .one(&self.db)
+            .await?
+            .ok_or_else(|| DbErr::RecordNotFound("player_inventory".to_string()))?;
+
+        PlayerData::from_models(player, appearance, skills, inv).map(Some)
     }
 
     async fn create_default(&self, account_id: i64) -> Result<PlayerData, DbErr> {
@@ -128,7 +145,14 @@ impl PlayerRepository for PgPlayerRepository {
         .insert(&self.db)
         .await?;
 
-        PlayerData::from_models(player, appearance, skills)
+        let inv = inventory::ActiveModel {
+            player_id: Set(player.id),
+            ..Default::default()
+        }
+        .insert(&self.db)
+        .await?;
+
+        PlayerData::from_models(player, appearance, skills, inv)
     }
 
     async fn save(&self, data: &PlayerData) -> Result<(), DbErr> {
@@ -172,6 +196,20 @@ impl PlayerRepository for PgPlayerRepository {
         skills::Entity::update_many()
             .filter(skills::Column::PlayerId.eq(data.player_id))
             .col_expr(skills::Column::Skills, Expr::value(skills_json))
+            .exec(&self.db)
+            .await?;
+
+        let inv_entries: Vec<Option<InventoryEntry>> = data
+            .inventory
+            .iter()
+            .map(|slot| slot.map(|(item_id, amount)| InventoryEntry { item_id, amount }))
+            .collect();
+        let inv_json =
+            serde_json::to_value(&inv_entries).map_err(|e| DbErr::Type(e.to_string()))?;
+
+        inventory::Entity::update_many()
+            .filter(inventory::Column::PlayerId.eq(data.player_id))
+            .col_expr(inventory::Column::Items, Expr::value(inv_json))
             .exec(&self.db)
             .await?;
 

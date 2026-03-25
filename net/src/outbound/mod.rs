@@ -1,5 +1,6 @@
 mod chat;
 mod energy;
+mod ifevents;
 mod item;
 mod logout;
 mod minimap;
@@ -13,6 +14,7 @@ use tokio::sync::mpsc;
 
 pub use chat::ChatMessage;
 pub use energy::RunEnergy;
+pub use ifevents::{IfEvents, IfSetEvents};
 pub use item::{ItemContainerEntry, ItemContainerId, UpdateItemContainer};
 pub use logout::Logout;
 pub use minimap::MinimapFlag;

@@ -1,14 +1,19 @@
-pub mod button;
-pub mod chat;
-pub mod command;
-pub mod minimap_walk;
-pub mod walk;
+mod button;
+mod chat;
+mod command;
+mod minimap_walk;
+mod walk;
 
 use crate::Frame;
 use std::any::Any;
 use tokio::sync::mpsc;
 use tokio_util::bytes::Bytes;
 use tracing::debug;
+
+pub use button::ButtonClick;
+pub use chat::PublicChat;
+pub use command::ClientCommand;
+pub use walk::WalkRequest;
 
 pub type IncomingMessage = Box<dyn Any + Send>;
 

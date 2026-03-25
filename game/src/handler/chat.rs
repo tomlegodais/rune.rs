@@ -2,7 +2,7 @@ use super::MessageHandler;
 use crate::player::{ChatMask, Player};
 use crate::provider;
 use macros::message_handler;
-use net::inbound::chat::PublicChat;
+use net::PublicChat;
 use util::format_sentence;
 
 #[message_handler]
