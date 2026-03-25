@@ -26,20 +26,20 @@ macro_rules! with_movement {
     }};
 }
 
-macro_rules! widget_group {
+macro_rules! interface_group {
     (
         $(
-            $vis:vis const $name:ident : $ty:ty = $expr:expr;
+            $vis:vis const $name:ident : SubInterface = $expr:expr;
         )+
     ) => {
         $(
-            $vis const $name: $ty = $expr;
+            $vis const $name: $crate::player::SubInterface = $expr;
         )+
 
-        pub fn widgets() -> impl Iterator<Item = &'static dyn $crate::player::widget::Widget> {
+        pub fn interfaces() -> impl Iterator<Item = &'static $crate::player::SubInterface> {
             [
                 $(
-                    &$name as &dyn $crate::player::Widget,
+                    &$name,
                 )+
             ]
             .into_iter()

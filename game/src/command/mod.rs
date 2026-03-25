@@ -1,3 +1,4 @@
+mod interface;
 mod inv;
 mod pos;
 mod setlevel;
