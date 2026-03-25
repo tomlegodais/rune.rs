@@ -6,13 +6,18 @@ use crate::entity::Entity;
 use crate::entity::MaskBlock;
 use crate::entity::MoveStep;
 use crate::world::{Direction, Position, Teleport};
+use rand::Rng;
 use std::ops::{Deref, DerefMut};
+use strum::IntoEnumIterator;
 
+use crate::provider;
 pub(crate) use info::NpcInfo;
 
 pub struct Npc {
     pub entity: Entity,
     pub npc_id: u16,
+    pub spawn_position: Position,
+    pub wander_radius: u8,
     pub running: bool,
     pub move_step: MoveStep,
     pub teleport: Option<Teleport>,
@@ -33,9 +38,11 @@ impl DerefMut for Npc {
 }
 
 impl Npc {
-    pub fn new(index: usize, npc_id: u16, position: Position) -> Self {
+    pub fn new(index: usize, npc_id: u16, position: Position, wander_radius: u8) -> Self {
         Self {
             npc_id,
+            spawn_position: position,
+            wander_radius,
             entity: Entity::new(index, position),
             move_step: MoveStep::None,
             masks: MaskBlock::new(&mask::NPC_MASKS),
@@ -44,16 +51,47 @@ impl Npc {
         }
     }
 
-    pub fn snapshot(&self) -> NpcSnapshot {
-        NpcSnapshot {
-            index: self.index,
-            npc_id: self.npc_id,
-            position: self.position,
-            face_direction: self.face_direction,
-            masks: self.masks.clone(),
-            teleport: self.teleport,
-            move_step: self.move_step,
-            running: self.running,
+    pub fn wander(&mut self) {
+        if self.wander_radius == 0 || self.has_steps() {
+            return;
+        }
+
+        let mut rng = rand::rng();
+        if !rng.random_ratio(1, 8) {
+            return;
+        }
+
+        let radius = self.wander_radius as i32;
+        let dx = self.position.x - self.spawn_position.x;
+        let dy = self.position.y - self.spawn_position.y;
+        let weighted: Vec<(Direction, u32)> = Direction::iter()
+            .map(|d| {
+                let (ddx, ddy) = d.delta();
+                let closer_x = ddx.signum() == -dx.signum() || dx == 0;
+                let closer_y = ddy.signum() == -dy.signum() || dy == 0;
+                let weight = if closer_x && closer_y { 3 } else { 1 };
+                (d, weight)
+            })
+            .collect();
+
+        let total: u32 = weighted.iter().map(|(_, w)| w).sum();
+        let mut pick = rng.random_range(0..total);
+        let dir = weighted
+            .into_iter()
+            .find(|(_, w)| {
+                let hit = pick < *w;
+                pick = pick.saturating_sub(*w);
+                hit
+            })
+            .map(|(d, _)| d)
+            .unwrap();
+
+        let candidate = self.position.step(dir);
+        let in_bounds = (candidate.x - self.spawn_position.x).abs() <= radius
+            && (candidate.y - self.spawn_position.y).abs() <= radius;
+
+        if in_bounds && provider::get_collision().can_move(self.position, dir) {
+            self.walk_queue.push_back(candidate);
         }
     }
 
@@ -69,6 +107,19 @@ impl Npc {
         self.teleport = None;
         self.move_step = MoveStep::None;
         self.masks.clear();
+    }
+
+    pub fn snapshot(&self) -> NpcSnapshot {
+        NpcSnapshot {
+            index: self.index,
+            npc_id: self.npc_id,
+            position: self.position,
+            face_direction: self.face_direction,
+            masks: self.masks.clone(),
+            teleport: self.teleport,
+            move_step: self.move_step,
+            running: self.running,
+        }
     }
 
     pub fn force_talk(&mut self, message: String) {

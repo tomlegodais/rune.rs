@@ -15,6 +15,7 @@ trait TickPhase<E> {
 }
 
 struct ProcessMessages;
+struct Wander;
 struct ProcessMovement;
 struct Sync;
 struct Reset;
@@ -51,6 +52,16 @@ impl TickPhase<Player> for ProcessMovement {
 
     async fn execute(&self, _world: &World, player: &mut Player, _: &()) {
         with_movement!(player, |m, ctx| m.process(&mut ctx).await);
+    }
+}
+
+impl TickPhase<Npc> for Wander {
+    type Context = ();
+
+    fn context(&self, _: &World) -> Self::Context {}
+
+    async fn execute(&self, _world: &World, npc: &mut Npc, _: &()) {
+        npc.wander();
     }
 }
 
@@ -128,6 +139,7 @@ impl World {
     pub async fn tick(&self) {
         self.run_player_phase(&ProcessMessages).await;
         self.run_player_phase(&ProcessMovement).await;
+        self.run_npc_phase(&Wander).await;
         self.run_npc_phase(&ProcessMovement).await;
         self.run_player_phase(&Sync).await;
         self.run_player_phase(&Reset).await;

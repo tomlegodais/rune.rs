@@ -42,7 +42,7 @@ impl Default for World {
 impl World {
     pub fn init(self: &Arc<Self>) {
         let _ = self.self_ref.set(Arc::downgrade(self));
-        self.spawn_npc(2, Position::new(3093, 3495, 0));
+        self.spawn_npc(2, Position::new(3093, 3495, 0), 4);
     }
 
     pub fn register_player(
@@ -95,9 +95,9 @@ impl World {
         Some(player.to_player_data())
     }
 
-    pub fn spawn_npc(&self, npc_id: u16, position: Position) -> usize {
+    pub fn spawn_npc(&self, npc_id: u16, position: Position, wander_radius: u8) -> usize {
         let index = self.npcs.vacant_index();
-        let npc = Npc::new(index, npc_id, position);
+        let npc = Npc::new(index, npc_id, position, wander_radius);
 
         self.region_map().add_npc(index, npc.position.region_id());
 

@@ -64,7 +64,7 @@ impl Position {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, strum::EnumIter)]
 pub enum Direction {
     SouthWest = 0,
     South = 1,
