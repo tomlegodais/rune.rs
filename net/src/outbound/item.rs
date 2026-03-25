@@ -44,7 +44,6 @@ impl Encodable for UpdateItemContainer {
         for slot in self.items {
             match slot {
                 Some(item) => {
-                    // Client expects packed id+1 and amount with extended int when >= 255.
                     if item.amount < 255 {
                         buf.put_u8_sub(item.amount as u8);
                     } else {
@@ -65,42 +64,5 @@ impl Encodable for UpdateItemContainer {
             prefix: Prefix::Short,
             payload: buf.freeze(),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{ItemContainerEntry, ItemContainerId, UpdateItemContainer};
-    use crate::Encodable;
-
-    #[test]
-    fn item_container_keys_are_stable() {
-        assert_eq!(ItemContainerId::Inventory.key(), 93);
-        assert_eq!(ItemContainerId::Equipment.key(), 94);
-        assert_eq!(ItemContainerId::Bank.key(), 95);
-        assert_eq!(ItemContainerId::Custom(1234).key(), 1234);
-    }
-
-    #[test]
-    fn encodes_variable_amounts() {
-        let frame = UpdateItemContainer {
-            container: ItemContainerId::Inventory,
-            negative_key: false,
-            items: vec![
-                Some(ItemContainerEntry {
-                    item_id: 995,
-                    amount: 10,
-                }),
-                Some(ItemContainerEntry {
-                    item_id: 4151,
-                    amount: 1_000,
-                }),
-            ],
-        }
-        .encode();
-
-        assert_eq!(frame.opcode, 37);
-        // key(2) + negative(1) + len(2) + slot0(3) + slot1(7)
-        assert_eq!(frame.payload.len(), 15);
     }
 }

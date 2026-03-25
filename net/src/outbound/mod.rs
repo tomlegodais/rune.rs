@@ -1,6 +1,6 @@
 mod chat;
 mod energy;
-mod item_container;
+mod item;
 mod logout;
 mod minimap;
 mod scene;
@@ -13,7 +13,7 @@ use tokio::sync::mpsc;
 
 pub use chat::ChatMessage;
 pub use energy::RunEnergy;
-pub use item_container::{ItemContainerEntry, ItemContainerId, UpdateItemContainer};
+pub use item::{ItemContainerEntry, ItemContainerId, UpdateItemContainer};
 pub use logout::Logout;
 pub use minimap::MinimapFlag;
 pub use scene::GameScene;
