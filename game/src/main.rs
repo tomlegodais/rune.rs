@@ -9,14 +9,14 @@ use net::TcpService;
 use persistence::PersistenceModuleInterface;
 use shaku::{HasComponent, module};
 use std::sync::Arc;
-
-use tokio::sync::Mutex;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
 mod command;
 mod config;
+mod entity;
 mod handler;
+mod npc;
 mod player;
 mod provider;
 mod service;
@@ -58,7 +58,7 @@ async fn main() -> anyhow::Result<()> {
     let cache = Arc::new(CacheBuilder::new("cache/").open()?);
     provider::load_all(&cache)?;
 
-    let world = Arc::new(Mutex::new(World::new()));
+    let world = Arc::new(World::new());
     let persistence = Arc::new(persistence::connect(&app_config.database).await?);
     let game = GameModule::builder(persistence)
         .with_component_parameters::<WorldLoginService>(WorldLoginServiceParameters {

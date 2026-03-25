@@ -165,7 +165,7 @@ impl BitsMut for BytesMut {
     }
 
     fn bits_end(&mut self, bit_pos: usize) {
-        let pos = (bit_pos + 7) / 8;
+        let pos = bit_pos.div_ceil(8);
         if self.len() < pos {
             self.resize(pos, 0);
         }

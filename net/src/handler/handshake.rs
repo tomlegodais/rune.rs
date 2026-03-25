@@ -10,7 +10,7 @@ pub struct HandshakeHandler;
 
 impl HandshakeHandler {
     pub async fn run(stream: TcpStream) -> anyhow::Result<(TcpStream, SessionPhase), SessionError> {
-        let codec = HandshakeCodec::default();
+        let codec = HandshakeCodec;
         let mut framed = Framed::new(stream, codec);
 
         let Some(frame) = framed.next().await else {

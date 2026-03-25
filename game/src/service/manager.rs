@@ -76,6 +76,6 @@ impl ServiceManager {
     }
 
     pub(super) async fn join(&mut self) {
-        while let Some(_) = self.set.join_next().await {}
+        while (self.set.join_next().await).is_some() {}
     }
 }

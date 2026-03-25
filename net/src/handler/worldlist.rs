@@ -9,13 +9,13 @@ pub struct WorldListHandler;
 
 impl WorldListHandler {
     pub async fn run(stream: TcpStream, full_update: bool) -> anyhow::Result<(), SessionError> {
-        let codec = WorldListCodec::default();
+        let codec = WorldListCodec;
         let mut framed = Framed::new(stream, codec);
 
         let outbound = WorldListOutbound {
             full_update,
             countries: vec![Country {
-                flag: CountryFlag::USA,
+                flag: CountryFlag::Usa,
                 name: "USA".to_string(),
             }],
             worlds: vec![World {

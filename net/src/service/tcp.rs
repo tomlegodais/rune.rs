@@ -49,12 +49,14 @@ impl TcpService {
             );
 
             tokio::spawn(async move {
-                session
+                if let Some(e) = session
                     .run()
                     .await
                     .err()
                     .filter(|err| !err.is_disconnect())
-                    .map(|e| error!("{e}"));
+                {
+                    error!("{e}");
+                }
 
                 drop(permit);
             });

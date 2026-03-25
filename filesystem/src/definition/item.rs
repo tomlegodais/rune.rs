@@ -338,8 +338,8 @@ impl ItemDefinition {
 
     fn transform_lent(&mut self, lent_def: &ItemDefinition) {
         self.recolor_find = lent_def.recolor_find.clone();
-        self.male_equip_models = lent_def.male_equip_models.clone();
-        self.female_equip_models = lent_def.female_equip_models.clone();
+        self.male_equip_models = lent_def.male_equip_models;
+        self.female_equip_models = lent_def.female_equip_models;
         self.team = lent_def.team;
         self.value = 0;
         self.members = lent_def.members;

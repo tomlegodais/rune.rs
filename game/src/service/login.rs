@@ -6,7 +6,6 @@ use persistence::account::AccountRepository;
 use persistence::player::{PlayerData, PlayerRepository};
 use shaku::{Component, Interface};
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use tracing::warn;
 
 pub trait GameLoginService: LoginService + Interface {}
@@ -24,7 +23,7 @@ pub struct WorldLoginService {
     config: GameConfig,
 
     #[shaku(default)]
-    world: Arc<Mutex<World>>,
+    world: Arc<World>,
 }
 
 impl GameLoginService for WorldLoginService {}
@@ -82,24 +81,14 @@ impl LoginService for WorldLoginService {
 
         if !account.verify_password(&req.password) { return Ok(LoginOutcome::InvalidCredentials); }
         if account.disabled { return Ok(LoginOutcome::AccountDisabled); }
-
-        {
-            let world = self.world.lock().await;
-            if world.is_online(account.id) {
-                return Ok(LoginOutcome::AlreadyOnline);
-            }
-        }
+        if self.world.is_online(account.id) { return Ok(LoginOutcome::AlreadyOnline); }
 
         let _ = self.accounts.update_last_login(account.id).await;
         let player_data = self.load_or_create_player(account.id).await?;
-        let (player_index, inbox_tx, outbound_rx) = {
-            let mut world = self.world.lock().await;
-            let (player_index, inbox_tx, outbound_rx) =
-                world.register_player(&account, &player_data, req.display_mode);
+        let (player_index, inbox_tx, outbound_rx) =
+            self.world.register_player(&account, &player_data, req.display_mode);
 
-            world.on_player_login(player_index).await;
-            (player_index, inbox_tx, outbound_rx)
-        };
+        self.world.on_player_login(player_index).await;
 
         let success = LoginSuccess {
             rights: account.rights.into(),
@@ -113,12 +102,10 @@ impl LoginService for WorldLoginService {
     }
 
     async fn logout(&self, player_index: usize) {
-        let mut world = self.world.lock().await;
-
-        if let Some(data) = world.unregister_player(player_index) {
-            if let Err(e) = self.players.save(&data).await {
-                warn!("Failed to save player data: {}", e);
-            }
+        if let Some(data) = self.world.unregister_player(player_index)
+            && let Err(e) = self.players.save(&data).await
+        {
+            warn!("Failed to save player data: {}", e);
         }
     }
 }

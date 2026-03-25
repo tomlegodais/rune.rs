@@ -1,25 +1,23 @@
-use crate::player::state::MoveStep;
+use crate::entity::Entity;
+use crate::entity::MoveStep;
 use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContext};
-use crate::player::{MoveTypeMask, PlayerInfo, TempMoveTypeMask, VarpManager};
-use crate::provider;
+use crate::player::{FaceDirectionMask, MoveTypeMask, PlayerInfo, TempMoveTypeMask, VarpManager};
 use crate::world::{Direction, Position, Teleport, running_direction};
 use macros::player_system;
 use net::{MinimapFlag, Outbox, OutboxExt, RunEnergy};
 use persistence::player::PlayerData;
 use std::any::TypeId;
-use std::collections::VecDeque;
 use std::future::Future;
 use std::pin::Pin;
 
 pub struct Movement {
     outbox: Outbox,
-    pub walk_queue: VecDeque<Position>,
     pub running: bool,
     run_energy: u16,
 }
 
 pub struct MovementContext<'a> {
-    pub position: &'a mut Position,
+    pub entity: &'a mut Entity,
     pub player_info: &'a mut PlayerInfo,
     pub varps: &'a mut VarpManager,
     pub agility_level: u8,
@@ -30,7 +28,6 @@ impl Movement {
     pub fn new(outbox: Outbox, running: bool, run_energy: u16) -> Self {
         Self {
             outbox,
-            walk_queue: VecDeque::new(),
             running,
             run_energy,
         }
@@ -41,13 +38,15 @@ impl Movement {
     }
 
     pub async fn teleport(&mut self, ctx: &mut MovementContext<'_>, destination: Position) {
-        self.stop().await;
+        self.stop(ctx).await;
         ctx.player_info.teleport(Teleport {
-            from: *ctx.position,
+            from: ctx.entity.position,
             to: destination,
         });
         ctx.player_info.add_mask(TempMoveTypeMask::Teleport);
-        *ctx.position = destination;
+        ctx.player_info.add_mask(FaceDirectionMask(Direction::South));
+        ctx.entity.position = destination;
+        ctx.entity.face_direction = Direction::South;
     }
 
     pub async fn walk_to(
@@ -60,8 +59,8 @@ impl Movement {
             self.set_run(ctx, true).await;
         }
 
-        self.walk_queue = crate::world::find_path(*ctx.position, dest);
-        match self.walk_queue.back().copied() {
+        ctx.entity.walk_to(dest);
+        match ctx.entity.walk_queue.back().copied() {
             Some(end) => self.set_minimap_flag(end, ctx.region_base).await,
             None => self.reset_minimap_flag().await,
         }
@@ -75,21 +74,14 @@ impl Movement {
 
     #[rustfmt::skip]
     pub async fn process(&mut self, ctx: &mut MovementContext<'_>) {
-        if self.walk_queue.is_empty() {
+        if !ctx.entity.has_steps() {
             self.restore_energy(ctx.agility_level).await;
             return;
         }
 
-        let Some(next) = self.walk_queue.pop_front() else { return };
-        let Some(walk_dir) = ctx.position.direction_to(next) else {
-            return self.stop().await;
+        let Some(walk_dir) = ctx.entity.step() else {
+            return self.stop(ctx).await;
         };
-
-        if !provider::get_collision().can_move(*ctx.position, walk_dir) {
-            return self.stop().await;
-        }
-
-        *ctx.position = next;
 
         if self.try_run_step(ctx, walk_dir).await {
             return;
@@ -99,8 +91,8 @@ impl Movement {
         ctx.player_info.add_mask(TempMoveTypeMask::Walk);
     }
 
-    pub async fn stop(&mut self) {
-        self.walk_queue.clear();
+    pub async fn stop(&mut self, ctx: &mut MovementContext<'_>) {
+        ctx.entity.stop();
         self.reset_minimap_flag().await;
     }
 
@@ -110,17 +102,10 @@ impl Movement {
             return false;
         }
 
-        let Some(&run_pos) = self.walk_queue.front() else { return false };
-        let Some(run_dir) = ctx.position.direction_to(run_pos) else { return false };
-
-        if !provider::get_collision().can_move(*ctx.position, run_dir) {
-            return false;
-        }
-
+        let Some(run_dir) = ctx.entity.peek_run_step() else { return false };
         let Some(opcode) = running_direction(walk_dir, run_dir) else { return false };
 
-        self.walk_queue.pop_front();
-        *ctx.position = run_pos;
+        ctx.entity.commit_run_step(run_dir);
         ctx.player_info.set_move_step(MoveStep::Run(opcode));
         ctx.player_info.add_mask(TempMoveTypeMask::Run);
 
@@ -200,7 +185,7 @@ impl PlayerSystem for Movement {
     fn on_login<'a>(
         &'a mut self,
         ctx: &'a mut SystemContext<'_>,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+    ) -> Pin<Box<dyn Future<Output=()> + Send + 'a>> {
         Box::pin(async {
             let mut varps = ctx.take::<VarpManager>();
             varps.send_varp(173, if self.running { 1 } else { 0 }).await;

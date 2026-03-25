@@ -1,5 +1,7 @@
-use crate::player::state::{MAX_PLAYERS, MoveStep};
-use crate::player::{Appearance, AppearanceMask, MaskBlock, MoveTypeMask, PlayerInfo};
+use crate::entity::MaskBlock;
+use crate::entity::MoveStep;
+use crate::player::state::MAX_PLAYERS;
+use crate::player::{Appearance, AppearanceMask, FaceDirectionMask, MoveTypeMask, PlayerInfo};
 use crate::world::{Direction, Position};
 use net::{Frame, Prefix};
 use tokio_util::bytes::BytesMut;
@@ -147,6 +149,7 @@ impl BitEncoder for RegionUpdate {
 
 struct PlayerAdd<'a> {
     position: Position,
+    face_direction: Direction,
     appearance: &'a Appearance,
     masks: &'a MaskBlock,
     cached_hash: u32,
@@ -176,6 +179,7 @@ impl BitEncoder for PlayerAdd<'_> {
 
         let mut add_masks = self.masks.clone();
         add_masks.extend(&[
+            &FaceDirectionMask(self.face_direction),
             &MoveTypeMask(self.running),
             &AppearanceMask::new(self.appearance),
         ]);
@@ -279,10 +283,11 @@ fn write_outside(info: &mut PlayerInfo, bits: &mut BytesMut, masks: &mut BytesMu
             continue;
         }
 
-        let pending = info.pending_add.iter().find(|p| p.id == idx);
+        let pending = info.pending_add.iter().find(|p| p.index == idx);
 
         if let Some(snapshot) = pending {
             let position = snapshot.position;
+            let face_direction = snapshot.face_direction;
             let appearance = snapshot.appearance.clone();
             let snap_masks = snapshot.masks.clone();
             let cached_hash = info[idx].region_hash;
@@ -290,6 +295,7 @@ fn write_outside(info: &mut PlayerInfo, bits: &mut BytesMut, masks: &mut BytesMu
 
             PlayerAdd {
                 position,
+                face_direction,
                 appearance: &appearance,
                 masks: &snap_masks,
                 cached_hash,
@@ -301,7 +307,7 @@ fn write_outside(info: &mut PlayerInfo, bits: &mut BytesMut, masks: &mut BytesMu
             info[idx].activity |= 2;
         } else {
             skip = count_skips(info, idx + 1, false, active, |i| {
-                info.pending_add.iter().any(|p| p.id == i)
+                info.pending_add.iter().any(|p| p.index == i)
             });
 
             Skip(skip).encode(bits, &mut bp, masks);

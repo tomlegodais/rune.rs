@@ -26,6 +26,7 @@ impl RegionId {
 pub struct Region {
     pub id: RegionId,
     pub players: HashSet<usize>,
+    pub npcs: HashSet<usize>,
 }
 
 impl Region {
@@ -33,6 +34,7 @@ impl Region {
         Self {
             id,
             players: HashSet::new(),
+            npcs: HashSet::new(),
         }
     }
 }
@@ -61,7 +63,7 @@ impl RegionMap {
 
     pub fn update_player_region(
         &mut self,
-        player_id: usize,
+        player_index: usize,
         old_region: RegionId,
         new_region: RegionId,
     ) {
@@ -70,10 +72,37 @@ impl RegionMap {
         }
 
         if let Some(region) = self.regions.get_mut(&old_region) {
-            region.players.remove(&player_id);
+            region.players.remove(&player_index);
         }
 
-        self.region_mut(new_region).players.insert(player_id);
+        self.region_mut(new_region).players.insert(player_index);
+    }
+
+    pub fn add_npc(&mut self, npc_id: usize, region_id: RegionId) {
+        self.region_mut(region_id).npcs.insert(npc_id);
+    }
+
+    pub fn remove_npc(&mut self, npc_id: usize, region_id: RegionId) {
+        if let Some(region) = self.regions.get_mut(&region_id) {
+            region.npcs.remove(&npc_id);
+        }
+    }
+
+    pub fn update_npc_region(
+        &mut self,
+        npc_index: usize,
+        old_region: RegionId,
+        new_region: RegionId,
+    ) {
+        if old_region == new_region {
+            return;
+        }
+
+        if let Some(region) = self.regions.get_mut(&old_region) {
+            region.npcs.remove(&npc_index);
+        }
+
+        self.region_mut(new_region).npcs.insert(npc_index);
     }
 
     fn region_mut(&mut self, id: RegionId) -> &mut Region {

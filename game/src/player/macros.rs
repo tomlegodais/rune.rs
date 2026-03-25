@@ -15,7 +15,7 @@ macro_rules! with_movement {
             .level($crate::player::Skill::Agility);
 
         let mut $ctx = $crate::player::MovementContext {
-            position: &mut $player.position,
+            entity: &mut $player.entity,
             player_info: &mut $player.player_info,
             varps: &mut varps,
             agility_level,

@@ -93,7 +93,7 @@ impl LocDefinition {
             19 => {
                 self.interact_type = buf.get_u8();
             }
-            21 | 22 | 23 => {}
+            21..=23 => {}
             24 => {
                 buf.advance(2);
             }
@@ -125,13 +125,13 @@ impl LocDefinition {
                 buf.advance(count);
             }
             62 | 64 => {}
-            65 | 66 | 67 => {
+            65..=67 => {
                 buf.advance(2);
             }
             69 => {
                 self.access_block_flag = buf.get_u8();
             }
-            70 | 71 | 72 => {
+            70..=72 => {
                 buf.advance(2);
             }
             73 => {
@@ -166,7 +166,7 @@ impl LocDefinition {
             93 => {
                 buf.advance(2);
             }
-            94 | 95 | 96 | 97 | 98 => {}
+            94..=98 => {}
             99 | 100 => {
                 buf.advance(3);
             }

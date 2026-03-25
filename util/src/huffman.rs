@@ -39,9 +39,9 @@ impl HuffmanTable {
             };
 
             positions[bit_len] = next;
-            for depth in (bit_len + 1)..=32 {
-                if positions[depth] == code {
-                    positions[depth] = next;
+            for pos in &mut positions[(bit_len + 1)..=32] {
+                if *pos == code {
+                    *pos = next;
                 }
             }
 

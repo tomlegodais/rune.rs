@@ -17,7 +17,7 @@ impl Js5Handler {
         stream: TcpStream,
         service: Arc<CacheService>,
     ) -> anyhow::Result<(), SessionError> {
-        let codec = Js5Codec::default();
+        let codec = Js5Codec;
         let xor_codec = XorCodec::new(codec);
         let mut framed = Framed::new(stream, xor_codec);
         let mut queue: BinaryHeap<PriorityRequest> = BinaryHeap::new();

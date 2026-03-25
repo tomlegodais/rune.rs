@@ -156,16 +156,16 @@ impl CollisionMap {
         let map_hash = filesystem::name_hash(&format!("m{}_{}", rx, ry));
         let loc_hash = filesystem::name_hash(&format!("l{}_{}", rx, ry));
 
-        if let Some(&archive_id) = self.archive_index.get(&map_hash) {
-            if let Ok(data) = self.cache.read_archive(IndexId::MAPS, archive_id) {
-                parse_tile_settings(&data, &mut flags, &mut settings);
-            }
+        if let Some(&archive_id) = self.archive_index.get(&map_hash)
+            && let Ok(data) = self.cache.read_archive(IndexId::MAPS, archive_id)
+        {
+            parse_tile_settings(&data, &mut flags, &mut settings);
         }
 
-        if let Some(&archive_id) = self.archive_index.get(&loc_hash) {
-            if let Ok(data) = self.cache.read_archive(IndexId::MAPS, archive_id) {
-                parse_loc_placements(&data, &mut flags, &settings);
-            }
+        if let Some(&archive_id) = self.archive_index.get(&loc_hash)
+            && let Ok(data) = self.cache.read_archive(IndexId::MAPS, archive_id)
+        {
+            parse_loc_placements(&data, &mut flags, &settings);
         }
 
         flags
@@ -175,9 +175,9 @@ impl CollisionMap {
 fn parse_tile_settings(data: &[u8], flags: &mut TileFlags, settings: &mut TileSettings) {
     let mut buf = Bytes::copy_from_slice(data);
 
-    for plane in 0..PLANES {
-        for x in 0..REGION_SIZE {
-            for y in 0..REGION_SIZE {
+    for plane_settings in settings.iter_mut() {
+        for col in plane_settings.iter_mut() {
+            for cell in col.iter_mut() {
                 loop {
                     if !buf.has_remaining() {
                         return;
@@ -192,17 +192,17 @@ fn parse_tile_settings(data: &[u8], flags: &mut TileFlags, settings: &mut TileSe
                     } else if opcode <= 49 {
                         buf.advance(1);
                     } else if opcode <= 81 {
-                        settings[plane][x][y] = (opcode - 49) as u8;
+                        *cell = (opcode - 49) as u8;
                     }
                 }
             }
         }
     }
 
-    for plane in 0..PLANES {
-        for x in 0..REGION_SIZE {
-            for y in 0..REGION_SIZE {
-                if settings[plane][x][y] & 0x1 == 0 {
+    for (plane, plane_settings) in settings.iter().enumerate() {
+        for (x, col) in plane_settings.iter().enumerate() {
+            for (y, &cell) in col.iter().enumerate() {
+                if cell & 0x1 == 0 {
                     continue;
                 }
 

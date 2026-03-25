@@ -1,7 +1,6 @@
 use crate::world::World;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::Mutex;
 use tokio::time::{Instant, sleep};
 use tokio_util::sync::CancellationToken;
 
@@ -9,11 +8,11 @@ const TICK_MS: Duration = Duration::from_millis(600);
 
 #[derive(Clone)]
 pub struct WorldService {
-    world: Arc<Mutex<World>>,
+    world: Arc<World>,
 }
 
 impl WorldService {
-    pub fn new(world: Arc<Mutex<World>>) -> Self {
+    pub fn new(world: Arc<World>) -> Self {
         Self { world }
     }
 
@@ -23,12 +22,7 @@ impl WorldService {
 
             tokio::select! {
                 _ = cancel.cancelled() => break,
-                _ = async {
-                    {
-                        let mut world = self.world.lock().await;
-                        world.tick().await;
-                    }
-                } => {}
+                _ = self.world.tick() => {}
             }
 
             let elapsed = tick_start.elapsed();

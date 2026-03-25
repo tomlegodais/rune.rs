@@ -171,7 +171,7 @@ impl PlayerSystem for Inventory {
     fn on_login<'a>(
         &'a mut self,
         _ctx: &'a mut SystemContext<'_>,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+    ) -> Pin<Box<dyn Future<Output=()> + Send + 'a>> {
         Box::pin(async move {
             self.flush().await;
             self.send_ifevents().await;
@@ -179,6 +179,6 @@ impl PlayerSystem for Inventory {
     }
 
     fn persist(&self, data: &mut PlayerData) {
-        data.inventory = self.slots.iter().copied().collect();
+        data.inventory = self.slots.to_vec();
     }
 }

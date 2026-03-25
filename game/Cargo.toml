@@ -14,12 +14,13 @@ filesystem = { path = "../filesystem" }
 net = { path = "../net" }
 num_enum = { workspace = true }
 once_cell = { workspace = true }
+parking_lot = { version = "0.12.5", features = ["send_guard"] }
 persistence = { path = "../persistence" }
 serde = { workspace = true }
 shaku = { workspace = true }
+slab = "0.4.12"
 tokio = { workspace = true }
 tokio-util = { workspace = true }
-util = { path = "../util" }
 tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-slab = "0.4.12"
+util = { path = "../util" }

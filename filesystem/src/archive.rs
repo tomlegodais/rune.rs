@@ -32,7 +32,7 @@ pub fn unpack_archive<'a>(
 
     for _chunk in 0..chunks {
         let mut accumulator: i32 = 0;
-        for file_idx in 0..file_count {
+        for file_size in file_sizes.iter_mut() {
             if trailer_pos + 4 > trailer.len() {
                 return Err(CacheError::InvalidContainer("trailer read past end".into()));
             }
@@ -46,7 +46,7 @@ pub fn unpack_archive<'a>(
             trailer_pos += 4;
 
             accumulator = accumulator.wrapping_add(delta);
-            file_sizes[file_idx] = file_sizes[file_idx].wrapping_add(accumulator as u32);
+            *file_size = file_size.wrapping_add(accumulator as u32);
         }
     }
 

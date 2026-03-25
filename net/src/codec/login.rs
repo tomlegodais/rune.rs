@@ -59,8 +59,8 @@ impl Decoder for LoginCodec {
             let _ = src.get_u16();
             let _ = src.get_u8();
             let mut uid = [0i8; 24];
-            for i in 0..uid.len() {
-                uid[i] = src.get_i8();
+            for item in &mut uid {
+                *item = src.get_i8();
             }
 
             let _ = src.get_string();
@@ -70,8 +70,8 @@ impl Decoder for LoginCodec {
 
             let _ = src.get_u16();
             let mut crc = [0u32; 31];
-            for i in 0..crc.len() {
-                crc[i] = src.get_u32();
+            for item in &mut crc {
+                *item = src.get_u32();
             }
 
             let encrypted_size = src.get_u8() as usize;

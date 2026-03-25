@@ -139,7 +139,7 @@ where
         loop {
             match self.state {
                 State::Opcode => {
-                    if src.len() < 1 {
+                    if src.is_empty() {
                         return Ok(None);
                     }
 
@@ -168,7 +168,7 @@ where
                 }
 
                 State::Size { opcode, prefix } => {
-                    if src.len() < 1 {
+                    if src.is_empty() {
                         return Ok(None);
                     }
 

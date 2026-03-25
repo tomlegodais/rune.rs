@@ -63,8 +63,8 @@ struct CommandAttr {
     name: LitStr,
 }
 
-impl syn::parse::Parse for CommandAttr {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+impl Parse for CommandAttr {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
         let ident: syn::Ident = input.parse()?;
         if ident != "name" {
             return Err(syn::Error::new(ident.span(), "expected `name`"));
@@ -81,7 +81,7 @@ fn is_raw_args_type(ty: &Type) -> bool {
             .path
             .segments
             .last()
-            .map_or(false, |s| s.ident == "RawArgs")
+            .is_some_and(|s| s.ident == "RawArgs")
     } else {
         false
     }
@@ -90,12 +90,11 @@ fn is_raw_args_type(ty: &Type) -> bool {
 fn extract_option_inner(ty: &Type) -> Option<&Type> {
     if let Type::Path(type_path) = ty {
         let segment = type_path.path.segments.last()?;
-        if segment.ident == "Option" {
-            if let PathArguments::AngleBracketed(args) = &segment.arguments {
-                if let Some(GenericArgument::Type(inner)) = args.args.first() {
-                    return Some(inner);
-                }
-            }
+        if segment.ident == "Option"
+            && let PathArguments::AngleBracketed(args) = &segment.arguments
+            && let Some(GenericArgument::Type(inner)) = args.args.first()
+        {
+            return Some(inner);
         }
     }
     None

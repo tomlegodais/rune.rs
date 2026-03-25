@@ -1,15 +1,9 @@
-use crate::player::MaskBlock;
-use crate::world::{Direction, Teleport};
+use crate::entity::MaskBlock;
+use crate::entity::MoveStep;
+use crate::player::mask;
+use crate::world::Teleport;
 
 pub const MAX_PLAYERS: usize = 2048;
-
-#[derive(Copy, Clone, Default)]
-pub enum MoveStep {
-    #[default]
-    None,
-    Walk(Direction),
-    Run(u8),
-}
 
 #[derive(Clone)]
 pub struct PlayerState {
@@ -29,7 +23,7 @@ impl Default for PlayerState {
             region_hash: 0,
             teleport: None,
             move_step: MoveStep::default(),
-            masks: MaskBlock::new(),
+            masks: MaskBlock::new(&mask::PLAYER_MASKS),
         }
     }
 }

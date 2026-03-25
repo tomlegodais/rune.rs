@@ -5,7 +5,7 @@ use macros::command;
 
 #[command(name = "pos")]
 async fn handle(player: &mut Player) {
-    let pos = player.position;
+    let pos = player.entity.position;
     send_message!(
         player,
         "Position: x={}, y={}, plane={}",

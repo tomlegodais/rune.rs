@@ -1,147 +1,61 @@
+use crate::entity::{Mask, MaskConfig, MaskFlags};
 use crate::player::Appearance;
 use crate::provider;
+use crate::world::Direction;
 use num_enum::IntoPrimitive;
 use persistence::Rights;
 use tokio_util::bytes::{BufMut, BytesMut};
 use util::BytesMutExt;
 
-#[derive(Clone, Copy, Default, PartialEq, Eq)]
-pub struct MaskFlags(u32);
+pub struct PlayerMask;
 
-impl MaskFlags {
-    pub const MOVE_TYPE: Self = Self(0x1);
-    pub const FACE_ENTITY: Self = Self(0x2);
-    pub const EXTENDED: Self = Self(0x4);
-    pub const ANIMATION: Self = Self(0x8);
-    pub const HIT_1: Self = Self(0x10);
-    pub const APPEARANCE: Self = Self(0x20);
-    pub const FACE_DIRECTION: Self = Self(0x40);
-    pub const CHAT: Self = Self(0x80);
-    pub const HIT_2: Self = Self(0x100);
-    pub const TEMP_MOVE_TYPE: Self = Self(0x200);
-    pub const FORCE_TALK: Self = Self(0x400);
-    pub const GRAPHICS_1: Self = Self(0x1000);
-    pub const EXTENDED_2: Self = Self(0x2000);
-    pub const GRAPHICS_2: Self = Self(0x40000);
-
-    pub const EMPTY: Self = Self(0);
-
-    pub fn is_empty(self) -> bool {
-        self.0 == 0
-    }
-
-    pub fn contains(self, other: Self) -> bool {
-        self.0 & other.0 == other.0
-    }
-
-    fn wire_value(self) -> u32 {
-        let mut v = self.0;
-        if v > 128 {
-            v |= Self::EXTENDED.0;
-        }
-        if v > 32768 {
-            v |= Self::EXTENDED_2.0;
-        }
-        v
-    }
+impl PlayerMask {
+    pub const MOVE_TYPE: MaskFlags = MaskFlags(0x1);
+    pub const FACE_ENTITY: MaskFlags = MaskFlags(0x2);
+    pub const EXTENDED: MaskFlags = MaskFlags(0x4);
+    pub const ANIMATION: MaskFlags = MaskFlags(0x8);
+    pub const HIT_1: MaskFlags = MaskFlags(0x10);
+    pub const APPEARANCE: MaskFlags = MaskFlags(0x20);
+    pub const FACE_DIRECTION: MaskFlags = MaskFlags(0x40);
+    pub const CHAT: MaskFlags = MaskFlags(0x80);
+    pub const HIT_2: MaskFlags = MaskFlags(0x100);
+    pub const TEMP_MOVE_TYPE: MaskFlags = MaskFlags(0x200);
+    pub const FORCE_TALK: MaskFlags = MaskFlags(0x400);
+    pub const GRAPHICS_1: MaskFlags = MaskFlags(0x1000);
+    pub const EXTENDED_2: MaskFlags = MaskFlags(0x2000);
+    pub const GRAPHICS_2: MaskFlags = MaskFlags(0x40000);
 }
 
-impl std::ops::BitOr for MaskFlags {
-    type Output = Self;
-    fn bitor(self, rhs: Self) -> Self {
-        Self(self.0 | rhs.0)
-    }
-}
+pub static PLAYER_MASKS: MaskConfig = MaskConfig {
+    order: &[
+        PlayerMask::FACE_DIRECTION,
+        PlayerMask::FORCE_TALK,
+        PlayerMask::GRAPHICS_2,
+        PlayerMask::MOVE_TYPE,
+        PlayerMask::FACE_ENTITY,
+        PlayerMask::CHAT,
+        PlayerMask::GRAPHICS_1,
+        PlayerMask::ANIMATION,
+        PlayerMask::TEMP_MOVE_TYPE,
+        PlayerMask::HIT_1,
+        PlayerMask::APPEARANCE,
+        PlayerMask::HIT_2,
+    ],
+    extended: &[
+        (0x80, PlayerMask::EXTENDED),
+        (0x8000, PlayerMask::EXTENDED_2),
+    ],
+};
 
-pub trait Mask {
-    fn flag(&self) -> MaskFlags;
-    fn encode(&self, out: &mut BytesMut);
-}
+pub struct FaceDirectionMask(pub Direction);
 
-impl<T: Mask + ?Sized> Mask for &T {
+impl Mask for FaceDirectionMask {
     fn flag(&self) -> MaskFlags {
-        (*self).flag()
+        PlayerMask::FACE_DIRECTION
     }
+
     fn encode(&self, out: &mut BytesMut) {
-        (*self).encode(out)
-    }
-}
-
-#[derive(Clone)]
-struct EncodedMask {
-    flag: MaskFlags,
-    data: Vec<u8>,
-}
-
-#[derive(Clone, Default)]
-pub struct MaskBlock {
-    flags: MaskFlags,
-    masks: Vec<EncodedMask>,
-}
-
-const MASK_ORDER: &[MaskFlags] = &[
-    MaskFlags::FACE_DIRECTION,
-    MaskFlags::FORCE_TALK,
-    MaskFlags::GRAPHICS_2,
-    MaskFlags::MOVE_TYPE,
-    MaskFlags::FACE_ENTITY,
-    MaskFlags::CHAT,
-    MaskFlags::GRAPHICS_1,
-    MaskFlags::ANIMATION,
-    MaskFlags::TEMP_MOVE_TYPE,
-    MaskFlags::HIT_1,
-    MaskFlags::APPEARANCE,
-    MaskFlags::HIT_2,
-];
-
-impl MaskBlock {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn write(&self, out: &mut BytesMut) {
-        let wire = self.flags.wire_value();
-
-        if wire > 128 {
-            out.put_u8((wire & 0xFF) as u8);
-            out.put_u8((wire >> 8) as u8);
-        } else {
-            out.put_u8(wire as u8);
-        }
-
-        for &order_flag in MASK_ORDER {
-            if !self.flags.contains(order_flag) {
-                continue;
-            }
-            if let Some(mask) = self.masks.iter().find(|m| m.flag == order_flag) {
-                out.put_slice(&mask.data);
-            }
-        }
-    }
-
-    pub fn add(&mut self, mask: impl Mask) {
-        let flag = mask.flag();
-        let mut buf = BytesMut::new();
-        mask.encode(&mut buf);
-
-        self.flags = self.flags | flag;
-        self.masks.push(EncodedMask {
-            flag,
-            data: buf.to_vec(),
-        });
-    }
-
-    pub fn extend(&mut self, masks: &[&dyn Mask]) {
-        masks.iter().for_each(|m| self.add(*m));
-    }
-
-    pub fn clear(&mut self) {
-        self.flags = MaskFlags::EMPTY;
-        self.masks.clear();
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.flags.is_empty()
+        out.put_u16(self.0.to_angle());
     }
 }
 
@@ -149,7 +63,7 @@ pub struct MoveTypeMask(pub bool);
 
 impl Mask for MoveTypeMask {
     fn flag(&self) -> MaskFlags {
-        MaskFlags::MOVE_TYPE
+        PlayerMask::MOVE_TYPE
     }
 
     fn encode(&self, out: &mut BytesMut) {
@@ -167,7 +81,7 @@ pub enum TempMoveTypeMask {
 
 impl Mask for TempMoveTypeMask {
     fn flag(&self) -> MaskFlags {
-        MaskFlags::TEMP_MOVE_TYPE
+        PlayerMask::TEMP_MOVE_TYPE
     }
 
     fn encode(&self, out: &mut BytesMut) {
@@ -188,7 +102,7 @@ impl<'a> AppearanceMask<'a> {
 
 impl Mask for AppearanceMask<'_> {
     fn flag(&self) -> MaskFlags {
-        MaskFlags::APPEARANCE
+        PlayerMask::APPEARANCE
     }
 
     fn encode(&self, out: &mut BytesMut) {
@@ -209,7 +123,6 @@ impl<'a> AppearanceMask<'a> {
         buf.put_u8(0xFF); // skull icon
         buf.put_u8(0xFF); // prayer icon
 
-        // Slots 0-3: hat, cape, amulet, weapon (empty)
         for _ in 0..4 {
             buf.put_u8(0);
         }
@@ -249,7 +162,7 @@ pub struct ChatMask {
 
 impl Mask for ChatMask {
     fn flag(&self) -> MaskFlags {
-        MaskFlags::CHAT
+        PlayerMask::CHAT
     }
 
     fn encode(&self, out: &mut BytesMut) {

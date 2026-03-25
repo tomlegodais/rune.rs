@@ -31,10 +31,10 @@ impl GameHandler {
                         None => break,
                     };
 
-                    if let Some(decoded) = crate::inbound::decode(msg) {
-                        if inbox_tx.send(decoded).await.is_err() {
-                            break;
-                        }
+                    if let Some(decoded) = crate::inbound::decode(msg)
+                        && inbox_tx.send(decoded).await.is_err()
+                    {
+                        break;
                     }
                 }
 

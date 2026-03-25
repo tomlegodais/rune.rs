@@ -1,5 +1,6 @@
 mod interface;
 mod inv;
+mod npc;
 mod pos;
 mod setlevel;
 mod tele;

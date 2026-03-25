@@ -110,6 +110,12 @@ impl Direction {
             Self::SouthWest | Self::SouthEast | Self::NorthWest | Self::NorthEast
         )
     }
+
+    pub fn to_angle(self) -> u16 {
+        let (dx, dy) = self.delta();
+        (f64::atan2(-dx as f64, -dy as f64) * (16384.0 / std::f64::consts::TAU)) as i16 as u16
+            & 0x3FFF
+    }
 }
 
 pub fn running_direction(walk_dir: Direction, run_dir: Direction) -> Option<u8> {

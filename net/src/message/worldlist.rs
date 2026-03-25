@@ -25,19 +25,19 @@ pub struct World {
 #[derive(Debug, Copy, Clone, IntoPrimitive)]
 #[repr(u16)]
 pub enum CountryFlag {
-    AUSTRALIA = 0x10,
-    BELGIUM = 0x16,
-    BRAZIL = 0x1F,
-    CANADA = 0x26,
-    DENMARK = 0x3A,
-    FINLAND = 0x45,
-    IRELAND = 0x65,
-    UK = 0x4D,
-    MEXICO = 0x98,
-    NETHERLANDS = 0xA1,
-    NORWAY = 0xA2,
-    SWEDEN = 0xBF,
-    USA = 0xE1,
+    Australia = 0x10,
+    Belgium = 0x16,
+    Brazil = 0x1F,
+    Canada = 0x26,
+    Denmark = 0x3A,
+    Finland = 0x45,
+    Ireland = 0x65,
+    Uk = 0x4D,
+    Mexico = 0x98,
+    Netherlands = 0xA1,
+    Norway = 0xA2,
+    Sweden = 0xBF,
+    Usa = 0xE1,
 }
 
 #[derive(Debug, Clone)]

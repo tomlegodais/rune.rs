@@ -5,7 +5,7 @@ use util::{BitsMut, BytesMutExt};
 pub struct GameScene {
     pub init: bool,
     pub position_bits: u32,
-    pub player_id: usize,
+    pub player_index: usize,
     pub view_distance: usize,
     pub chunk_x: i32,
     pub chunk_y: i32,
@@ -22,7 +22,7 @@ impl Encodable for GameScene {
             buf.put_bits(&mut bit_pos, 30, self.position_bits);
 
             for player_index in 1..2048usize {
-                if player_index == self.player_id {
+                if player_index == self.player_index {
                     continue;
                 }
                 buf.put_bits(&mut bit_pos, 18, self.region_hashes[player_index]);

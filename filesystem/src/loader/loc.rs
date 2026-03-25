@@ -35,4 +35,8 @@ impl LocLoader {
     pub fn len(&self) -> usize {
         self.definitions.len()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.definitions.is_empty()
+    }
 }
