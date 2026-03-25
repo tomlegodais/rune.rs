@@ -58,7 +58,8 @@ async fn main() -> anyhow::Result<()> {
     let cache = Arc::new(CacheBuilder::new("cache/").open()?);
     provider::load_all(&cache)?;
 
-    let world = Arc::new(World::new());
+    let world = Arc::new(World::default());
+    world.init();
     let persistence = Arc::new(persistence::connect(&app_config.database).await?);
     let game = GameModule::builder(persistence)
         .with_component_parameters::<WorldLoginService>(WorldLoginServiceParameters {

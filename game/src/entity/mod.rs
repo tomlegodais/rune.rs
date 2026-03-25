@@ -5,6 +5,7 @@ pub(crate) use mask::{Mask, MaskBlock, MaskConfig, MaskFlags};
 
 use crate::world::{Direction, Position, RegionId, World};
 use std::collections::VecDeque;
+use std::sync::{Arc, Weak};
 
 #[derive(Copy, Clone, Default)]
 pub enum MoveStep {
@@ -15,7 +16,7 @@ pub enum MoveStep {
 }
 
 pub struct Entity {
-    world: *const World,
+    world: Weak<World>,
 
     pub index: usize,
     pub position: Position,
@@ -27,7 +28,7 @@ pub struct Entity {
 impl Entity {
     pub fn new(index: usize, position: Position) -> Self {
         Self {
-            world: std::ptr::null(),
+            world: Weak::new(),
             index,
             current_region: position.region_id(),
             position,
@@ -36,14 +37,11 @@ impl Entity {
         }
     }
 
-    pub fn world(&self) -> &World {
-        unsafe { &*self.world }
+    pub fn world(&self) -> Arc<World> {
+        self.world.upgrade().expect("world has been dropped")
     }
 
-    pub(crate) fn set_world(&mut self, world: &World) {
-        self.world = world as *const World;
+    pub(crate) fn set_world(&mut self, world: &Arc<World>) {
+        self.world = Arc::downgrade(world);
     }
 }
-
-unsafe impl Send for Entity {}
-unsafe impl Sync for Entity {}

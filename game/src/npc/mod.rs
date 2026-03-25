@@ -48,8 +48,8 @@ impl Npc {
         NpcSnapshot {
             index: self.index,
             npc_id: self.npc_id,
-            position: self.entity.position,
-            face_direction: self.entity.face_direction,
+            position: self.position,
+            face_direction: self.face_direction,
             masks: self.masks.clone(),
             teleport: self.teleport,
             move_step: self.move_step,

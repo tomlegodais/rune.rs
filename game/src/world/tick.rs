@@ -62,12 +62,13 @@ impl TickPhase<Npc> for ProcessMovement {
     async fn execute(&self, world: &World, npc: &mut Npc, _: &()) {
         npc.process_movement();
 
-        let new_region = npc.entity.position.region_id();
-        if new_region != npc.entity.current_region {
+        let new_region = npc.position.region_id();
+        if new_region != npc.current_region {
             world
                 .region_map()
-                .update_npc_region(npc.index, npc.entity.current_region, new_region);
-            npc.entity.current_region = new_region;
+                .update_npc_region(npc.index, npc.current_region, new_region);
+
+            npc.current_region = new_region;
         }
     }
 }
@@ -88,14 +89,14 @@ impl TickPhase<Player> for Sync {
     }
 
     async fn execute(&self, world: &World, player: &mut Player, ctx: &SyncContext) {
-        let new_region = player.entity.position.region_id();
-        if new_region != player.entity.current_region {
+        let new_region = player.position.region_id();
+        if new_region != player.current_region {
             world.region_map().update_player_region(
                 player.index,
-                player.entity.current_region,
+                player.current_region,
                 new_region,
             );
-            player.entity.current_region = new_region;
+            player.current_region = new_region;
         }
 
         player.tick(&ctx.player_snapshots, &ctx.npc_snapshots).await;

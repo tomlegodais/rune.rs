@@ -201,8 +201,8 @@ impl Player {
         player_snapshots: &[PlayerSnapshot],
         npc_snapshots: &[NpcSnapshot],
     ) {
-        if self.viewport.needs_rebuild(self.entity.position) {
-            self.viewport.rebuild(self.entity.position);
+        if self.viewport.needs_rebuild(self.position) {
+            self.viewport.rebuild(self.position);
             self.send_game_scene(false).await;
         }
 
@@ -233,7 +233,7 @@ impl Player {
     }
 
     async fn send_game_scene(&mut self, init: bool) {
-        let pos = self.entity.position;
+        let pos = self.position;
         self.outbox
             .write(GameScene {
                 init,

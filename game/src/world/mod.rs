@@ -17,10 +17,12 @@ use net::{Frame, IncomingMessage};
 use parking_lot::{MappedRwLockReadGuard, MappedRwLockWriteGuard, RwLock, RwLockWriteGuard};
 use persistence::account::Account;
 use persistence::player::PlayerData;
+use std::sync::{Arc, OnceLock, Weak};
 use tokio::sync::mpsc;
 use tracing::info;
 
 pub struct World {
+    self_ref: OnceLock<Weak<World>>,
     pub players: WorldSlab<Player>,
     pub npcs: WorldSlab<Npc>,
     region_map: RwLock<RegionMap>,
@@ -29,6 +31,7 @@ pub struct World {
 impl Default for World {
     fn default() -> Self {
         Self {
+            self_ref: OnceLock::new(),
             players: WorldSlab::new(),
             npcs: WorldSlab::new(),
             region_map: RwLock::new(RegionMap::new()),
@@ -37,10 +40,9 @@ impl Default for World {
 }
 
 impl World {
-    pub fn new() -> Self {
-        let world = Self::default();
-        world.spawn_npc(2, Position::new(3093, 3495, 0));
-        world
+    pub fn init(self: &Arc<Self>) {
+        let _ = self.self_ref.set(Arc::downgrade(self));
+        self.spawn_npc(2, Position::new(3093, 3495, 0));
     }
 
     pub fn register_player(
@@ -67,9 +69,13 @@ impl World {
             .add_player(index, player.position.region_id());
 
         self.players.insert(player);
-        self.players.get_mut(index).set_world(self);
+        self.players.get_mut(index).set_world(&self.arc());
 
         (index, inbox_tx, outbound_rx)
+    }
+
+    pub async fn on_player_login(&self, player_index: usize) {
+        self.players.get_mut(player_index).on_login().await;
     }
 
     pub fn unregister_player(&self, player_index: usize) -> Option<PlayerData> {
@@ -96,7 +102,7 @@ impl World {
         self.region_map().add_npc(index, npc.position.region_id());
 
         self.npcs.insert(npc);
-        self.npcs.get_mut(index).set_world(self);
+        self.npcs.get_mut(index).set_world(&self.arc());
 
         index
     }
@@ -133,7 +139,11 @@ impl World {
         self.npcs.map(|n| n.snapshot())
     }
 
-    pub async fn on_player_login(&self, player_index: usize) {
-        self.players.get_mut(player_index).on_login().await;
+    fn arc(&self) -> Arc<World> {
+        self.self_ref
+            .get()
+            .expect("world not initialized")
+            .upgrade()
+            .expect("world has been dropped")
     }
 }
