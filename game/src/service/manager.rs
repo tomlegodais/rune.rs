@@ -30,7 +30,7 @@ impl ServiceManager {
     pub fn spawn<F, Fut>(&mut self, name: &'static str, factory: F)
     where
         F: FnOnce(CancellationToken, oneshot::Sender<()>) -> Fut + Send + 'static,
-        Fut: Future<Output=anyhow::Result<()>> + Send + 'static,
+        Fut: Future<Output = anyhow::Result<()>> + Send + 'static,
     {
         let token = self.token.clone();
         let (tx, rx) = oneshot::channel();

@@ -7,8 +7,9 @@ use sea_orm_migration::MigratorTrait;
 use shaku::module;
 
 pub trait PersistenceModuleInterface:
-shaku::HasComponent<dyn AccountRepository> + shaku::HasComponent<dyn PlayerRepository>
-{}
+    shaku::HasComponent<dyn AccountRepository> + shaku::HasComponent<dyn PlayerRepository>
+{
+}
 
 module! {
     pub PersistenceModule: PersistenceModuleInterface {

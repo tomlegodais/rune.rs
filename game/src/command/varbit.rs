@@ -1,12 +1,11 @@
 use super::CommandEntry;
 use crate::player::{Player, VarpManager};
-use crate::send_message;
-use crate::world::Varbits;
+use crate::{provider, send_message};
 use macros::command;
 
 #[command(name = "varbit")]
 async fn inspect(player: &mut Player, id: u32) {
-    match Varbits::get(id) {
+    match provider::get_varbit_definition(id) {
         Some(def) => send_message!(
             player,
             "varbit {}: varp={}, bits={}-{}, mask={}",

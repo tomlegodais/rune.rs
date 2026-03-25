@@ -2,7 +2,7 @@ use crate::player::movement::Movement;
 use crate::player::state::MoveStep;
 use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContextFields, SystemStore};
 use crate::player::{
-    gpi, Appearance, AppearanceMask, MaskBlock, MoveTypeMask, PlayerInfo, Viewport,
+    Appearance, AppearanceMask, MaskBlock, MoveTypeMask, PlayerInfo, Viewport, gpi,
 };
 use crate::world::{Position, RegionId, Teleport};
 use net::{ChatMessage, GameScene, Inbox, Logout, Outbox, OutboxExt};

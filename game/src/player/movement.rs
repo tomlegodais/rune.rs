@@ -1,7 +1,8 @@
 use crate::player::state::MoveStep;
 use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContext};
 use crate::player::{MoveTypeMask, PlayerInfo, TempMoveTypeMask, VarpManager};
-use crate::world::{running_direction, Direction, Position, Teleport};
+use crate::provider;
+use crate::world::{Direction, Position, Teleport, running_direction};
 use macros::player_system;
 use net::{MinimapFlag, Outbox, OutboxExt, RunEnergy};
 use persistence::player::PlayerData;
@@ -84,7 +85,7 @@ impl Movement {
             return self.stop().await;
         };
 
-        if !crate::world::Collision::can_move(*ctx.position, walk_dir) {
+        if !provider::get_collision().can_move(*ctx.position, walk_dir) {
             return self.stop().await;
         }
 
@@ -112,7 +113,7 @@ impl Movement {
         let Some(&run_pos) = self.walk_queue.front() else { return false };
         let Some(run_dir) = ctx.position.direction_to(run_pos) else { return false };
 
-        if !crate::world::Collision::can_move(*ctx.position, run_dir) {
+        if !provider::get_collision().can_move(*ctx.position, run_dir) {
             return false;
         }
 

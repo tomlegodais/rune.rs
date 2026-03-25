@@ -1,10 +1,10 @@
+use crate::LoginOutcome;
 use crate::codec::LoginCodec;
 use crate::crypto::NoopCipher;
 use crate::error::SessionError;
 use crate::handler::GameHandler;
 use crate::message::{LoginInbound, LoginOutbound, LoginResponse};
 use crate::service::LoginService;
-use crate::LoginOutcome;
 use futures_util::{SinkExt, StreamExt};
 use std::sync::Arc;
 use tokio::net::TcpStream;

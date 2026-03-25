@@ -1,7 +1,6 @@
 use crate::definition::LocDefinition;
 use crate::{Cache, CacheResult, IndexId};
 use std::collections::HashMap;
-use std::panic;
 
 pub struct LocLoader {
     definitions: HashMap<u32, LocDefinition>,
@@ -16,12 +15,12 @@ impl LocLoader {
             let files = cache.read_all_files(IndexId::LOCS, archive_id)?;
             for (file_id, data) in files {
                 let loc_id = archive_id.as_u32() * 256 + file_id.as_u32();
-                let data = data.clone();
-                match panic::catch_unwind(move || LocDefinition::decode(loc_id, &data)) {
+
+                match LocDefinition::decode(loc_id, &data) {
                     Ok(def) => {
                         definitions.insert(loc_id, def);
                     }
-                    Err(_) => {}
+                    Err(e) => eprintln!("Warning: Failed to decode loc {}: {}", loc_id, e),
                 }
             }
         }

@@ -1,8 +1,9 @@
 use crate::player::Appearance;
+use crate::provider;
 use num_enum::IntoPrimitive;
 use persistence::Rights;
 use tokio_util::bytes::{BufMut, BytesMut};
-use util::{BytesMutExt, Huffman};
+use util::BytesMutExt;
 
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
 pub struct MaskFlags(u32);
@@ -256,7 +257,7 @@ impl Mask for ChatMask {
         out.put_u16_add(effects);
         out.put_u8_add(self.rights.into());
 
-        let encoded = Huffman::encode(&self.message);
+        let encoded = provider::encode_huffman(&self.message);
         let total = 1 + encoded.len();
         out.put_u8_add(total as u8);
         out.put_smart(self.message.len() as u16);

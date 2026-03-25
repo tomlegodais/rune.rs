@@ -1,5 +1,5 @@
 use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContext};
-use crate::world::Varbits;
+use crate::provider;
 use macros::player_system;
 use net::{LargeVarbit, LargeVarp, Outbox, OutboxExt, SmallVarbit, SmallVarp};
 use std::collections::HashMap;
@@ -43,7 +43,9 @@ impl VarpManager {
     }
 
     pub async fn send_varbit(&mut self, id: u32, value: i32) {
-        let Some(def) = Varbits::get(id) else { return };
+        let Some(def) = provider::get_varbit_definition(id) else {
+            return;
+        };
 
         let mask = def.mask() as i32;
         let current = self.get(def.varp);

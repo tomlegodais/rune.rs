@@ -26,7 +26,7 @@ where
     F: FnOnce() + Send + 'static,
 {
     type Output = anyhow::Result<()>;
-    type IntoFuture = Pin<Box<dyn Future<Output=Self::Output> + Send>>;
+    type IntoFuture = Pin<Box<dyn Future<Output = Self::Output> + Send>>;
 
     fn into_future(self) -> Self::IntoFuture {
         let mut manager = self.manager;

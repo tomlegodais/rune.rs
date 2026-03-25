@@ -10,7 +10,9 @@ macro_rules! with_movement {
     ($player:expr, |$m:ident, $ctx:ident| $body:expr) => {{
         let mut $m = $player.systems.guard::<$crate::player::Movement>();
         let mut varps = $player.systems.guard::<$crate::player::VarpManager>();
-        let agility_level = $player.system::<$crate::player::SkillManager>().level($crate::player::Skill::Agility);
+        let agility_level = $player
+            .system::<$crate::player::SkillManager>()
+            .level($crate::player::Skill::Agility);
 
         let mut $ctx = $crate::player::MovementContext {
             position: &mut $player.position,

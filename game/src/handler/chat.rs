@@ -1,13 +1,16 @@
 use super::MessageHandler;
 use crate::player::{ChatMask, Player};
+use crate::provider;
 use macros::message_handler;
 use net::inbound::chat::PublicChat;
 use util::format_sentence;
 
 #[message_handler]
 async fn handle(player: &mut Player, msg: PublicChat) {
+    let message = provider::decode_huffman(&msg.payload, msg.text_len);
+
     player.player_info.add_mask(ChatMask {
-        message: format_sentence(&msg.message),
+        message: format_sentence(&message),
         color: msg.color,
         effect: msg.effect,
         rights: player.rights,

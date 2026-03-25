@@ -1,6 +1,6 @@
+use crate::LoginOutcome;
 use crate::error::SessionError;
 use crate::message::LoginRequest;
-use crate::LoginOutcome;
 use async_trait::async_trait;
 
 #[async_trait]

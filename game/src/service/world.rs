@@ -2,7 +2,7 @@ use crate::world::World;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
-use tokio::time::{sleep, Instant};
+use tokio::time::{Instant, sleep};
 use tokio_util::sync::CancellationToken;
 
 const TICK_MS: Duration = Duration::from_millis(600);

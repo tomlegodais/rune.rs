@@ -1,4 +1,5 @@
-use crate::world::{Collision, Direction, Position};
+use crate::provider;
+use crate::world::{Direction, Position};
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap, VecDeque};
 
@@ -73,7 +74,7 @@ pub fn find_path(start: Position, goal: Position) -> VecDeque<Position> {
         let current_pos = Position::new(current.pos.0, current.pos.1, start.plane);
 
         for &dir in &DIRECTION_ORDER {
-            if !Collision::can_move(current_pos, dir) {
+            if !provider::get_collision().can_move(current_pos, dir) {
                 continue;
             }
 

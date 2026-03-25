@@ -22,7 +22,13 @@ macro_rules! button_decoder {
                 let slot2 = payload.get_u16_le();
                 let interface = (hash >> 16) as u16;
                 let component = (hash & 0xffff) as u16;
-                Box::new(ButtonClick { opcode: $opcode, interface, component, slot1, slot2 })
+                Box::new(ButtonClick {
+                    opcode: $opcode,
+                    interface,
+                    component,
+                    slot1,
+                    slot2,
+                })
             }
         };
     };

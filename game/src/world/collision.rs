@@ -1,13 +1,10 @@
+use crate::provider;
 use crate::world::{Direction, Position};
-use filesystem::loader::LocLoader;
 use filesystem::{ArchiveId, Cache, IndexId};
 use std::collections::HashMap;
-use std::sync::{Arc, OnceLock, RwLock};
+use std::sync::{Arc, RwLock};
 use tokio_util::bytes::{Buf, Bytes};
-use tracing::warn;
 use util::BufExt;
-
-static INSTANCE: OnceLock<CollisionMap> = OnceLock::new();
 
 const FLOOR_BLOCKED: u32 = 0x200000;
 const FLOOR_DECO_BLOCKED: u32 = 0x40000;
@@ -78,57 +75,30 @@ const DIAGONAL_SIDES: [[SideCheck; 2]; 8] = [
     [(1, 0, BLOCKED | WALL_W), (0, 1, BLOCKED | WALL_S)],
 ];
 
-pub struct Collision;
-
-impl Collision {
-    pub fn init(cache: &Arc<Cache>) {
-        INSTANCE.get_or_init(|| CollisionMap::new(Arc::clone(cache)));
-    }
-
-    pub fn can_move(from: Position, dir: Direction) -> bool {
-        Self::get().can_move(from, dir)
-    }
-
-    fn get() -> &'static CollisionMap {
-        INSTANCE.get().expect("collision map not initialized")
-    }
-}
-
-struct CollisionMap {
+pub struct CollisionMap {
     cache: Arc<Cache>,
-    loc_loader: Option<LocLoader>,
     archive_index: HashMap<i32, ArchiveId>,
     regions: RwLock<HashMap<RegionKey, Arc<TileFlags>>>,
 }
 
 impl CollisionMap {
-    fn new(cache: Arc<Cache>) -> Self {
-        let loc_loader = match LocLoader::load(&cache) {
-            Ok(loader) => Some(loader),
-            Err(e) => {
-                warn!("failed to load loc definitions: {}", e);
-                None
-            }
-        };
-
+    pub fn new(cache: Arc<Cache>) -> anyhow::Result<Self> {
         let mut archive_index = HashMap::new();
-        if let Ok(ref_table) = cache.reference_table(IndexId::MAPS) {
-            for (archive_id, entry) in ref_table.iter_archives() {
-                if let Some(hash) = entry.name_hash {
-                    archive_index.insert(hash, archive_id);
-                }
+        let ref_table = cache.reference_table(IndexId::MAPS)?;
+        for (archive_id, entry) in ref_table.iter_archives() {
+            if let Some(hash) = entry.name_hash {
+                archive_index.insert(hash, archive_id);
             }
         }
 
-        CollisionMap {
+        Ok(CollisionMap {
             cache,
-            loc_loader,
             archive_index,
             regions: RwLock::new(HashMap::new()),
-        }
+        })
     }
 
-    fn can_move(&self, from: Position, dir: Direction) -> bool {
+    pub fn can_move(&self, from: Position, dir: Direction) -> bool {
         let to = from.step(dir);
         let di = dir as usize;
 
@@ -192,11 +162,9 @@ impl CollisionMap {
             }
         }
 
-        if let (Some(&archive_id), Some(locs)) =
-            (self.archive_index.get(&loc_hash), &self.loc_loader)
-        {
+        if let Some(&archive_id) = self.archive_index.get(&loc_hash) {
             if let Ok(data) = self.cache.read_archive(IndexId::MAPS, archive_id) {
-                parse_loc_placements(&data, &mut flags, &settings, locs);
+                parse_loc_placements(&data, &mut flags, &settings);
             }
         }
 
@@ -252,12 +220,7 @@ fn parse_tile_settings(data: &[u8], flags: &mut TileFlags, settings: &mut TileSe
     }
 }
 
-fn parse_loc_placements(
-    data: &[u8],
-    flags: &mut TileFlags,
-    settings: &TileSettings,
-    locs: &LocLoader,
-) {
+fn parse_loc_placements(data: &[u8], flags: &mut TileFlags, settings: &TileSettings) {
     let mut buf = Bytes::copy_from_slice(data);
     let mut loc_id: i32 = -1;
 
@@ -271,7 +234,7 @@ fn parse_loc_placements(
         }
         loc_id = loc_id.wrapping_add(delta as i32);
 
-        let def = locs.get(loc_id as u32);
+        let def = provider::get_loc_definition(loc_id as u32);
 
         let mut packed_pos: u32 = 0;
         loop {

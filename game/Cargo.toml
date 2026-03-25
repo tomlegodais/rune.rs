@@ -13,6 +13,7 @@ macros = { path = "../macros" }
 filesystem = { path = "../filesystem" }
 net = { path = "../net" }
 num_enum = { workspace = true }
+once_cell = { workspace = true }
 persistence = { path = "../persistence" }
 serde = { workspace = true }
 shaku = { workspace = true }

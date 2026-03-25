@@ -1,6 +1,6 @@
-use crate::player::state::{MoveStep, PlayerState, MAX_PLAYERS};
 use crate::player::Mask;
 use crate::player::PlayerSnapshot;
+use crate::player::state::{MAX_PLAYERS, MoveStep, PlayerState};
 use crate::world::{Position, Teleport};
 use std::array;
 use std::ops::{Index, IndexMut};

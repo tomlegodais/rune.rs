@@ -35,7 +35,7 @@ impl Default for LocDefinition {
 }
 
 impl LocDefinition {
-    pub fn decode(id: u32, data: &[u8]) -> Self {
+    pub fn decode(id: u32, data: &[u8]) -> anyhow::Result<Self> {
         let mut def = Self {
             id,
             ..Default::default()
@@ -50,13 +50,13 @@ impl LocDefinition {
             if opcode == 0 {
                 break;
             }
-            def.decode_opcode(&mut buf, opcode);
+            def.decode_opcode(&mut buf, opcode)?;
         }
 
-        def
+        Ok(def)
     }
 
-    fn decode_opcode(&mut self, buf: &mut Bytes, opcode: u8) {
+    fn decode_opcode(&mut self, buf: &mut Bytes, opcode: u8) -> anyhow::Result<()> {
         match opcode {
             1 | 5 => {
                 let count = buf.get_u8() as usize;
@@ -217,5 +217,7 @@ impl LocDefinition {
             }
             _ => {}
         }
+
+        Ok(())
     }
 }

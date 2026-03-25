@@ -40,7 +40,11 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(PlayerAppearance::Table)
                     .if_not_exists()
-                    .col(big_integer(PlayerAppearance::PlayerId).primary_key().not_null())
+                    .col(
+                        big_integer(PlayerAppearance::PlayerId)
+                            .primary_key()
+                            .not_null(),
+                    )
                     .col(boolean(PlayerAppearance::Male).not_null().default(true))
                     .col(
                         ColumnDef::new(PlayerAppearance::Look)
@@ -88,9 +92,15 @@ impl MigrationTrait for Migration {
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
-        manager.drop_table(Table::drop().table(PlayerSkills::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(PlayerAppearance::Table).to_owned()).await?;
-        manager.drop_table(Table::drop().table(Players::Table).to_owned()).await
+        manager
+            .drop_table(Table::drop().table(PlayerSkills::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(PlayerAppearance::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(Table::drop().table(Players::Table).to_owned())
+            .await
     }
 }
 

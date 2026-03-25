@@ -1,4 +1,4 @@
-use crate::player::state::{MoveStep, MAX_PLAYERS};
+use crate::player::state::{MAX_PLAYERS, MoveStep};
 use crate::player::{Appearance, AppearanceMask, MaskBlock, MoveTypeMask, PlayerInfo};
 use crate::world::{Direction, Position};
 use net::{Frame, Prefix};

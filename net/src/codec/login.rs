@@ -3,7 +3,7 @@ use crate::message::{LoginInbound, LoginOutbound, LoginRequest, LoginResponse, L
 use rand::RngExt;
 use tokio_util::bytes::{Buf, BufMut, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
-use util::{decode_base37, rsa_decrypt, BufExt, EXPONENT, MODULUS};
+use util::{BufExt, EXPONENT, MODULUS, decode_base37, rsa_decrypt};
 
 #[derive(Debug)]
 pub struct LoginCodec {
@@ -119,9 +119,9 @@ impl Encoder<LoginOutbound> for LoginCodec {
         match item {
             LoginOutbound::SessionKey(session_key) => dst.put_i64(session_key),
             LoginOutbound::Response(LoginResponse {
-                                        payload: Some(payload),
-                                        ..
-                                    }) => {
+                payload: Some(payload),
+                ..
+            }) => {
                 dst.put(payload);
             }
 

@@ -1,8 +1,12 @@
 use crate::definition::ParamValue;
 use std::collections::HashMap;
-use std::io;
 use tokio_util::bytes::{Buf, Bytes};
 use util::BufExt;
+
+pub enum TransformKind {
+    Noted,
+    Lent,
+}
 
 #[derive(Debug, Clone)]
 pub struct ItemDefinition {
@@ -18,7 +22,7 @@ pub struct ItemDefinition {
     pub value: i32,
     pub stackable: bool,
     pub members: bool,
-    pub tradeable: bool,
+    pub stock_market: bool,
     pub ground_options: [Option<String>; 5],
     pub inventory_options: [Option<String>; 5],
     pub male_equip_models: [Option<u32>; 3],
@@ -54,7 +58,7 @@ impl Default for ItemDefinition {
             value: 1,
             stackable: false,
             members: false,
-            tradeable: true,
+            stock_market: false,
             ground_options: [None, None, Some("Take".to_string()), None, None],
             inventory_options: [None, None, None, None, Some("Drop".to_string())],
             male_equip_models: [None, None, None],
@@ -78,7 +82,7 @@ impl Default for ItemDefinition {
 }
 
 impl ItemDefinition {
-    pub fn decode(id: u32, data: &[u8]) -> io::Result<Self> {
+    pub fn decode(id: u32, data: &[u8]) -> anyhow::Result<Self> {
         let mut def = Self {
             id,
             ..Default::default()
@@ -96,7 +100,7 @@ impl ItemDefinition {
         Ok(def)
     }
 
-    fn decode_opcode(&mut self, buf: &mut Bytes, opcode: u8) -> io::Result<()> {
+    fn decode_opcode(&mut self, buf: &mut Bytes, opcode: u8) -> anyhow::Result<()> {
         match opcode {
             1 => {
                 self.inventory_model = buf.get_u16() as u32;
@@ -127,9 +131,6 @@ impl ItemDefinition {
             }
             16 => {
                 self.members = true;
-            }
-            18 => {
-                let _unknown = buf.get_u16();
             }
             23 => {
                 self.male_equip_models[0] = Some(buf.get_u16() as u32);
@@ -176,10 +177,13 @@ impl ItemDefinition {
                 }
             }
             42 => {
-                let _shift_click_index = buf.get_i8();
+                let count = buf.get_u8() as usize;
+                for _ in 0..count {
+                    let _ = buf.get_u8();
+                }
             }
             65 => {
-                self.tradeable = true;
+                self.stock_market = true;
             }
             78 => {
                 self.male_equip_models[2] = Some(buf.get_u16() as u32);
@@ -203,7 +207,7 @@ impl ItemDefinition {
                 self.rotation_z = buf.get_u16();
             }
             96 => {
-                let _unknown = buf.get_u8();
+                let _ = buf.get_u8();
             }
             97 => {
                 self.noted_id = Some(buf.get_u16() as u32);
@@ -276,6 +280,12 @@ impl ItemDefinition {
                     let _quest_id = buf.get_u16();
                 }
             }
+            139 => {
+                let _ = buf.get_u16();
+            }
+            140 => {
+                let _ = buf.get_u16();
+            }
             249 => {
                 let count = buf.get_u8() as usize;
                 for _ in 0..count {
@@ -295,5 +305,47 @@ impl ItemDefinition {
         }
 
         Ok(())
+    }
+
+    pub fn pending_transforms(&self) -> impl Iterator<Item = (TransformKind, u32)> {
+        self.noted_template
+            .as_ref()
+            .zip(self.noted_id)
+            .map(|(_, id)| (TransformKind::Noted, id))
+            .into_iter()
+            .chain(
+                self.lent_template
+                    .as_ref()
+                    .zip(self.lent_id)
+                    .map(|(_, id)| (TransformKind::Lent, id)),
+            )
+    }
+
+    pub fn apply_transform(&mut self, kind: TransformKind, source: &ItemDefinition) {
+        match kind {
+            TransformKind::Noted => self.transform_noted(source),
+            TransformKind::Lent => self.transform_lent(source),
+        }
+    }
+
+    fn transform_noted(&mut self, noted_def: &ItemDefinition) {
+        self.members = noted_def.members;
+        self.value = noted_def.value;
+        self.name = noted_def.name.clone();
+        self.stackable = true;
+        self.params = noted_def.params.clone();
+    }
+
+    fn transform_lent(&mut self, lent_def: &ItemDefinition) {
+        self.recolor_find = lent_def.recolor_find.clone();
+        self.male_equip_models = lent_def.male_equip_models.clone();
+        self.female_equip_models = lent_def.female_equip_models.clone();
+        self.team = lent_def.team;
+        self.value = 0;
+        self.members = lent_def.members;
+        self.name = lent_def.name.clone();
+        self.inventory_options = lent_def.inventory_options.clone();
+        self.inventory_options[4] = Some("Discard".to_string());
+        self.params = lent_def.params.clone();
     }
 }

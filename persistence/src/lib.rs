@@ -6,5 +6,5 @@ pub mod player;
 
 pub use account::Rights;
 pub use config::DatabaseConfig;
-pub use database::{connect, PersistenceModule, PersistenceModuleInterface};
+pub use database::{PersistenceModule, PersistenceModuleInterface, connect};
 pub use shaku;

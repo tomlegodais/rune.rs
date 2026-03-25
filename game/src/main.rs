@@ -7,7 +7,7 @@ use ::config::{Config, Environment, File};
 use filesystem::CacheBuilder;
 use net::TcpService;
 use persistence::PersistenceModuleInterface;
-use shaku::{module, HasComponent};
+use shaku::{HasComponent, module};
 use std::sync::Arc;
 
 use tokio::sync::Mutex;
@@ -56,11 +56,10 @@ async fn main() -> anyhow::Result<()> {
 
     let mut service_manager = ServiceManager::new();
     let cache = Arc::new(CacheBuilder::new("cache/").open()?);
-    provider::load(&cache)?;
+    provider::load_all(&cache)?;
 
     let world = Arc::new(Mutex::new(World::new()));
     let persistence = Arc::new(persistence::connect(&app_config.database).await?);
-
     let game = GameModule::builder(persistence)
         .with_component_parameters::<WorldLoginService>(WorldLoginServiceParameters {
             config: app_config.game,

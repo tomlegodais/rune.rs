@@ -1,11 +1,11 @@
+use crate::LoginService;
 use crate::config::TcpConfig;
 use crate::service::cache::CacheService;
 use crate::session::Session;
-use crate::LoginService;
 use filesystem::Cache;
 use std::sync::Arc;
 use tokio::net::TcpListener;
-use tokio::sync::{oneshot, Semaphore};
+use tokio::sync::{Semaphore, oneshot};
 use tracing::{error, info};
 
 pub struct TcpService {
@@ -67,7 +67,7 @@ impl TcpService {
         on_ready: Option<oneshot::Sender<()>>,
     ) -> anyhow::Result<()>
     where
-        F: Future<Output=()>,
+        F: Future<Output = ()>,
     {
         tokio::select! {
             result = self.run(on_ready) => result,

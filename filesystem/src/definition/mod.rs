@@ -2,7 +2,7 @@ mod item;
 mod loc;
 mod varbit;
 
-pub use item::ItemDefinition;
+pub use item::{ItemDefinition, TransformKind};
 pub use loc::LocDefinition;
 pub use varbit::VarbitDefinition;
 

@@ -1,35 +1,11 @@
-use std::sync::OnceLock;
-
-static INSTANCE: OnceLock<HuffmanTable> = OnceLock::new();
-
-struct HuffmanTable {
+pub struct HuffmanTable {
     codes: Vec<u32>,
     lengths: Vec<u8>,
     tree: Vec<i32>,
 }
 
-pub struct Huffman;
-
-impl Huffman {
-    pub fn init(table: &[u8]) {
-        INSTANCE.get_or_init(|| HuffmanTable::build(table));
-    }
-
-    fn get() -> &'static HuffmanTable {
-        INSTANCE.get().expect("huffman not initialized")
-    }
-
-    pub fn decode(data: &[u8], text_len: usize) -> String {
-        Self::get().decode(data, text_len)
-    }
-
-    pub fn encode(text: &str) -> Vec<u8> {
-        Self::get().encode(text)
-    }
-}
-
 impl HuffmanTable {
-    fn build(table: &[u8]) -> Self {
+    pub fn build(table: &[u8]) -> Self {
         let len = table.len();
         let mut codes = vec![0u32; len];
         let mut tree = vec![0i32; 8];
@@ -94,7 +70,7 @@ impl HuffmanTable {
         }
     }
 
-    fn decode(&self, data: &[u8], text_len: usize) -> String {
+    pub fn decode(&self, data: &[u8], text_len: usize) -> String {
         if text_len == 0 {
             return String::new();
         }
@@ -127,6 +103,13 @@ impl HuffmanTable {
         }
 
         String::from_utf8_lossy(&out).into_owned()
+    }
+
+    pub fn encode(&self, text: &str) -> Vec<u8> {
+        let mut buf = vec![0u8; text.len() * 2 + 1];
+        let len = self.encode_into(text, &mut buf, 0);
+        buf.truncate(len);
+        buf
     }
 
     fn encode_into(&self, text: &str, buf: &mut [u8], buf_offset: usize) -> usize {
@@ -171,12 +154,5 @@ impl HuffmanTable {
         }
 
         ((bit_pos + 7) >> 3) as usize - buf_offset
-    }
-
-    fn encode(&self, text: &str) -> Vec<u8> {
-        let mut buf = vec![0u8; text.len() * 2 + 1];
-        let len = self.encode_into(text, &mut buf, 0);
-        buf.truncate(len);
-        buf
     }
 }

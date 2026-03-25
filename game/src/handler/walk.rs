@@ -8,5 +8,7 @@ use net::inbound::walk::WalkRequest;
 #[message_handler]
 async fn handle(player: &mut Player, msg: WalkRequest) {
     let dest = Position::new(msg.x as i32, msg.y as i32, player.position.plane);
-    with_movement!(player, |m, ctx| m.walk_to(&mut ctx, dest, msg.force_run).await);
+    with_movement!(player, |m, ctx| m
+        .walk_to(&mut ctx, dest, msg.force_run)
+        .await);
 }
