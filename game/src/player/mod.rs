@@ -17,6 +17,10 @@ mod ui;
 mod varp;
 mod viewport;
 
+pub(crate) use action::{
+    ActionState, SkillActionBuilder, active_player, active_shared, delay, is_action_locked,
+    npc_force_talk, send_message,
+};
 pub(crate) use appearance::Appearance;
 pub(crate) use info::PlayerInfo;
 pub(crate) use interaction::{Interaction, InteractionTarget, resolve as resolve_interaction};
@@ -29,10 +33,6 @@ pub(crate) use movement::{Movement, MovementContext};
 pub(crate) use skill::{Skill, SkillManager};
 pub(crate) use varp::VarpManager;
 pub(crate) use viewport::Viewport;
-pub(crate) use action::{
-    ActionShared, ActionState, active_player, active_shared, clear_action_context, delay,
-    is_action_locked, lock, npc_force_talk, poll_action, send_message, set_action_context, unlock,
-};
 
 use crate::entity::{Entity, MaskBlock, MoveStep};
 use crate::npc::{NpcInfo, NpcSnapshot, gni};

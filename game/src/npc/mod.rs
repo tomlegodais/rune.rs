@@ -137,5 +137,7 @@ pub struct NpcSnapshot {
     pub masks: MaskBlock,
     pub teleport: Option<Teleport>,
     pub move_step: MoveStep,
+
+    #[allow(dead_code)]
     pub running: bool,
 }

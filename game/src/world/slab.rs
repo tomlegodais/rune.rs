@@ -47,6 +47,7 @@ impl<T> WorldSlab<T> {
         self.inner.read().iter().map(|(k, _)| k + 1).collect()
     }
 
+    #[allow(dead_code)]
     pub fn for_each(&self, mut f: impl FnMut(usize, &T)) {
         let slab = self.inner.read();
         for (key, val) in slab.iter() {
@@ -54,6 +55,7 @@ impl<T> WorldSlab<T> {
         }
     }
 
+    #[allow(dead_code)]
     pub fn for_each_mut(&self, mut f: impl FnMut(usize, &mut T)) {
         let slab = self.inner.read();
         for (key, val) in slab.iter() {

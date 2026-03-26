@@ -361,164 +361,190 @@ impl InteractionAttr {
 }
 
 fn extract_params(func: &ItemFn) -> Vec<syn::Ident> {
-    func.sig.inputs.iter().filter_map(|arg| {
-        if let FnArg::Typed(pat_type) = arg { Some(extract_param_name(&pat_type.pat)) } else { None }
-    }).collect()
+    func.sig
+        .inputs
+        .iter()
+        .filter_map(|arg| {
+            if let FnArg::Typed(pat_type) = arg {
+                Some(extract_param_name(&pat_type.pat))
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+fn emit_content_handler(
+    wrapper_name: &syn::Ident,
+    target_expr: proc_macro2::TokenStream,
+    destructure: proc_macro2::TokenStream,
+    bindings: proc_macro2::TokenStream,
+    macros: proc_macro2::TokenStream,
+    func_body: &syn::Block,
+) -> TokenStream {
+    quote! {
+        #[allow(unused_macros, unused_variables)]
+        fn #wrapper_name(
+            target: crate::player::InteractionTarget,
+        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'static>> {
+            #destructure
+            Box::pin(async move {
+                let __shared = crate::player::active_shared();
+                #bindings
+                #macros
+                #func_body
+            })
+        }
+
+        inventory::submit! {
+            crate::handler::ContentHandler {
+                target: #target_expr,
+                handle: #wrapper_name,
+            }
+        }
+    }
+    .into()
+}
+
+fn base_macros(player: &syn::Ident) -> proc_macro2::TokenStream {
+    quote! {
+        macro_rules! send_message { ($($a:tt)*) => { crate::player::send_message(#player, &format!($($a)*)) }; }
+        macro_rules! delay { ($t:expr) => { crate::player::delay(&__shared, $t) }; }
+        macro_rules! lock { () => { crate::player::lock(&__shared) }; }
+        macro_rules! unlock { () => { crate::player::unlock(&__shared) }; }
+        macro_rules! skill_action { () => { crate::player::SkillActionBuilder::new(__shared.clone()) }; }
+    }
 }
 
 #[proc_macro_attribute]
 pub fn on_object_click(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as InteractionAttr);
     let func = parse_macro_input!(item as ItemFn);
-    let func_name = &func.sig.ident;
-    let wrapper_name = format_ident!("__{}_content_wrapper", func_name);
-    let func_body = &func.block;
+    let wrapper_name = format_ident!("__{}_content_wrapper", func.sig.ident);
     let id = match attr.require("id") {
         Ok(v) => v,
         Err(e) => return e.to_compile_error().into(),
     };
+
     let option = match attr.option_variant() {
         Ok(v) => v,
         Err(e) => return e.to_compile_error().into(),
     };
 
     let params = extract_params(&func);
-    let player_param = params.get(0).cloned().unwrap_or_else(|| format_ident!("_player"));
-    let id_param = params.get(1).cloned().unwrap_or_else(|| format_ident!("_id"));
-    let x_param = params.get(2).cloned().unwrap_or_else(|| format_ident!("_x"));
-    let y_param = params.get(3).cloned().unwrap_or_else(|| format_ident!("_y"));
+    let player = params
+        .first()
+        .cloned()
+        .unwrap_or_else(|| format_ident!("_player"));
 
-    let target_expr = quote! { crate::handler::ContentTarget::Object(#id, #option) };
+    let id_p = params
+        .get(1)
+        .cloned()
+        .unwrap_or_else(|| format_ident!("_id"));
 
-    quote! {
-        #[allow(unused_macros, unused_variables)]
-        fn #wrapper_name(
-            target: crate::player::InteractionTarget,
-        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'static>> {
-            let crate::player::InteractionTarget::Object { id: __id, x: __x, y: __y } = target else { unreachable!() };
-            Box::pin(async move {
-                let __shared = crate::player::active_shared();
-                let #player_param = crate::player::active_player();
-                let #id_param = __id;
-                let #x_param = __x;
-                let #y_param = __y;
+    let x_p = params
+        .get(2)
+        .cloned()
+        .unwrap_or_else(|| format_ident!("_x"));
 
-                macro_rules! send_message { ($($a:tt)*) => { crate::player::send_message(#player_param, &format!($($a)*)) }; }
-                macro_rules! delay { ($t:expr) => { crate::player::delay(&__shared, $t) }; }
-                macro_rules! lock { () => { crate::player::lock(&__shared) }; }
-                macro_rules! unlock { () => { crate::player::unlock(&__shared) }; }
+    let y_p = params
+        .get(3)
+        .cloned()
+        .unwrap_or_else(|| format_ident!("_y"));
 
-                #func_body
-            })
-        }
+    let base = base_macros(&player);
 
-        inventory::submit! {
-            crate::handler::ContentHandler {
-                target: #target_expr,
-                handle: #wrapper_name,
-            }
-        }
-    }
-    .into()
+    emit_content_handler(
+        &wrapper_name,
+        quote! { crate::handler::ContentTarget::Object(#id, #option) },
+        quote! { let crate::player::InteractionTarget::Object { id: __id, x: __x, y: __y } = target else { unreachable!() }; },
+        quote! {
+            let #player = crate::player::active_player();
+            let #id_p = __id;
+            let #x_p = __x;
+            let #y_p = __y;
+        },
+        base,
+        &func.block,
+    )
 }
 
 #[proc_macro_attribute]
 pub fn on_npc_click(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as InteractionAttr);
     let func = parse_macro_input!(item as ItemFn);
-    let func_name = &func.sig.ident;
-    let wrapper_name = format_ident!("__{}_content_wrapper", func_name);
-    let func_body = &func.block;
+    let wrapper_name = format_ident!("__{}_content_wrapper", func.sig.ident);
     let npc_id = match attr.require("npc_id") {
         Ok(v) => v,
         Err(e) => return e.to_compile_error().into(),
     };
+
     let option = match attr.option_variant() {
         Ok(v) => v,
         Err(e) => return e.to_compile_error().into(),
     };
 
     let params = extract_params(&func);
-    let player_param = params.get(0).cloned().unwrap_or_else(|| format_ident!("_player"));
-    let npc_param = params.get(1).cloned().unwrap_or_else(|| format_ident!("_npc_index"));
+    let player = params
+        .first()
+        .cloned()
+        .unwrap_or_else(|| format_ident!("_player"));
 
-    let target_expr = quote! { crate::handler::ContentTarget::Npc(#npc_id, #option) };
+    let npc = params
+        .get(1)
+        .cloned()
+        .unwrap_or_else(|| format_ident!("_npc_index"));
 
-    quote! {
-        #[allow(unused_macros, unused_variables)]
-        fn #wrapper_name(
-            target: crate::player::InteractionTarget,
-        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'static>> {
-            let crate::player::InteractionTarget::Npc { index: __npc_index } = target else { unreachable!() };
-            Box::pin(async move {
-                let __shared = crate::player::active_shared();
-                let #player_param = crate::player::active_player();
-                let #npc_param = __npc_index;
+    let base = base_macros(&player);
+    let npc_m = quote! {
+        macro_rules! npc_force_talk { ($($a:tt)*) => { crate::player::npc_force_talk(#player, #npc, &format!($($a)*)) }; }
+    };
 
-                macro_rules! send_message { ($($a:tt)*) => { crate::player::send_message(#player_param, &format!($($a)*)) }; }
-                macro_rules! delay { ($t:expr) => { crate::player::delay(&__shared, $t) }; }
-                macro_rules! npc_force_talk { ($($a:tt)*) => { crate::player::npc_force_talk(#player_param, #npc_param, &format!($($a)*)) }; }
-                macro_rules! lock { () => { crate::player::lock(&__shared) }; }
-                macro_rules! unlock { () => { crate::player::unlock(&__shared) }; }
-
-                #func_body
-            })
-        }
-
-        inventory::submit! {
-            crate::handler::ContentHandler {
-                target: #target_expr,
-                handle: #wrapper_name,
-            }
-        }
-    }
-    .into()
+    emit_content_handler(
+        &wrapper_name,
+        quote! { crate::handler::ContentTarget::Npc(#npc_id, #option) },
+        quote! { let crate::player::InteractionTarget::Npc { index: __npc_index } = target else { unreachable!() }; },
+        quote! {
+            let #player = crate::player::active_player();
+            let #npc = __npc_index;
+        },
+        quote! { #base #npc_m },
+        &func.block,
+    )
 }
 
 #[proc_macro_attribute]
 pub fn on_player_click(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as InteractionAttr);
     let func = parse_macro_input!(item as ItemFn);
-    let func_name = &func.sig.ident;
-    let wrapper_name = format_ident!("__{}_content_wrapper", func_name);
-    let func_body = &func.block;
+    let wrapper_name = format_ident!("__{}_content_wrapper", func.sig.ident);
     let option = match attr.option_variant() {
         Ok(v) => v,
         Err(e) => return e.to_compile_error().into(),
     };
 
     let params = extract_params(&func);
-    let player_param = params.get(0).cloned().unwrap_or_else(|| format_ident!("_player"));
-    let player_index_param = params.get(1).cloned().unwrap_or_else(|| format_ident!("_player_index"));
+    let player = params
+        .first()
+        .cloned()
+        .unwrap_or_else(|| format_ident!("_player"));
 
-    let target_expr = quote! { crate::handler::ContentTarget::Player(#option) };
+    let target_p = params
+        .get(1)
+        .cloned()
+        .unwrap_or_else(|| format_ident!("_player_index"));
 
-    quote! {
-        #[allow(unused_macros, unused_variables)]
-        fn #wrapper_name(
-            target: crate::player::InteractionTarget,
-        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'static>> {
-            let crate::player::InteractionTarget::Player { index: __player_index } = target else { unreachable!() };
-            Box::pin(async move {
-                let __shared = crate::player::active_shared();
-                let #player_param = crate::player::active_player();
-                let #player_index_param = __player_index;
+    let base = base_macros(&player);
 
-                macro_rules! send_message { ($($a:tt)*) => { crate::player::send_message(#player_param, &format!($($a)*)) }; }
-                macro_rules! delay { ($t:expr) => { crate::player::delay(&__shared, $t) }; }
-                macro_rules! lock { () => { crate::player::lock(&__shared) }; }
-                macro_rules! unlock { () => { crate::player::unlock(&__shared) }; }
-
-                #func_body
-            })
-        }
-
-        inventory::submit! {
-            crate::handler::ContentHandler {
-                target: #target_expr,
-                handle: #wrapper_name,
-            }
-        }
-    }
-    .into()
+    emit_content_handler(
+        &wrapper_name,
+        quote! { crate::handler::ContentTarget::Player(#option) },
+        quote! { let crate::player::InteractionTarget::Player { index: __player_index } = target else { unreachable!() }; },
+        quote! {
+            let #player = crate::player::active_player();
+            let #target_p = __player_index;
+        },
+        base,
+        &func.block,
+    )
 }

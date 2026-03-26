@@ -82,6 +82,7 @@ impl RegionMap {
         self.region_mut(region_id).npcs.insert(npc_id);
     }
 
+    #[allow(dead_code)]
     pub fn remove_npc(&mut self, npc_id: usize, region_id: RegionId) {
         if let Some(region) = self.regions.get_mut(&region_id) {
             region.npcs.remove(&npc_id);

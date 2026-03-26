@@ -116,6 +116,7 @@ impl World {
         self.players.get(index)
     }
 
+    #[allow(dead_code)]
     pub fn player_mut(&self, index: usize) -> SlabWriteGuard<'_, Player> {
         self.players.get_mut(index)
     }
