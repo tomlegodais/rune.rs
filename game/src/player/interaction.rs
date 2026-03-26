@@ -1,10 +1,12 @@
 use crate::npc::FaceEntityMask as NpcFaceMask;
 use crate::player::Player;
+use crate::player::action::{ActionShared, ActionState};
 use crate::player::mask::FaceEntityMask as PlayerFaceEntityMask;
 use crate::player::system::{PlayerInitContext, PlayerSystem};
 use crate::world::{Position, World};
 use macros::player_system;
 use net::ClickOption;
+use std::sync::Arc;
 
 pub struct Interaction {
     pending: Option<PendingInteraction>,
@@ -55,7 +57,33 @@ impl InteractionTarget {
     }
 }
 
-pub async fn resolve(player: &mut Player, world: &World) {
+pub fn resolve(player: &mut Player, world: &World) {
+    let player_index = player.index;
+
+    let mut state = world.action_states.lock().remove(&player_index);
+    if let Some(ref mut s) = state {
+        if s.shared.delay_remaining.load(std::sync::atomic::Ordering::Relaxed) > 0 {
+            s.shared
+                .delay_remaining
+                .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+        }
+
+        let shared = s.shared.clone();
+        crate::player::action::set_action_context(player as *mut Player, shared);
+        let poll_result = crate::player::action::poll_action(s);
+        crate::player::action::clear_action_context();
+
+        match poll_result {
+            std::task::Poll::Ready(()) => {
+                clear_face_if_needed(player, world);
+            }
+            std::task::Poll::Pending => {
+                world.action_states.lock().insert(player_index, state.unwrap());
+            }
+        }
+        return;
+    }
+
     let Some(pending) = player.system::<Interaction>().pending() else {
         clear_face_if_needed(player, world);
         return;
@@ -76,7 +104,25 @@ pub async fn resolve(player: &mut Player, world: &World) {
     player.entity.stop();
     let pending = player.systems.get_mut::<Interaction>().take().unwrap();
     face_target(player, world, &pending.target, target_pos);
-    crate::handler::dispatch(player, &pending.target, pending.option).await;
+
+    if let Some(future) = crate::handler::dispatch(player, pending.target, pending.option) {
+        let shared = Arc::new(ActionShared::new());
+        crate::player::action::set_action_context(player as *mut Player, shared.clone());
+
+        let mut action_state = ActionState {
+            active: future,
+            shared: shared.clone(),
+        };
+
+        let poll_result = crate::player::action::poll_action(&mut action_state);
+        crate::player::action::clear_action_context();
+
+        if poll_result.is_pending() {
+            world.action_states.lock().insert(player_index, action_state);
+        } else {
+            clear_face_if_needed(player, world);
+        }
+    }
 }
 
 fn adjacent(a: Position, b: Position) -> bool {

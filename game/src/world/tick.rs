@@ -62,7 +62,7 @@ impl TickPhase<Player> for ResolveInteractions {
     fn context(&self, _: &World) -> Self::Context {}
 
     async fn execute(&self, world: &World, player: &mut Player, _: &()) {
-        crate::player::resolve_interaction(player, world).await;
+        crate::player::resolve_interaction(player, world);
     }
 }
 
