@@ -360,29 +360,13 @@ impl InteractionAttr {
     }
 }
 
-fn interaction_submit(
-    func: &ItemFn,
-    wrapper_name: &syn::Ident,
-    target_expr: proc_macro2::TokenStream,
-) -> proc_macro2::TokenStream {
-    quote! {
-        #func
-
-        inventory::submit! {
-            crate::handler::ContentHandler {
-                target: #target_expr,
-                handle: #wrapper_name,
-            }
-        }
-    }
-}
-
 #[proc_macro_attribute]
 pub fn on_object_click(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as InteractionAttr);
     let func = parse_macro_input!(item as ItemFn);
     let func_name = &func.sig.ident;
     let wrapper_name = format_ident!("__{}_content_wrapper", func_name);
+    let func_body = &func.block;
     let id = match attr.require("id") {
         Ok(v) => v,
         Err(e) => return e.to_compile_error().into(),
@@ -391,21 +375,38 @@ pub fn on_object_click(attr: TokenStream, item: TokenStream) -> TokenStream {
         Ok(v) => v,
         Err(e) => return e.to_compile_error().into(),
     };
-    let submit = interaction_submit(
-        &func,
-        &wrapper_name,
-        quote! { crate::handler::ContentTarget::Object(#id, #option) },
-    );
+
+    let params: Vec<_> = func.sig.inputs.iter().filter_map(|arg| {
+        if let FnArg::Typed(pat_type) = arg { Some(extract_param_name(&pat_type.pat)) } else { None }
+    }).collect();
+    let player_param = &params[0];
+    let id_param = &params[1];
+    let x_param = &params[2];
+    let y_param = &params[3];
+
+    let target_expr = quote! { crate::handler::ContentTarget::Object(#id, #option) };
 
     quote! {
-        #submit
+        fn #wrapper_name(
+            target: crate::player::InteractionTarget,
+        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'static>> {
+            let crate::player::InteractionTarget::Object { id: __id, x: __x, y: __y } = target else { unreachable!() };
+            Box::pin(async move {
+                let __shared = crate::player::active_shared();
+                let __player = crate::player::active_player();
+                let #player_param = __player;
+                let #id_param = __id;
+                let #x_param = __x;
+                let #y_param = __y;
+                #func_body
+            })
+        }
 
-        fn #wrapper_name<'a>(
-            player: &'a mut crate::player::Player,
-            target: &'a crate::player::InteractionTarget,
-        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'a>> {
-            let crate::player::InteractionTarget::Object { id, x, y } = target else { unreachable!() };
-            Box::pin(#func_name(player, *id, *x, *y))
+        inventory::submit! {
+            crate::handler::ContentHandler {
+                target: #target_expr,
+                handle: #wrapper_name,
+            }
         }
     }
     .into()
@@ -417,6 +418,7 @@ pub fn on_npc_click(attr: TokenStream, item: TokenStream) -> TokenStream {
     let func = parse_macro_input!(item as ItemFn);
     let func_name = &func.sig.ident;
     let wrapper_name = format_ident!("__{}_content_wrapper", func_name);
+    let func_body = &func.block;
     let npc_id = match attr.require("npc_id") {
         Ok(v) => v,
         Err(e) => return e.to_compile_error().into(),
@@ -425,21 +427,34 @@ pub fn on_npc_click(attr: TokenStream, item: TokenStream) -> TokenStream {
         Ok(v) => v,
         Err(e) => return e.to_compile_error().into(),
     };
-    let submit = interaction_submit(
-        &func,
-        &wrapper_name,
-        quote! { crate::handler::ContentTarget::Npc(#npc_id, #option) },
-    );
+
+    let params: Vec<_> = func.sig.inputs.iter().filter_map(|arg| {
+        if let FnArg::Typed(pat_type) = arg { Some(extract_param_name(&pat_type.pat)) } else { None }
+    }).collect();
+    let player_param = &params[0];
+    let npc_param = &params[1];
+
+    let target_expr = quote! { crate::handler::ContentTarget::Npc(#npc_id, #option) };
 
     quote! {
-        #submit
+        fn #wrapper_name(
+            target: crate::player::InteractionTarget,
+        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'static>> {
+            let crate::player::InteractionTarget::Npc { index: __npc_index } = target else { unreachable!() };
+            Box::pin(async move {
+                let __shared = crate::player::active_shared();
+                let __player = crate::player::active_player();
+                let #player_param = __player;
+                let #npc_param = __npc_index;
+                #func_body
+            })
+        }
 
-        fn #wrapper_name<'a>(
-            player: &'a mut crate::player::Player,
-            target: &'a crate::player::InteractionTarget,
-        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'a>> {
-            let crate::player::InteractionTarget::Npc { index } = target else { unreachable!() };
-            Box::pin(#func_name(player, *index))
+        inventory::submit! {
+            crate::handler::ContentHandler {
+                target: #target_expr,
+                handle: #wrapper_name,
+            }
         }
     }
     .into()
@@ -451,25 +466,39 @@ pub fn on_player_click(attr: TokenStream, item: TokenStream) -> TokenStream {
     let func = parse_macro_input!(item as ItemFn);
     let func_name = &func.sig.ident;
     let wrapper_name = format_ident!("__{}_content_wrapper", func_name);
+    let func_body = &func.block;
     let option = match attr.option_variant() {
         Ok(v) => v,
         Err(e) => return e.to_compile_error().into(),
     };
-    let submit = interaction_submit(
-        &func,
-        &wrapper_name,
-        quote! { crate::handler::ContentTarget::Player(#option) },
-    );
+
+    let params: Vec<_> = func.sig.inputs.iter().filter_map(|arg| {
+        if let FnArg::Typed(pat_type) = arg { Some(extract_param_name(&pat_type.pat)) } else { None }
+    }).collect();
+    let player_param = &params[0];
+    let player_index_param = &params[1];
+
+    let target_expr = quote! { crate::handler::ContentTarget::Player(#option) };
 
     quote! {
-        #submit
+        fn #wrapper_name(
+            target: crate::player::InteractionTarget,
+        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'static>> {
+            let crate::player::InteractionTarget::Player { index: __player_index } = target else { unreachable!() };
+            Box::pin(async move {
+                let __shared = crate::player::active_shared();
+                let __player = crate::player::active_player();
+                let #player_param = __player;
+                let #player_index_param = __player_index;
+                #func_body
+            })
+        }
 
-        fn #wrapper_name<'a>(
-            player: &'a mut crate::player::Player,
-            target: &'a crate::player::InteractionTarget,
-        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'a>> {
-            let crate::player::InteractionTarget::Player { index } = target else { unreachable!() };
-            Box::pin(#func_name(player, *index))
+        inventory::submit! {
+            crate::handler::ContentHandler {
+                target: #target_expr,
+                handle: #wrapper_name,
+            }
         }
     }
     .into()

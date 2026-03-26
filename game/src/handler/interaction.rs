@@ -15,10 +15,8 @@ pub enum ContentTarget {
     Player(ClickOption),
 }
 
-pub type ContentHandlerFn = for<'a> fn(
-    &'a mut Player,
-    &'a InteractionTarget,
-) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
+pub type ContentHandlerFn =
+    fn(InteractionTarget) -> Pin<Box<dyn Future<Output = ()> + Send + 'static>>;
 
 pub struct ContentHandler {
     pub target: ContentTarget,
@@ -34,13 +32,17 @@ static CONTENT_HANDLERS: std::sync::LazyLock<HashMap<ContentTarget, ContentHandl
             .collect()
     });
 
-pub async fn dispatch(player: &mut Player, target: &InteractionTarget, option: ClickOption) {
-    let content_target = match target {
+pub fn dispatch(
+    player: &mut Player,
+    target: InteractionTarget,
+    option: ClickOption,
+) -> Option<Pin<Box<dyn Future<Output = ()> + Send + 'static>>> {
+    let content_target = match &target {
         InteractionTarget::Object { id, .. } => ContentTarget::Object(*id, option),
         InteractionTarget::Npc { index } => {
             let world = player.world();
             if !world.npcs.contains(*index) {
-                return;
+                return None;
             }
             let npc_id = world.npc(*index).npc_id;
             ContentTarget::Npc(npc_id, option)
@@ -49,13 +51,19 @@ pub async fn dispatch(player: &mut Player, target: &InteractionTarget, option: C
     };
 
     match CONTENT_HANDLERS.get(&content_target) {
-        Some(handler) => handler(player, target).await,
-        None => send_message!(player, "Nothing interesting happens."),
+        Some(handler) => Some(handler(target)),
+        None => {
+            send_message!(player, "Nothing interesting happens.");
+            None
+        }
     }
 }
 
 #[message_handler]
 async fn handle_object(player: &mut Player, msg: ObjectClick) {
+    if crate::player::is_action_locked(player) { return; }
+    player.world().action_states.lock().remove(&player.index);
+
     let dest = Position::new(msg.x as i32, msg.y as i32, player.position.plane);
     player.systems.get_mut::<Interaction>().set(
         InteractionTarget::Object {
@@ -73,6 +81,9 @@ async fn handle_object(player: &mut Player, msg: ObjectClick) {
 
 #[message_handler]
 async fn handle_npc(player: &mut Player, msg: NpcClick) {
+    if crate::player::is_action_locked(player) { return; }
+    player.world().action_states.lock().remove(&player.index);
+
     let index = msg.npc_index as usize;
     let world = player.world();
     let Some(npc_pos) = world
@@ -98,6 +109,9 @@ async fn handle_npc(player: &mut Player, msg: NpcClick) {
 
 #[message_handler]
 async fn handle_player(player: &mut Player, msg: PlayerClick) {
+    if crate::player::is_action_locked(player) { return; }
+    player.world().action_states.lock().remove(&player.index);
+
     let index = msg.player_index as usize;
     let world = player.world();
 
