@@ -393,11 +393,16 @@ pub fn on_object_click(attr: TokenStream, item: TokenStream) -> TokenStream {
             let crate::player::InteractionTarget::Object { id: __id, x: __x, y: __y } = target else { unreachable!() };
             Box::pin(async move {
                 let __shared = crate::player::active_shared();
-                let __player = crate::player::active_player();
-                let #player_param = __player;
+                let #player_param = crate::player::active_player();
                 let #id_param = __id;
                 let #x_param = __x;
                 let #y_param = __y;
+
+                macro_rules! send_message { ($p:expr, $($a:tt)*) => { crate::player::send_message($p, &format!($($a)*)) }; }
+                macro_rules! delay { ($t:expr) => { crate::player::delay(&__shared, $t) }; }
+                macro_rules! lock { () => { crate::player::lock(&__shared) }; }
+                macro_rules! unlock { () => { crate::player::unlock(&__shared) }; }
+
                 #func_body
             })
         }
@@ -443,9 +448,17 @@ pub fn on_npc_click(attr: TokenStream, item: TokenStream) -> TokenStream {
             let crate::player::InteractionTarget::Npc { index: __npc_index } = target else { unreachable!() };
             Box::pin(async move {
                 let __shared = crate::player::active_shared();
-                let __player = crate::player::active_player();
-                let #player_param = __player;
+                let #player_param = crate::player::active_player();
                 let #npc_param = __npc_index;
+
+                // why: local macro_rules! shadow #[macro_export] ones, capturing
+                // __shared/player/npc_index from the enclosing async block
+                macro_rules! send_message { ($p:expr, $($a:tt)*) => { crate::player::send_message($p, &format!($($a)*)) }; }
+                macro_rules! delay { ($t:expr) => { crate::player::delay(&__shared, $t) }; }
+                macro_rules! npc_force_talk { ($($a:tt)*) => { crate::player::npc_force_talk(#player_param, #npc_param, &format!($($a)*)) }; }
+                macro_rules! lock { () => { crate::player::lock(&__shared) }; }
+                macro_rules! unlock { () => { crate::player::unlock(&__shared) }; }
+
                 #func_body
             })
         }
@@ -487,9 +500,14 @@ pub fn on_player_click(attr: TokenStream, item: TokenStream) -> TokenStream {
             let crate::player::InteractionTarget::Player { index: __player_index } = target else { unreachable!() };
             Box::pin(async move {
                 let __shared = crate::player::active_shared();
-                let __player = crate::player::active_player();
-                let #player_param = __player;
+                let #player_param = crate::player::active_player();
                 let #player_index_param = __player_index;
+
+                macro_rules! send_message { ($p:expr, $($a:tt)*) => { crate::player::send_message($p, &format!($($a)*)) }; }
+                macro_rules! delay { ($t:expr) => { crate::player::delay(&__shared, $t) }; }
+                macro_rules! lock { () => { crate::player::lock(&__shared) }; }
+                macro_rules! unlock { () => { crate::player::unlock(&__shared) }; }
+
                 #func_body
             })
         }

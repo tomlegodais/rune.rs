@@ -14,7 +14,6 @@ use tracing_subscriber::EnvFilter;
 
 mod command;
 mod config;
-mod content;
 mod entity;
 mod handler;
 mod npc;
@@ -22,6 +21,8 @@ mod player;
 mod provider;
 mod service;
 mod world;
+
+mod content;
 
 module! {
     GameModule {
