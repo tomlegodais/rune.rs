@@ -1,7 +1,11 @@
+mod anim;
 mod mask;
 mod movement;
+mod spotanim;
 
+pub(crate) use anim::{Anim, AnimBuilder};
 pub(crate) use mask::{Mask, MaskBlock, MaskConfig, MaskFlags};
+pub(crate) use spotanim::{SpotAnim, SpotAnimBuilder};
 
 use crate::world::{Direction, Position, RegionId, World};
 use std::collections::VecDeque;

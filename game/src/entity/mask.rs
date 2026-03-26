@@ -110,6 +110,10 @@ impl MaskBlock {
         self.masks.clear();
     }
 
+    pub fn has(&self, flag: MaskFlags) -> bool {
+        self.flags.contains(flag)
+    }
+
     pub fn is_empty(&self) -> bool {
         self.flags.is_empty()
     }

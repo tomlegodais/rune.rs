@@ -1,4 +1,4 @@
-use crate::entity::{Mask, MaskConfig, MaskFlags};
+use crate::entity::{Anim, Mask, MaskConfig, MaskFlags, SpotAnim};
 use crate::player::Appearance;
 use crate::provider;
 use crate::world::Direction;
@@ -21,20 +21,20 @@ impl PlayerMask {
     pub const HIT_2: MaskFlags = MaskFlags(0x100);
     pub const TEMP_MOVE_TYPE: MaskFlags = MaskFlags(0x200);
     pub const FORCE_TALK: MaskFlags = MaskFlags(0x400);
-    pub const GRAPHICS_1: MaskFlags = MaskFlags(0x1000);
+    pub const SPOT_ANIM_1: MaskFlags = MaskFlags(0x1000);
     pub const EXTENDED_2: MaskFlags = MaskFlags(0x2000);
-    pub const GRAPHICS_2: MaskFlags = MaskFlags(0x40000);
+    pub const SPOT_ANIM_2: MaskFlags = MaskFlags(0x40000);
 }
 
 pub static PLAYER_MASKS: MaskConfig = MaskConfig {
     order: &[
         PlayerMask::FACE_DIRECTION,
         PlayerMask::FORCE_TALK,
-        PlayerMask::GRAPHICS_2,
+        PlayerMask::SPOT_ANIM_2,
         PlayerMask::MOVE_TYPE,
         PlayerMask::FACE_ENTITY,
         PlayerMask::CHAT,
-        PlayerMask::GRAPHICS_1,
+        PlayerMask::SPOT_ANIM_1,
         PlayerMask::ANIMATION,
         PlayerMask::TEMP_MOVE_TYPE,
         PlayerMask::HIT_1,
@@ -162,6 +162,47 @@ impl<'a> AppearanceMask<'a> {
         buf.put_u8(0);
         buf.put_u8(0xFF);
         buf.put_u8(0);
+    }
+}
+
+pub struct AnimationMask(pub Anim);
+
+impl Mask for AnimationMask {
+    fn flag(&self) -> MaskFlags {
+        PlayerMask::ANIMATION
+    }
+
+    fn encode(&self, out: &mut BytesMut) {
+        out.put_u16(self.0.id);
+        out.put_u8(self.0.speed);
+    }
+}
+
+pub struct SpotAnim1Mask(pub SpotAnim);
+
+impl Mask for SpotAnim1Mask {
+    fn flag(&self) -> MaskFlags {
+        PlayerMask::SPOT_ANIM_1
+    }
+
+    fn encode(&self, out: &mut BytesMut) {
+        out.put_u16_le(self.0.id);
+        out.put_u32(self.0.speed_height_hash());
+        out.put_u8_sub(self.0.rotation_hash());
+    }
+}
+
+pub struct SpotAnim2Mask(pub SpotAnim);
+
+impl Mask for SpotAnim2Mask {
+    fn flag(&self) -> MaskFlags {
+        PlayerMask::SPOT_ANIM_2
+    }
+
+    fn encode(&self, out: &mut BytesMut) {
+        out.put_u16_le(self.0.id);
+        out.put_u32_mid_be(self.0.speed_height_hash());
+        out.put_u8_neg(self.0.rotation_hash());
     }
 }
 

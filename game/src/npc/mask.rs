@@ -1,11 +1,11 @@
-use crate::entity::{Mask, MaskConfig, MaskFlags};
-use tokio_util::bytes::BytesMut;
+use crate::entity::{Anim, Mask, MaskConfig, MaskFlags, SpotAnim};
+use tokio_util::bytes::{BufMut, BytesMut};
 use util::BytesMutExt;
 
 pub struct NpcMask;
 
 impl NpcMask {
-    pub const GRAPHICS_1: MaskFlags = MaskFlags(0x1);
+    pub const SPOT_ANIM_1: MaskFlags = MaskFlags(0x1);
     pub const HIT_2: MaskFlags = MaskFlags(0x2);
     pub const ANIMATION: MaskFlags = MaskFlags(0x4);
     pub const FACE_ENTITY: MaskFlags = MaskFlags(0x8);
@@ -15,7 +15,7 @@ impl NpcMask {
     pub const FORCE_TALK: MaskFlags = MaskFlags(0x80);
     pub const SECONDARY_BAR: MaskFlags = MaskFlags(0x200);
     pub const FACE_WORLD_TILE: MaskFlags = MaskFlags(0x400);
-    pub const GRAPHICS_2: MaskFlags = MaskFlags(0x800);
+    pub const SPOT_ANIM_2: MaskFlags = MaskFlags(0x800);
     pub const COLOR_CHANGE: MaskFlags = MaskFlags(0x2000);
 }
 
@@ -24,10 +24,10 @@ pub static NPC_MASKS: MaskConfig = MaskConfig {
         NpcMask::TRANSFORMATION,
         NpcMask::HIT_2,
         NpcMask::FACE_WORLD_TILE,
-        NpcMask::GRAPHICS_2,
+        NpcMask::SPOT_ANIM_2,
         NpcMask::ANIMATION,
         NpcMask::COLOR_CHANGE,
-        NpcMask::GRAPHICS_1,
+        NpcMask::SPOT_ANIM_1,
         NpcMask::SECONDARY_BAR,
         NpcMask::FACE_ENTITY,
         NpcMask::FORCE_TALK,
@@ -35,6 +35,47 @@ pub static NPC_MASKS: MaskConfig = MaskConfig {
     ],
     extended: &[(0x80, NpcMask::EXTENDED)],
 };
+
+pub struct AnimationMask(pub Anim);
+
+impl Mask for AnimationMask {
+    fn flag(&self) -> MaskFlags {
+        NpcMask::ANIMATION
+    }
+
+    fn encode(&self, out: &mut BytesMut) {
+        out.put_u16_le(self.0.id);
+        out.put_u8_sub(self.0.speed);
+    }
+}
+
+pub struct SpotAnim1Mask(pub SpotAnim);
+
+impl Mask for SpotAnim1Mask {
+    fn flag(&self) -> MaskFlags {
+        NpcMask::SPOT_ANIM_1
+    }
+
+    fn encode(&self, out: &mut BytesMut) {
+        out.put_u16_add(self.0.id);
+        out.put_u32_mid_be(self.0.speed_height_hash());
+        out.put_u8_sub(self.0.rotation_hash());
+    }
+}
+
+pub struct SpotAnim2Mask(pub SpotAnim);
+
+impl Mask for SpotAnim2Mask {
+    fn flag(&self) -> MaskFlags {
+        NpcMask::SPOT_ANIM_2
+    }
+
+    fn encode(&self, out: &mut BytesMut) {
+        out.put_u16(self.0.id);
+        out.put_u32_mid_le(self.0.speed_height_hash());
+        out.put_u8_sub(self.0.rotation_hash());
+    }
+}
 
 pub struct FaceEntityMask(pub u16);
 

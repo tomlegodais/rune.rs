@@ -122,8 +122,7 @@ type ActionCallback = Box<dyn FnMut(&mut Player) + Send>;
 
 pub struct SkillActionBuilder {
     shared: Arc<ActionShared>,
-    #[allow(dead_code)]
-    animation: Option<u16>,
+    anim: Option<u16>,
     interval: u16,
     on_attempt: Option<ActionCallback>,
     success_predicate: Box<dyn Fn(&Player) -> bool + Send>,
@@ -134,7 +133,7 @@ impl SkillActionBuilder {
     pub fn new(shared: Arc<ActionShared>) -> Self {
         Self {
             shared,
-            animation: None,
+            anim: None,
             interval: 4,
             on_attempt: None,
             success_predicate: Box::new(|_| false),
@@ -142,9 +141,8 @@ impl SkillActionBuilder {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn animation(mut self, id: u16) -> Self {
-        self.animation = Some(id);
+    pub fn anim(mut self, id: u16) -> Self {
+        self.anim = Some(id);
         self
     }
 
@@ -179,8 +177,12 @@ impl IntoFuture for SkillActionBuilder {
             let predicate = self.success_predicate;
             let mut handler = self.success_handler;
             loop {
+                let player = active_player();
+                if let Some(id) = self.anim {
+                    player.anim(id);
+                }
                 if let Some(ref mut attempt) = on_attempt {
-                    attempt(active_player());
+                    attempt(player);
                 }
                 delay(&self.shared, self.interval).await;
                 let player = active_player();

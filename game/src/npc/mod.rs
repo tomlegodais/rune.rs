@@ -2,9 +2,7 @@ pub(crate) mod gni;
 mod info;
 mod mask;
 
-use crate::entity::Entity;
-use crate::entity::MaskBlock;
-use crate::entity::MoveStep;
+use crate::entity::{Anim, AnimBuilder, Entity, MaskBlock, MoveStep, SpotAnim, SpotAnimBuilder};
 use crate::provider;
 use crate::world::{Direction, Position, Teleport};
 use rand::Rng;
@@ -12,7 +10,7 @@ use std::ops::{Deref, DerefMut};
 use strum::IntoEnumIterator;
 
 pub(crate) use info::NpcInfo;
-pub(crate) use mask::FaceEntityMask;
+pub(crate) use mask::{AnimationMask, FaceEntityMask, SpotAnim1Mask, SpotAnim2Mask};
 
 pub struct Npc {
     pub entity: Entity,
@@ -121,6 +119,20 @@ impl Npc {
             move_step: self.move_step,
             running: self.running,
         }
+    }
+
+    pub fn anim(&mut self, id: u16) -> AnimBuilder<impl FnOnce(Anim) + '_> {
+        AnimBuilder::new(id, |a| self.masks.add(AnimationMask(a)))
+    }
+
+    pub fn spot_anim(&mut self, id: u16) -> SpotAnimBuilder<impl FnOnce(SpotAnim) + '_> {
+        SpotAnimBuilder::new(id, |sa| {
+            if self.masks.has(mask::NpcMask::SPOT_ANIM_1) {
+                self.masks.add(SpotAnim2Mask(sa));
+            } else {
+                self.masks.add(SpotAnim1Mask(sa));
+            }
+        })
     }
 
     pub fn force_talk(&mut self, message: String) {

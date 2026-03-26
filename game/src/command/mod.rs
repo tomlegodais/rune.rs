@@ -1,3 +1,4 @@
+mod anim;
 mod interface;
 mod inv;
 mod npc;

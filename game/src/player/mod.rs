@@ -27,14 +27,15 @@ pub(crate) use interaction::{Interaction, InteractionTarget, resolve as resolve_
 pub(crate) use interface::{InterfaceManager, SubInterface};
 pub(crate) use inventory::Inventory;
 pub(crate) use mask::{
-    AppearanceMask, ChatMask, FaceDirectionMask, MoveTypeMask, TempMoveTypeMask,
+    AnimationMask, AppearanceMask, ChatMask, FaceDirectionMask, MoveTypeMask, SpotAnim1Mask,
+    SpotAnim2Mask, TempMoveTypeMask,
 };
 pub(crate) use movement::{Movement, MovementContext};
 pub(crate) use skill::{Skill, SkillManager};
 pub(crate) use varp::VarpManager;
 pub(crate) use viewport::Viewport;
 
-use crate::entity::{Entity, MaskBlock, MoveStep};
+use crate::entity::{Anim, AnimBuilder, Entity, MaskBlock, MoveStep, SpotAnim, SpotAnimBuilder};
 use crate::npc::{NpcInfo, NpcSnapshot, gni};
 use crate::world::{Direction, Position, Teleport};
 use net::{ChatMessage, GameScene, Inbox, Logout, Outbox, OutboxExt};
@@ -216,6 +217,25 @@ impl Player {
         let viewport = &self.viewport;
         self.player_info.sync(player_snapshots, |pos| viewport.is_within_view(pos));
         self.npc_info.sync(npc_snapshots, |pos| viewport.is_within_view(pos));
+    }
+
+    pub fn anim(&mut self, id: u16) -> AnimBuilder<impl FnOnce(Anim) + '_> {
+        AnimBuilder::new(id, |a| self.player_info.add_mask(AnimationMask(a)))
+    }
+
+    pub fn spot_anim(&mut self, id: u16) -> SpotAnimBuilder<impl FnOnce(SpotAnim) + '_> {
+        SpotAnimBuilder::new(id, |sa| {
+            if self
+                .player_info
+                .self_state()
+                .masks
+                .has(mask::PlayerMask::SPOT_ANIM_1)
+            {
+                self.player_info.add_mask(SpotAnim2Mask(sa));
+            } else {
+                self.player_info.add_mask(SpotAnim1Mask(sa));
+            }
+        })
     }
 
     pub fn reset(&mut self) {
