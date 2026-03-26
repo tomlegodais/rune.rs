@@ -41,7 +41,6 @@ pub fn clear_action_context() {
     ACTIVE_SHARED.with(|s| *s.borrow_mut() = None);
 }
 
-// why: only safe when called once per poll — proc macro enforces single `let player = ...` binding
 pub fn active_player<'a>() -> &'a mut Player {
     let ptr = ACTIVE_PLAYER
         .get()
@@ -118,14 +117,15 @@ pub fn unlock(shared: &ActionShared) {
     shared.locked.store(false, Ordering::Relaxed);
 }
 
-type ActionCallback = Box<dyn FnMut(&mut Player) + Send>;
+type ActionCallback = Box<dyn FnMut() + Send>;
 
 pub struct SkillActionBuilder {
     shared: Arc<ActionShared>,
     anim: Option<u16>,
+    spot_anim: Option<u16>,
     interval: u16,
     on_attempt: Option<ActionCallback>,
-    success_predicate: Box<dyn Fn(&Player) -> bool + Send>,
+    success_predicate: Box<dyn Fn() -> bool + Send>,
     success_handler: ActionCallback,
 }
 
@@ -134,10 +134,11 @@ impl SkillActionBuilder {
         Self {
             shared,
             anim: None,
+            spot_anim: None,
             interval: 4,
             on_attempt: None,
-            success_predicate: Box::new(|_| false),
-            success_handler: Box::new(|_| {}),
+            success_predicate: Box::new(|| false),
+            success_handler: Box::new(|| {}),
         }
     }
 
@@ -146,20 +147,25 @@ impl SkillActionBuilder {
         self
     }
 
+    pub fn spot_anim(mut self, id: u16) -> Self {
+        self.spot_anim = Some(id);
+        self
+    }
+
     pub fn interval(mut self, ticks: u16) -> Self {
         self.interval = ticks;
         self
     }
 
-    pub fn on_attempt(mut self, handler: impl FnMut(&mut Player) + Send + 'static) -> Self {
+    pub fn on_attempt(mut self, handler: impl FnMut() + Send + 'static) -> Self {
         self.on_attempt = Some(Box::new(handler));
         self
     }
 
     pub fn on_success(
         mut self,
-        predicate: impl Fn(&Player) -> bool + Send + 'static,
-        handler: impl FnMut(&mut Player) + Send + 'static,
+        predicate: impl Fn() -> bool + Send + 'static,
+        handler: impl FnMut() + Send + 'static,
     ) -> Self {
         self.success_predicate = Box::new(predicate);
         self.success_handler = Box::new(handler);
@@ -171,23 +177,24 @@ impl IntoFuture for SkillActionBuilder {
     type Output = ();
     type IntoFuture = Pin<Box<dyn Future<Output = ()> + Send>>;
 
+    #[rustfmt::skip]
     fn into_future(self) -> Self::IntoFuture {
         Box::pin(async move {
             let mut on_attempt = self.on_attempt;
-            let predicate = self.success_predicate;
             let mut handler = self.success_handler;
+
             loop {
                 let player = active_player();
-                if let Some(id) = self.anim {
-                    player.anim(id);
-                }
-                if let Some(ref mut attempt) = on_attempt {
-                    attempt(player);
-                }
+                self.anim.inspect(|&id| { player.anim(id); });
+                self.spot_anim.inspect(|&id| { player.spot_anim(id); });
+
+                if let Some(f) = on_attempt.as_mut() { f(); }
+
                 delay(&self.shared, self.interval).await;
-                let player = active_player();
-                if predicate(player) {
-                    handler(player);
+
+                if (self.success_predicate)() {
+                    self.anim.inspect(|_| { player.anim(0xFFFF); });
+                    handler();
                     break;
                 }
             }

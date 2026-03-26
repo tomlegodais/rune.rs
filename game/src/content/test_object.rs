@@ -3,11 +3,10 @@ async fn mine_rock() {
     send_message!("You swing your pickaxe at the rock.");
     skill_action!()
         .interval(4)
-        .anim(625)
-        .on_attempt(|p| crate::player::send_message(p, "Swinging..."))
+        .anim(12189)
         .on_success(
-            |_| rand::random::<u8>() < 48,
-            |p| crate::player::send_message(p, "You manage to mine some gold ore from the rock."),
+            || rand::random::<u8>() < 48,
+            || send_message!("You manage to mine some gold ore from the rock."),
         )
         .await;
     send_message!("The rock has been depleted.");

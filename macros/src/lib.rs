@@ -406,13 +406,21 @@ fn emit_content_handler(
     .into()
 }
 
-fn base_macros(player: &syn::Ident) -> proc_macro2::TokenStream {
+fn base_macros() -> proc_macro2::TokenStream {
     quote! {
-        macro_rules! send_message { ($($a:tt)*) => { crate::player::send_message(#player, &format!($($a)*)) }; }
-        macro_rules! delay { ($t:expr) => { crate::player::delay(&__shared, $t) }; }
+        macro_rules! send_message { ($($a:tt)*) => { crate::player::send_message(crate::player::active_player(), &format!($($a)*)) }; }
+        macro_rules! delay { ($t:expr) => { crate::player::delay(&__shared, $t).await }; }
         macro_rules! lock { () => { crate::player::lock(&__shared) }; }
         macro_rules! unlock { () => { crate::player::unlock(&__shared) }; }
         macro_rules! skill_action { () => { crate::player::SkillActionBuilder::new(__shared.clone()) }; }
+        macro_rules! anim {
+            ($id:expr) => { crate::player::active_player().anim($id) };
+            ($id:expr, $($k:ident = $v:expr),+) => { { let b = crate::player::active_player().anim($id); $(let b = b.$k($v);)+ b } };
+        }
+        macro_rules! spotanim {
+            ($id:expr) => { crate::player::active_player().spot_anim($id) };
+            ($id:expr, $($k:ident = $v:expr),+) => { { let b = crate::player::active_player().spot_anim($id); $(let b = b.$k($v);)+ b } };
+        }
     }
 }
 
@@ -452,7 +460,7 @@ pub fn on_object_click(attr: TokenStream, item: TokenStream) -> TokenStream {
         .cloned()
         .unwrap_or_else(|| format_ident!("_y"));
 
-    let base = base_macros(&player);
+    let base = base_macros();
 
     emit_content_handler(
         &wrapper_name,
@@ -495,9 +503,17 @@ pub fn on_npc_click(attr: TokenStream, item: TokenStream) -> TokenStream {
         .cloned()
         .unwrap_or_else(|| format_ident!("_npc_index"));
 
-    let base = base_macros(&player);
+    let base = base_macros();
     let npc_m = quote! {
         macro_rules! npc_force_talk { ($($a:tt)*) => { crate::player::npc_force_talk(#player, #npc, &format!($($a)*)) }; }
+        macro_rules! npc_anim {
+            ($id:expr) => { drop(#player.world().npc_mut(#npc).anim($id)) };
+            ($id:expr, $($k:ident = $v:expr),+) => { drop({ let b = #player.world().npc_mut(#npc).anim($id); $(let b = b.$k($v);)+ b }) };
+        }
+        macro_rules! npc_spotanim {
+            ($id:expr) => { drop(#player.world().npc_mut(#npc).spot_anim($id)) };
+            ($id:expr, $($k:ident = $v:expr),+) => { drop({ let b = #player.world().npc_mut(#npc).spot_anim($id); $(let b = b.$k($v);)+ b }) };
+        }
     };
 
     emit_content_handler(
@@ -534,7 +550,7 @@ pub fn on_player_click(attr: TokenStream, item: TokenStream) -> TokenStream {
         .cloned()
         .unwrap_or_else(|| format_ident!("_player_index"));
 
-    let base = base_macros(&player);
+    let base = base_macros();
 
     emit_content_handler(
         &wrapper_name,
