@@ -6,15 +6,16 @@ mod slab;
 mod tick;
 
 pub(crate) use collision::CollisionMap;
-pub(crate) use pathfinding::find_path;
+pub(crate) use pathfinding::{find_path, find_path_adjacent};
 pub(crate) use position::{Direction, Position, Teleport, running_direction};
 pub(crate) use region::{RegionId, RegionMap};
 pub(crate) use slab::WorldSlab;
 
 use crate::npc::{Npc, NpcSnapshot};
 use crate::player::{Player, PlayerSnapshot};
+use crate::world::slab::{SlabReadGuard, SlabWriteGuard};
 use net::{Frame, IncomingMessage};
-use parking_lot::{MappedRwLockReadGuard, MappedRwLockWriteGuard, RwLock, RwLockWriteGuard};
+use parking_lot::{RwLock, RwLockWriteGuard};
 use persistence::account::Account;
 use persistence::player::PlayerData;
 use std::sync::{Arc, OnceLock, Weak};
@@ -107,19 +108,19 @@ impl World {
         index
     }
 
-    pub fn player(&self, index: usize) -> MappedRwLockReadGuard<'_, Player> {
+    pub fn player(&self, index: usize) -> SlabReadGuard<'_, Player> {
         self.players.get(index)
     }
 
-    pub fn player_mut(&self, index: usize) -> MappedRwLockWriteGuard<'_, Player> {
+    pub fn player_mut(&self, index: usize) -> SlabWriteGuard<'_, Player> {
         self.players.get_mut(index)
     }
 
-    pub fn npc(&self, index: usize) -> MappedRwLockReadGuard<'_, Npc> {
+    pub fn npc(&self, index: usize) -> SlabReadGuard<'_, Npc> {
         self.npcs.get(index)
     }
 
-    pub fn npc_mut(&self, index: usize) -> MappedRwLockWriteGuard<'_, Npc> {
+    pub fn npc_mut(&self, index: usize) -> SlabWriteGuard<'_, Npc> {
         self.npcs.get_mut(index)
     }
 

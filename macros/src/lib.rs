@@ -310,3 +310,167 @@ pub fn data_provider(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
     .into()
 }
+
+struct InteractionAttr {
+    pairs: Vec<(String, LitInt)>,
+}
+
+impl Parse for InteractionAttr {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let mut pairs = Vec::new();
+        while !input.is_empty() {
+            let ident: syn::Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            let value: LitInt = input.parse()?;
+            pairs.push((ident.to_string(), value));
+            if !input.is_empty() {
+                input.parse::<Token![,]>()?;
+            }
+        }
+        Ok(InteractionAttr { pairs })
+    }
+}
+
+impl InteractionAttr {
+    fn get(&self, key: &str) -> Option<&LitInt> {
+        self.pairs.iter().find(|(k, _)| k == key).map(|(_, v)| v)
+    }
+
+    fn require(&self, key: &str) -> syn::Result<&LitInt> {
+        self.get(key).ok_or_else(|| {
+            syn::Error::new(proc_macro2::Span::call_site(), format!("missing `{key}`"))
+        })
+    }
+
+    fn option_variant(&self) -> syn::Result<proc_macro2::TokenStream> {
+        let opt = self.require("option")?;
+        let n: u8 = opt.base10_parse()?;
+        let variant = format_ident!(
+            "{}",
+            match n {
+                1 => "One",
+                2 => "Two",
+                3 => "Three",
+                4 => "Four",
+                5 => "Five",
+                _ => return Err(syn::Error::new(opt.span(), "option must be 1-5")),
+            }
+        );
+        Ok(quote! { net::ClickOption::#variant })
+    }
+}
+
+fn interaction_submit(
+    func: &ItemFn,
+    wrapper_name: &syn::Ident,
+    target_expr: proc_macro2::TokenStream,
+) -> proc_macro2::TokenStream {
+    quote! {
+        #func
+
+        inventory::submit! {
+            crate::handler::ContentHandler {
+                target: #target_expr,
+                handle: #wrapper_name,
+            }
+        }
+    }
+}
+
+#[proc_macro_attribute]
+pub fn on_object_click(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let attr = parse_macro_input!(attr as InteractionAttr);
+    let func = parse_macro_input!(item as ItemFn);
+    let func_name = &func.sig.ident;
+    let wrapper_name = format_ident!("__{}_content_wrapper", func_name);
+    let id = match attr.require("id") {
+        Ok(v) => v,
+        Err(e) => return e.to_compile_error().into(),
+    };
+    let option = match attr.option_variant() {
+        Ok(v) => v,
+        Err(e) => return e.to_compile_error().into(),
+    };
+    let submit = interaction_submit(
+        &func,
+        &wrapper_name,
+        quote! { crate::handler::ContentTarget::Object(#id, #option) },
+    );
+
+    quote! {
+        #submit
+
+        fn #wrapper_name<'a>(
+            player: &'a mut crate::player::Player,
+            target: &'a crate::player::InteractionTarget,
+        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'a>> {
+            let crate::player::InteractionTarget::Object { id, x, y } = target else { unreachable!() };
+            Box::pin(#func_name(player, *id, *x, *y))
+        }
+    }
+    .into()
+}
+
+#[proc_macro_attribute]
+pub fn on_npc_click(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let attr = parse_macro_input!(attr as InteractionAttr);
+    let func = parse_macro_input!(item as ItemFn);
+    let func_name = &func.sig.ident;
+    let wrapper_name = format_ident!("__{}_content_wrapper", func_name);
+    let npc_id = match attr.require("npc_id") {
+        Ok(v) => v,
+        Err(e) => return e.to_compile_error().into(),
+    };
+    let option = match attr.option_variant() {
+        Ok(v) => v,
+        Err(e) => return e.to_compile_error().into(),
+    };
+    let submit = interaction_submit(
+        &func,
+        &wrapper_name,
+        quote! { crate::handler::ContentTarget::Npc(#npc_id, #option) },
+    );
+
+    quote! {
+        #submit
+
+        fn #wrapper_name<'a>(
+            player: &'a mut crate::player::Player,
+            target: &'a crate::player::InteractionTarget,
+        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'a>> {
+            let crate::player::InteractionTarget::Npc { index } = target else { unreachable!() };
+            Box::pin(#func_name(player, *index))
+        }
+    }
+    .into()
+}
+
+#[proc_macro_attribute]
+pub fn on_player_click(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let attr = parse_macro_input!(attr as InteractionAttr);
+    let func = parse_macro_input!(item as ItemFn);
+    let func_name = &func.sig.ident;
+    let wrapper_name = format_ident!("__{}_content_wrapper", func_name);
+    let option = match attr.option_variant() {
+        Ok(v) => v,
+        Err(e) => return e.to_compile_error().into(),
+    };
+    let submit = interaction_submit(
+        &func,
+        &wrapper_name,
+        quote! { crate::handler::ContentTarget::Player(#option) },
+    );
+
+    quote! {
+        #submit
+
+        fn #wrapper_name<'a>(
+            player: &'a mut crate::player::Player,
+            target: &'a crate::player::InteractionTarget,
+        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'a>> {
+            let crate::player::InteractionTarget::Player { index } = target else { unreachable!() };
+            Box::pin(#func_name(player, *index))
+        }
+    }
+    .into()
+}

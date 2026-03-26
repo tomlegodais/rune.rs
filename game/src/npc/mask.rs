@@ -36,6 +36,18 @@ pub static NPC_MASKS: MaskConfig = MaskConfig {
     extended: &[(0x80, NpcMask::EXTENDED)],
 };
 
+pub struct FaceEntityMask(pub u16);
+
+impl Mask for FaceEntityMask {
+    fn flag(&self) -> MaskFlags {
+        NpcMask::FACE_ENTITY
+    }
+
+    fn encode(&self, out: &mut BytesMut) {
+        out.put_u16_add(self.0);
+    }
+}
+
 pub struct ForceTalkMask(pub String);
 
 impl Mask for ForceTalkMask {

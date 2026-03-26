@@ -14,6 +14,7 @@ pub struct LocDefinition {
     pub obstruct_ground: bool,
     pub unclipped: bool,
     pub interact_type: u8,
+    pub options: [Option<String>; 5],
 }
 
 impl Default for LocDefinition {
@@ -30,6 +31,7 @@ impl Default for LocDefinition {
             obstruct_ground: false,
             unclipped: false,
             interact_type: 0,
+            options: [None, None, None, None, None],
         }
     }
 }
@@ -107,7 +109,7 @@ impl LocDefinition {
                 buf.advance(1);
             }
             30..=34 => {
-                buf.get_string();
+                self.options[(opcode - 30) as usize] = Some(buf.get_string());
             }
             39 => {
                 buf.advance(1);
@@ -191,7 +193,7 @@ impl LocDefinition {
                 buf.advance(2);
             }
             150..=154 => {
-                buf.get_string();
+                self.options[(opcode - 150) as usize] = Some(buf.get_string());
             }
             160 => {
                 let count = buf.get_u8() as usize;

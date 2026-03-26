@@ -15,6 +15,7 @@ trait TickPhase<E> {
 }
 
 struct ProcessMessages;
+struct ResolveInteractions;
 struct Wander;
 struct ProcessMovement;
 struct Sync;
@@ -29,7 +30,7 @@ impl TickPhase<Player> for ProcessMessages {
             .write()
             .iter_mut()
             .filter_map(|(key, p)| {
-                let messages = p.inbox.try_recv_all();
+                let messages = p.get_mut().inbox.try_recv_all();
                 (!messages.is_empty()).then_some((key + 1, messages))
             })
             .collect();
@@ -52,6 +53,16 @@ impl TickPhase<Player> for ProcessMovement {
 
     async fn execute(&self, _world: &World, player: &mut Player, _: &()) {
         with_movement!(player, |m, ctx| m.process(&mut ctx).await);
+    }
+}
+
+impl TickPhase<Player> for ResolveInteractions {
+    type Context = ();
+
+    fn context(&self, _: &World) -> Self::Context {}
+
+    async fn execute(&self, world: &World, player: &mut Player, _: &()) {
+        crate::player::resolve_interaction(player, world).await;
     }
 }
 
@@ -138,6 +149,7 @@ impl TickPhase<Npc> for Reset {
 impl World {
     pub async fn tick(&self) {
         self.run_player_phase(&ProcessMessages).await;
+        self.run_player_phase(&ResolveInteractions).await;
         self.run_player_phase(&ProcessMovement).await;
         self.run_npc_phase(&Wander).await;
         self.run_npc_phase(&ProcessMovement).await;

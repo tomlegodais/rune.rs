@@ -10,6 +10,26 @@ pub trait BitsMut {
 }
 
 pub trait BufExt: Buf {
+    fn get_u8_sub(&mut self) -> u8 {
+        128u8.wrapping_sub(self.get_u8())
+    }
+
+    fn get_u8_add(&mut self) -> u8 {
+        self.get_u8().wrapping_sub(128)
+    }
+
+    fn get_u16_add(&mut self) -> u16 {
+        let hi = self.get_u8() as u16;
+        let lo = self.get_u8().wrapping_sub(128) as u16;
+        (hi << 8) | lo
+    }
+
+    fn get_u16_le_add(&mut self) -> u16 {
+        let lo = self.get_u8().wrapping_sub(128) as u16;
+        let hi = self.get_u8() as u16;
+        (hi << 8) | lo
+    }
+
     fn get_u24(&mut self) -> u32 {
         (self.get_u8() as u32) << 16 | (self.get_u8() as u32) << 8 | self.get_u8() as u32
     }

@@ -47,6 +47,18 @@ pub static PLAYER_MASKS: MaskConfig = MaskConfig {
     ],
 };
 
+pub struct FaceEntityMask(pub u16);
+
+impl Mask for FaceEntityMask {
+    fn flag(&self) -> MaskFlags {
+        PlayerMask::FACE_ENTITY
+    }
+
+    fn encode(&self, out: &mut BytesMut) {
+        out.put_u16_le_add(self.0);
+    }
+}
+
 pub struct FaceDirectionMask(pub Direction);
 
 impl Mask for FaceDirectionMask {

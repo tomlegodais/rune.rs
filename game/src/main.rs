@@ -14,6 +14,7 @@ use tracing_subscriber::EnvFilter;
 
 mod command;
 mod config;
+mod content;
 mod entity;
 mod handler;
 mod npc;

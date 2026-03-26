@@ -36,7 +36,19 @@ impl PartialOrd for Node {
 }
 
 pub fn find_path(start: Position, goal: Position) -> VecDeque<Position> {
+    find_path_inner(start, goal, false)
+}
+
+pub fn find_path_adjacent(start: Position, goal: Position) -> VecDeque<Position> {
+    find_path_inner(start, goal, true)
+}
+
+fn find_path_inner(start: Position, goal: Position, stop_adjacent: bool) -> VecDeque<Position> {
     if start == goal {
+        return VecDeque::new();
+    }
+
+    if stop_adjacent && start.chebyshev_pos(goal) == 1 {
         return VecDeque::new();
     }
 
@@ -59,8 +71,14 @@ pub fn find_path(start: Position, goal: Position) -> VecDeque<Position> {
     let mut closest_dist = heuristic(start, goal);
 
     while let Some(current) = open.pop() {
-        if current.pos == goal_key {
-            return reconstruct_path(&came_from, goal_key, start_key, start.plane);
+        let reached = if stop_adjacent {
+            chebyshev(current.pos, goal_key) == 1
+        } else {
+            current.pos == goal_key
+        };
+
+        if reached {
+            return reconstruct_path(&came_from, current.pos, start_key, start.plane);
         }
 
         let current_g = g_score[&current.pos];
@@ -109,6 +127,10 @@ pub fn find_path(start: Position, goal: Position) -> VecDeque<Position> {
     } else {
         VecDeque::new()
     }
+}
+
+fn chebyshev(a: (i32, i32), b: (i32, i32)) -> i32 {
+    (a.0 - b.0).abs().max((a.1 - b.1).abs())
 }
 
 fn heuristic(a: Position, b: Position) -> u32 {

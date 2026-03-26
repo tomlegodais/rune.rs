@@ -44,7 +44,8 @@ impl Movement {
             to: destination,
         });
         ctx.player_info.add_mask(TempMoveTypeMask::Teleport);
-        ctx.player_info.add_mask(FaceDirectionMask(Direction::South));
+        ctx.player_info
+            .add_mask(FaceDirectionMask(Direction::South));
         ctx.entity.position = destination;
         ctx.entity.face_direction = Direction::South;
     }
@@ -54,12 +55,13 @@ impl Movement {
         ctx: &mut MovementContext<'_>,
         dest: Position,
         force_run: bool,
+        stop_adjacent: bool,
     ) {
         if force_run && !self.running {
             self.set_run(ctx, true).await;
         }
 
-        ctx.entity.walk_to(dest);
+        ctx.entity.walk_to(dest, stop_adjacent);
         match ctx.entity.walk_queue.back().copied() {
             Some(end) => self.set_minimap_flag(end, ctx.region_base).await,
             None => self.reset_minimap_flag().await,
@@ -185,7 +187,7 @@ impl PlayerSystem for Movement {
     fn on_login<'a>(
         &'a mut self,
         ctx: &'a mut SystemContext<'_>,
-    ) -> Pin<Box<dyn Future<Output=()> + Send + 'a>> {
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(async {
             let mut varps = ctx.take::<VarpManager>();
             varps.send_varp(173, if self.running { 1 } else { 0 }).await;

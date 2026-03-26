@@ -4,6 +4,7 @@ mod macros;
 mod appearance;
 mod gpi;
 mod info;
+mod interaction;
 mod interface;
 mod inventory;
 mod mask;
@@ -17,6 +18,7 @@ mod viewport;
 
 pub(crate) use appearance::Appearance;
 pub(crate) use info::PlayerInfo;
+pub(crate) use interaction::{Interaction, InteractionTarget, resolve as resolve_interaction};
 pub(crate) use interface::{InterfaceManager, SubInterface};
 pub(crate) use inventory::Inventory;
 pub(crate) use mask::{

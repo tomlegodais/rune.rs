@@ -1,7 +1,10 @@
 mod button;
 mod chat;
 mod command;
+mod interaction;
 mod walk;
+
+pub(crate) use interaction::{ContentHandler, ContentTarget, dispatch};
 
 use crate::player::Player;
 use net::IncomingMessage;

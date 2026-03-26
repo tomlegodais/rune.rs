@@ -23,6 +23,7 @@ pub struct Entity {
     pub current_region: RegionId,
     pub face_direction: Direction,
     pub walk_queue: VecDeque<Position>,
+    pub face_target: Option<u16>,
 }
 
 impl Entity {
@@ -34,6 +35,7 @@ impl Entity {
             position,
             face_direction: Direction::South,
             walk_queue: VecDeque::new(),
+            face_target: None,
         }
     }
 

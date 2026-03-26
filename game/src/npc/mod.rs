@@ -5,13 +5,14 @@ mod mask;
 use crate::entity::Entity;
 use crate::entity::MaskBlock;
 use crate::entity::MoveStep;
+use crate::provider;
 use crate::world::{Direction, Position, Teleport};
 use rand::Rng;
 use std::ops::{Deref, DerefMut};
 use strum::IntoEnumIterator;
 
-use crate::provider;
 pub(crate) use info::NpcInfo;
+pub(crate) use mask::FaceEntityMask;
 
 pub struct Npc {
     pub entity: Entity,
@@ -52,7 +53,7 @@ impl Npc {
     }
 
     pub fn wander(&mut self) {
-        if self.wander_radius == 0 || self.has_steps() {
+        if self.wander_radius == 0 || self.has_steps() || self.face_target.is_some() {
             return;
         }
 

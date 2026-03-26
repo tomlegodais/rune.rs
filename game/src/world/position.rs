@@ -52,6 +52,14 @@ impl Position {
         ry + (rx << 8) + ((self.plane as u32 & 0x3) << 16)
     }
 
+    pub fn chebyshev(self, (x, y): (i32, i32)) -> i32 {
+        (self.x - x).abs().max((self.y - y).abs())
+    }
+
+    pub fn chebyshev_pos(self, other: Position) -> i32 {
+        self.chebyshev((other.x, other.y))
+    }
+
     pub fn direction_to(self, other: Position) -> Option<Direction> {
         let dx = (other.x - self.x).signum();
         let dy = (other.y - self.y).signum();

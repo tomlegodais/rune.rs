@@ -2,6 +2,9 @@ mod button;
 mod chat;
 mod command;
 mod minimap_walk;
+mod npc;
+mod object;
+mod player;
 mod walk;
 
 use crate::Frame;
@@ -13,7 +16,19 @@ use tracing::debug;
 pub use button::ButtonClick;
 pub use chat::PublicChat;
 pub use command::ClientCommand;
+pub use npc::NpcClick;
+pub use object::ObjectClick;
+pub use player::PlayerClick;
 pub use walk::WalkRequest;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ClickOption {
+    One,
+    Two,
+    Three,
+    Four,
+    Five,
+}
 
 pub type IncomingMessage = Box<dyn Any + Send>;
 
