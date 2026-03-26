@@ -3,6 +3,7 @@ async fn mine_rock() {
     send_message!("You swing your pickaxe at the rock.");
     skill_action!()
         .interval(4)
+        .anim(625)
         .on_attempt(|p| crate::player::send_message(p, "Swinging..."))
         .on_success(
             |_| rand::random::<u8>() < 48,
