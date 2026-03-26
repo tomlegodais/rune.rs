@@ -1,7 +1,42 @@
 #[macro_export]
 macro_rules! send_message {
     ($player:expr, $($arg:tt)*) => {
-        $player.send_message(&format!($($arg)*)).await
+        $crate::player::send_message($player, &format!($($arg)*))
+    };
+}
+
+#[macro_export]
+macro_rules! delay {
+    ($ticks:expr) => {
+        $crate::player::delay(&__shared, $ticks)
+    };
+}
+
+#[macro_export]
+macro_rules! npc_force_talk {
+    ($($arg:tt)*) => {
+        $crate::player::npc_force_talk(__player, __npc_index, &format!($($arg)*))
+    };
+}
+
+#[macro_export]
+macro_rules! lock {
+    () => {
+        $crate::player::lock(&__shared)
+    };
+}
+
+#[macro_export]
+macro_rules! unlock {
+    () => {
+        $crate::player::unlock(&__shared)
+    };
+}
+
+#[macro_export]
+macro_rules! skill_action {
+    () => {
+        $crate::player::SkillActionBuilder::new(__shared.clone())
     };
 }
 

@@ -109,3 +109,12 @@ pub fn lock(shared: &ActionShared) {
 pub fn unlock(shared: &ActionShared) {
     shared.locked.store(false, Ordering::Relaxed);
 }
+
+pub fn is_action_locked(player: &Player) -> bool {
+    let world = player.world();
+    world
+        .action_states
+        .lock()
+        .get(&player.index)
+        .map_or(false, |s| s.shared.locked.load(Ordering::Relaxed))
+}

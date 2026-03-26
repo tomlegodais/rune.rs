@@ -12,12 +12,13 @@ pub(crate) use region::{RegionId, RegionMap};
 pub(crate) use slab::WorldSlab;
 
 use crate::npc::{Npc, NpcSnapshot};
-use crate::player::{Player, PlayerSnapshot};
+use crate::player::{ActionState, Player, PlayerSnapshot};
 use crate::world::slab::{SlabReadGuard, SlabWriteGuard};
 use net::{Frame, IncomingMessage};
-use parking_lot::{RwLock, RwLockWriteGuard};
+use parking_lot::{Mutex, RwLock, RwLockWriteGuard};
 use persistence::account::Account;
 use persistence::player::PlayerData;
+use std::collections::HashMap;
 use std::sync::{Arc, OnceLock, Weak};
 use tokio::sync::mpsc;
 use tracing::info;
@@ -27,6 +28,7 @@ pub struct World {
     pub players: WorldSlab<Player>,
     pub npcs: WorldSlab<Npc>,
     region_map: RwLock<RegionMap>,
+    pub(crate) action_states: Mutex<HashMap<usize, ActionState>>,
 }
 
 impl Default for World {
@@ -36,6 +38,7 @@ impl Default for World {
             players: WorldSlab::new(),
             npcs: WorldSlab::new(),
             region_map: RwLock::new(RegionMap::new()),
+            action_states: Mutex::new(HashMap::new()),
         }
     }
 }
@@ -84,6 +87,7 @@ impl World {
             return None;
         }
 
+        self.action_states.lock().remove(&player_index);
         let player = self.players.remove(player_index);
         self.region_map()
             .remove_player(player_index, player.current_region);
