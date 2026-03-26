@@ -391,6 +391,7 @@ pub fn on_object_click(attr: TokenStream, item: TokenStream) -> TokenStream {
     let target_expr = quote! { crate::handler::ContentTarget::Object(#id, #option) };
 
     quote! {
+        #[allow(unused_macros, unused_variables)]
         fn #wrapper_name(
             target: crate::player::InteractionTarget,
         ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'static>> {
@@ -444,6 +445,7 @@ pub fn on_npc_click(attr: TokenStream, item: TokenStream) -> TokenStream {
     let target_expr = quote! { crate::handler::ContentTarget::Npc(#npc_id, #option) };
 
     quote! {
+        #[allow(unused_macros, unused_variables)]
         fn #wrapper_name(
             target: crate::player::InteractionTarget,
         ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'static>> {
@@ -492,6 +494,7 @@ pub fn on_player_click(attr: TokenStream, item: TokenStream) -> TokenStream {
     let target_expr = quote! { crate::handler::ContentTarget::Player(#option) };
 
     quote! {
+        #[allow(unused_macros, unused_variables)]
         fn #wrapper_name(
             target: crate::player::InteractionTarget,
         ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'static>> {
