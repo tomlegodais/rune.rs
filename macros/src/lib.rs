@@ -398,7 +398,7 @@ pub fn on_object_click(attr: TokenStream, item: TokenStream) -> TokenStream {
                 let #x_param = __x;
                 let #y_param = __y;
 
-                macro_rules! send_message { ($p:expr, $($a:tt)*) => { crate::player::send_message($p, &format!($($a)*)) }; }
+                macro_rules! send_message { ($($a:tt)*) => { crate::player::send_message(#player_param, &format!($($a)*)) }; }
                 macro_rules! delay { ($t:expr) => { crate::player::delay(&__shared, $t) }; }
                 macro_rules! lock { () => { crate::player::lock(&__shared) }; }
                 macro_rules! unlock { () => { crate::player::unlock(&__shared) }; }
@@ -453,7 +453,7 @@ pub fn on_npc_click(attr: TokenStream, item: TokenStream) -> TokenStream {
 
                 // why: local macro_rules! shadow #[macro_export] ones, capturing
                 // __shared/player/npc_index from the enclosing async block
-                macro_rules! send_message { ($p:expr, $($a:tt)*) => { crate::player::send_message($p, &format!($($a)*)) }; }
+                macro_rules! send_message { ($($a:tt)*) => { crate::player::send_message(#player_param, &format!($($a)*)) }; }
                 macro_rules! delay { ($t:expr) => { crate::player::delay(&__shared, $t) }; }
                 macro_rules! npc_force_talk { ($($a:tt)*) => { crate::player::npc_force_talk(#player_param, #npc_param, &format!($($a)*)) }; }
                 macro_rules! lock { () => { crate::player::lock(&__shared) }; }
@@ -503,7 +503,7 @@ pub fn on_player_click(attr: TokenStream, item: TokenStream) -> TokenStream {
                 let #player_param = crate::player::active_player();
                 let #player_index_param = __player_index;
 
-                macro_rules! send_message { ($p:expr, $($a:tt)*) => { crate::player::send_message($p, &format!($($a)*)) }; }
+                macro_rules! send_message { ($($a:tt)*) => { crate::player::send_message(#player_param, &format!($($a)*)) }; }
                 macro_rules! delay { ($t:expr) => { crate::player::delay(&__shared, $t) }; }
                 macro_rules! lock { () => { crate::player::lock(&__shared) }; }
                 macro_rules! unlock { () => { crate::player::unlock(&__shared) }; }
