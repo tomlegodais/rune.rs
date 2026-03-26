@@ -360,6 +360,12 @@ impl InteractionAttr {
     }
 }
 
+fn extract_params(func: &ItemFn) -> Vec<syn::Ident> {
+    func.sig.inputs.iter().filter_map(|arg| {
+        if let FnArg::Typed(pat_type) = arg { Some(extract_param_name(&pat_type.pat)) } else { None }
+    }).collect()
+}
+
 #[proc_macro_attribute]
 pub fn on_object_click(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as InteractionAttr);
@@ -376,13 +382,11 @@ pub fn on_object_click(attr: TokenStream, item: TokenStream) -> TokenStream {
         Err(e) => return e.to_compile_error().into(),
     };
 
-    let params: Vec<_> = func.sig.inputs.iter().filter_map(|arg| {
-        if let FnArg::Typed(pat_type) = arg { Some(extract_param_name(&pat_type.pat)) } else { None }
-    }).collect();
-    let player_param = &params[0];
-    let id_param = &params[1];
-    let x_param = &params[2];
-    let y_param = &params[3];
+    let params = extract_params(&func);
+    let player_param = params.get(0).cloned().unwrap_or_else(|| format_ident!("_player"));
+    let id_param = params.get(1).cloned().unwrap_or_else(|| format_ident!("_id"));
+    let x_param = params.get(2).cloned().unwrap_or_else(|| format_ident!("_x"));
+    let y_param = params.get(3).cloned().unwrap_or_else(|| format_ident!("_y"));
 
     let target_expr = quote! { crate::handler::ContentTarget::Object(#id, #option) };
 
@@ -433,11 +437,9 @@ pub fn on_npc_click(attr: TokenStream, item: TokenStream) -> TokenStream {
         Err(e) => return e.to_compile_error().into(),
     };
 
-    let params: Vec<_> = func.sig.inputs.iter().filter_map(|arg| {
-        if let FnArg::Typed(pat_type) = arg { Some(extract_param_name(&pat_type.pat)) } else { None }
-    }).collect();
-    let player_param = &params[0];
-    let npc_param = &params[1];
+    let params = extract_params(&func);
+    let player_param = params.get(0).cloned().unwrap_or_else(|| format_ident!("_player"));
+    let npc_param = params.get(1).cloned().unwrap_or_else(|| format_ident!("_npc_index"));
 
     let target_expr = quote! { crate::handler::ContentTarget::Npc(#npc_id, #option) };
 
@@ -451,8 +453,6 @@ pub fn on_npc_click(attr: TokenStream, item: TokenStream) -> TokenStream {
                 let #player_param = crate::player::active_player();
                 let #npc_param = __npc_index;
 
-                // why: local macro_rules! shadow #[macro_export] ones, capturing
-                // __shared/player/npc_index from the enclosing async block
                 macro_rules! send_message { ($($a:tt)*) => { crate::player::send_message(#player_param, &format!($($a)*)) }; }
                 macro_rules! delay { ($t:expr) => { crate::player::delay(&__shared, $t) }; }
                 macro_rules! npc_force_talk { ($($a:tt)*) => { crate::player::npc_force_talk(#player_param, #npc_param, &format!($($a)*)) }; }
@@ -485,11 +485,9 @@ pub fn on_player_click(attr: TokenStream, item: TokenStream) -> TokenStream {
         Err(e) => return e.to_compile_error().into(),
     };
 
-    let params: Vec<_> = func.sig.inputs.iter().filter_map(|arg| {
-        if let FnArg::Typed(pat_type) = arg { Some(extract_param_name(&pat_type.pat)) } else { None }
-    }).collect();
-    let player_param = &params[0];
-    let player_index_param = &params[1];
+    let params = extract_params(&func);
+    let player_param = params.get(0).cloned().unwrap_or_else(|| format_ident!("_player"));
+    let player_index_param = params.get(1).cloned().unwrap_or_else(|| format_ident!("_player_index"));
 
     let target_expr = quote! { crate::handler::ContentTarget::Player(#option) };
 
