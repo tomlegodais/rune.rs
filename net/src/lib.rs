@@ -19,6 +19,6 @@ pub use message::{Encodable, Frame, LoginOutcome, LoginRequest, LoginSuccess, Pr
 pub use outbound::{
     ChatMessage, GameScene, IfCloseSub, IfEvents, IfOpenSub, IfOpenTop, IfSetEvents,
     ItemContainerEntry, ItemContainerId, LargeVarbit, LargeVarp, Logout, MinimapFlag, Outbox,
-    OutboxExt, RunEnergy, SmallVarbit, SmallVarp, UpdateItemContainer, UpdateSkill,
+    OutboxExt, PlayerOption, RunEnergy, SmallVarbit, SmallVarp, UpdateItemContainer, UpdateSkill,
 };
 pub use service::{LoginService, TcpService};

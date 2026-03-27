@@ -10,6 +10,7 @@ mod interface;
 mod inventory;
 mod mask;
 mod movement;
+mod options;
 mod skill;
 mod state;
 mod system;
