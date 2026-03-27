@@ -36,12 +36,31 @@ const _: () = {
 
     #[message_decoder]
     fn decode(mut payload: Bytes) -> IncomingMessage {
-        let x = payload.get_u16_le_add();
+        let x = payload.get_u16_add();
+        let y = payload.get_u16_add();
+        let id = payload.get_u16_le_add();
         let ctrl_run = payload.get_u8() == 1;
-        let id = payload.get_u16();
-        let y = payload.get_u16();
         Box::new(ObjectClick {
             option: ClickOption::Two,
+            id,
+            x,
+            y,
+            ctrl_run,
+        })
+    }
+};
+
+const _: () = {
+    const OPCODE: u8 = 10;
+
+    #[message_decoder]
+    fn decode(mut payload: Bytes) -> IncomingMessage {
+        let x = payload.get_u16_le();
+        let ctrl_run = payload.get_u8() == 1;
+        let y = payload.get_u16();
+        let id = payload.get_u16_le_add();
+        Box::new(ObjectClick {
+            option: ClickOption::Three,
             id,
             x,
             y,
