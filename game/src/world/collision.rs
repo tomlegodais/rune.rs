@@ -79,6 +79,7 @@ const OBJECT_SLOTS: [u8; 23] = [
     0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3,
 ];
 
+#[allow(dead_code)]
 #[derive(Clone, Copy)]
 pub struct GameObject {
     pub id: u32,
