@@ -216,8 +216,9 @@ impl Player {
         }
 
         let viewport = &self.viewport;
-        self.player_info.sync(player_snapshots, |pos| viewport.is_within_view(pos));
-        self.npc_info.sync(npc_snapshots, |pos| viewport.is_within_view(pos));
+        let player_pos = self.position;
+        self.player_info.sync(player_snapshots, |pos| viewport.is_within_view(player_pos, pos));
+        self.npc_info.sync(npc_snapshots, |pos| viewport.is_within_view(player_pos, pos));
     }
 
     pub fn anim(&mut self, id: u16) -> AnimBuilder<impl FnOnce(Anim) + '_> {

@@ -95,8 +95,8 @@ fn write_additions(
 
         let mut dx = snapshot.position.x - player_pos.x;
         let mut dy = snapshot.position.y - player_pos.y;
-        if dx < 15 { dx += 32; }
-        if dy < 15 { dy += 32; }
+        if dx < 0 { dx += 32; }
+        if dy < 0 { dy += 32; }
 
         bits.put_bits(bp, 15, snapshot.index as u32);
         bits.put_bits(bp, 1, snapshot.teleport.is_some() as u32);

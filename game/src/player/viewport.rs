@@ -38,11 +38,8 @@ impl Viewport {
         );
     }
 
-    pub fn is_within_view(&self, other: Position) -> bool {
-        let map_size = VIEW_DISTANCES[self.view_distance];
-        let dx = (other.x - self.region_base.x).abs();
-        let dy = (other.y - self.region_base.y).abs();
-        dx <= map_size && dy <= map_size
+    pub fn is_within_view(&self, pos: Position, other: Position) -> bool {
+        other.plane == pos.plane && (other.x - pos.x).abs() <= 15 && (other.y - pos.y).abs() <= 15
     }
 
     pub fn region_ids(&self) -> Vec<RegionId> {
