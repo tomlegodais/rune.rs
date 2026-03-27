@@ -107,8 +107,12 @@ pub fn resolve(player: &mut Player, world: &World) {
             let (w, h, access) = collision.resolve_object_params(target_pos, *id as u32);
             can_interact_rect(collision, player.position, target_pos, w, h, access)
         }
-        InteractionTarget::Npc { .. } => {
-            can_interact_rect(collision, player.position, target_pos, 1, 1, 0)
+        InteractionTarget::Npc { index } => {
+            let npc_id = world.npc(*index).npc_id;
+            let size = crate::provider::get_npc_definition(npc_id as u32)
+                .map(|d| d.size as i32)
+                .unwrap_or(1);
+            can_interact_rect(collision, player.position, target_pos, size, size, 0)
         }
         InteractionTarget::Player { .. } => {
             can_interact_rect(collision, player.position, target_pos, 1, 1, 0)

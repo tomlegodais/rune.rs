@@ -61,7 +61,9 @@ pub fn dispatch(
 
 #[message_handler]
 async fn handle_object(player: &mut Player, msg: ObjectClick) {
-    if crate::player::is_action_locked(player) { return; }
+    if crate::player::is_action_locked(player) {
+        return;
+    }
     player.world().action_states.lock().remove(&player.index);
 
     let dest = Position::new(msg.x as i32, msg.y as i32, player.position.plane);
@@ -83,18 +85,25 @@ async fn handle_object(player: &mut Player, msg: ObjectClick) {
 
 #[message_handler]
 async fn handle_npc(player: &mut Player, msg: NpcClick) {
-    if crate::player::is_action_locked(player) { return; }
+    if crate::player::is_action_locked(player) {
+        return;
+    }
     player.world().action_states.lock().remove(&player.index);
 
     let index = msg.npc_index as usize;
     let world = player.world();
-    let Some(npc_pos) = world
-        .npcs
-        .contains(index)
-        .then(|| world.npc(index).position)
-    else {
+    if !world.npcs.contains(index) {
         return;
-    };
+    }
+
+    let npc = world.npc(index);
+    let npc_pos = npc.position;
+    let npc_id = npc.npc_id;
+    drop(npc);
+
+    let size = crate::provider::get_npc_definition(npc_id as u32)
+        .map(|d| d.size as i32)
+        .unwrap_or(1);
 
     world.npc_mut(index).entity.face_target = Some(player.index as u16 + 32768);
     player.entity.face_target = Some(index as u16);
@@ -105,13 +114,15 @@ async fn handle_npc(player: &mut Player, msg: NpcClick) {
         .set(InteractionTarget::Npc { index }, msg.option);
 
     with_movement!(player, |m, ctx| m
-        .walk_to(&mut ctx, npc_pos, msg.ctrl_run, Some((1, 1, 0)))
+        .walk_to(&mut ctx, npc_pos, msg.ctrl_run, Some((size, size, 0)))
         .await);
 }
 
 #[message_handler]
 async fn handle_player(player: &mut Player, msg: PlayerClick) {
-    if crate::player::is_action_locked(player) { return; }
+    if crate::player::is_action_locked(player) {
+        return;
+    }
     player.world().action_states.lock().remove(&player.index);
 
     let index = msg.player_index as usize;
