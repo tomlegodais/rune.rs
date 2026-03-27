@@ -13,8 +13,9 @@ async fn handle(player: &mut Player, msg: WalkRequest) {
 
     player.world().action_states.lock().remove(&player.index);
     player.systems.get_mut::<Interaction>().clear();
+
     let dest = Position::new(msg.x as i32, msg.y as i32, player.position.plane);
     with_movement!(player, |m, ctx| m
-        .walk_to(&mut ctx, dest, msg.force_run, false)
+        .walk_to(&mut ctx, dest, msg.force_run, None)
         .await);
 }

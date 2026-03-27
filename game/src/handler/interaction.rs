@@ -74,8 +74,10 @@ async fn handle_object(player: &mut Player, msg: ObjectClick) {
         msg.option,
     );
 
+    let params = crate::provider::get_collision().resolve_object_params(dest, msg.id as u32);
+
     with_movement!(player, |m, ctx| m
-        .walk_to(&mut ctx, dest, msg.ctrl_run, true)
+        .walk_to(&mut ctx, dest, msg.ctrl_run, Some(params))
         .await);
 }
 
@@ -103,7 +105,7 @@ async fn handle_npc(player: &mut Player, msg: NpcClick) {
         .set(InteractionTarget::Npc { index }, msg.option);
 
     with_movement!(player, |m, ctx| m
-        .walk_to(&mut ctx, npc_pos, msg.ctrl_run, true)
+        .walk_to(&mut ctx, npc_pos, msg.ctrl_run, Some((1, 1, 0)))
         .await);
 }
 
@@ -127,6 +129,6 @@ async fn handle_player(player: &mut Player, msg: PlayerClick) {
         .set(InteractionTarget::Player { index }, msg.option);
 
     with_movement!(player, |m, ctx| m
-        .walk_to(&mut ctx, target_pos, msg.ctrl_run, true)
+        .walk_to(&mut ctx, target_pos, msg.ctrl_run, Some((1, 1, 0)))
         .await);
 }

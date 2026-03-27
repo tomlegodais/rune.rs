@@ -6,7 +6,7 @@ mod slab;
 mod tick;
 
 pub(crate) use collision::CollisionMap;
-pub(crate) use pathfinding::{find_path, find_path_adjacent};
+pub(crate) use pathfinding::{can_interact_rect, find_path, find_path_adjacent_rect};
 pub(crate) use position::{Direction, Position, Teleport, running_direction};
 pub(crate) use region::{RegionId, RegionMap};
 pub(crate) use slab::WorldSlab;

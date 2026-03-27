@@ -65,11 +65,18 @@ static DECODERS: std::sync::LazyLock<[Option<DecodeFn>; 256]> = std::sync::LazyL
     table
 });
 
+const IGNORED_OPCODES: [u8; 3] = [
+    74, // Keep Alive
+    42, // Mouse Movement
+    49, // Mouse Click
+];
+
 pub fn decode(frame: Frame) -> Option<IncomingMessage> {
     match DECODERS[frame.opcode as usize] {
         Some(decode) => Some(decode(frame.payload)),
+        None if IGNORED_OPCODES.contains(&frame.opcode) => None,
         None => {
-            debug!("Unhandled opcode: {}", frame.opcode);
+            debug!("Unhandled message opcode: {}", frame.opcode);
             None
         }
     }

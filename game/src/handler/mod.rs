@@ -36,6 +36,6 @@ pub async fn handle(player: &mut Player, msg: IncomingMessage) {
     let type_id = (*msg).type_id();
     match HANDLERS.get(&type_id) {
         Some(handler) => handler(player, msg).await,
-        None => debug!("[{}] No handler for message", player.username),
+        None => debug!("Unhandled incoming message: {:?}", type_id),
     }
 }

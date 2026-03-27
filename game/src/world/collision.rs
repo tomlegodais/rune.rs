@@ -75,10 +75,28 @@ const DIAGONAL_SIDES: [[SideCheck; 2]; 8] = [
     [(1, 0, BLOCKED | WALL_W), (0, 1, BLOCKED | WALL_S)],
 ];
 
+const OBJECT_SLOTS: [u8; 23] = [
+    0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3,
+];
+
+#[derive(Clone, Copy)]
+pub struct GameObject {
+    pub id: u32,
+    pub loc_type: u8,
+    pub rotation: u8,
+}
+
+type ObjectStore = [[[[Option<GameObject>; 4]; REGION_SIZE]; REGION_SIZE]; PLANES];
+
+struct RegionData {
+    flags: TileFlags,
+    objects: Box<ObjectStore>,
+}
+
 pub struct CollisionMap {
     cache: Arc<Cache>,
     archive_index: HashMap<i32, ArchiveId>,
-    regions: RwLock<HashMap<RegionKey, Arc<TileFlags>>>,
+    regions: RwLock<HashMap<RegionKey, Arc<RegionData>>>,
 }
 
 impl CollisionMap {
@@ -118,40 +136,82 @@ impl CollisionMap {
         true
     }
 
-    fn flag_at(&self, pos: Position) -> u32 {
-        let rx = (pos.x >> 6) as u16;
-        let ry = (pos.y >> 6) as u16;
-        let region = self.region(rx, ry);
-
+    pub fn flag_at(&self, pos: Position) -> u32 {
+        let region = self.region_data(pos);
         let plane = pos.plane as usize;
         let lx = (pos.x & 63) as usize;
         let ly = (pos.y & 63) as usize;
 
         if plane < PLANES && lx < REGION_SIZE && ly < REGION_SIZE {
-            region[plane][lx][ly]
+            region.flags[plane][lx][ly]
         } else {
             0
         }
     }
 
-    fn region(&self, rx: u16, ry: u16) -> Arc<TileFlags> {
-        let key = (rx, ry);
+    pub fn get_object(&self, pos: Position, id: u32) -> Option<GameObject> {
+        let region = self.region_data(pos);
+        let plane = pos.plane as usize;
+        let lx = (pos.x & 63) as usize;
+        let ly = (pos.y & 63) as usize;
 
-        if let Some(flags) = self.regions.read().unwrap().get(&key) {
-            return Arc::clone(flags);
+        if plane >= PLANES || lx >= REGION_SIZE || ly >= REGION_SIZE {
+            return None;
         }
 
-        let flags = Arc::new(self.load_region(rx, ry));
-        self.regions
-            .write()
-            .unwrap()
-            .insert(key, Arc::clone(&flags));
-        flags
+        region.objects[plane][lx][ly]
+            .iter()
+            .flatten()
+            .find(|obj| obj.id == id)
+            .cloned()
     }
 
-    fn load_region(&self, rx: u16, ry: u16) -> TileFlags {
+    pub fn resolve_object_params(&self, pos: Position, id: u32) -> (i32, i32, u8) {
+        let def = provider::get_loc_definition(id);
+        let (base_w, base_h, base_access) = def
+            .map(|d| (d.size_x as i32, d.size_y as i32, d.access_block_flag))
+            .unwrap_or((1, 1, 0));
+
+        let rotation = self
+            .get_object(pos, id)
+            .map(|obj| obj.rotation)
+            .unwrap_or(0);
+
+        let (w, h) = if rotation & 1 == 1 {
+            (base_h, base_w)
+        } else {
+            (base_w, base_h)
+        };
+
+        let access = if rotation != 0 {
+            ((base_access << rotation) & 0xF) | (base_access >> (4 - rotation))
+        } else {
+            base_access
+        };
+
+        (w, h, access)
+    }
+
+    fn region_data(&self, pos: Position) -> Arc<RegionData> {
+        let rx = (pos.x >> 6) as u16;
+        let ry = (pos.y >> 6) as u16;
+        let key = (rx, ry);
+
+        if let Some(data) = self.regions.read().unwrap().get(&key) {
+            return Arc::clone(data);
+        }
+
+        let data = Arc::new(self.load_region(rx, ry));
+        self.regions.write().unwrap().insert(key, Arc::clone(&data));
+        data
+    }
+
+    fn load_region(&self, rx: u16, ry: u16) -> RegionData {
         let mut flags = [[[0u32; REGION_SIZE]; REGION_SIZE]; PLANES];
         let mut settings = [[[0u8; REGION_SIZE]; REGION_SIZE]; PLANES];
+
+        const NONE: Option<GameObject> = None;
+        let mut objects = Box::new([[[[NONE; 4]; REGION_SIZE]; REGION_SIZE]; PLANES]);
 
         let map_hash = filesystem::name_hash(&format!("m{}_{}", rx, ry));
         let loc_hash = filesystem::name_hash(&format!("l{}_{}", rx, ry));
@@ -165,10 +225,10 @@ impl CollisionMap {
         if let Some(&archive_id) = self.archive_index.get(&loc_hash)
             && let Ok(data) = self.cache.read_archive(IndexId::MAPS, archive_id)
         {
-            parse_loc_placements(&data, &mut flags, &settings);
+            parse_loc_placements(&data, &mut flags, &settings, &mut objects);
         }
 
-        flags
+        RegionData { flags, objects }
     }
 }
 
@@ -220,7 +280,12 @@ fn parse_tile_settings(data: &[u8], flags: &mut TileFlags, settings: &mut TileSe
     }
 }
 
-fn parse_loc_placements(data: &[u8], flags: &mut TileFlags, settings: &TileSettings) {
+fn parse_loc_placements(
+    data: &[u8],
+    flags: &mut TileFlags,
+    settings: &TileSettings,
+    objects: &mut ObjectStore,
+) {
     let mut buf = Bytes::copy_from_slice(data);
     let mut loc_id: i32 = -1;
 
@@ -266,6 +331,15 @@ fn parse_loc_placements(data: &[u8], flags: &mut TileFlags, settings: &TileSetti
             };
             if plane >= PLANES {
                 continue;
+            }
+
+            if (loc_type as usize) < OBJECT_SLOTS.len() {
+                let slot = OBJECT_SLOTS[loc_type as usize] as usize;
+                objects[plane][local_x][local_y][slot] = Some(GameObject {
+                    id: loc_id as u32,
+                    loc_type,
+                    rotation,
+                });
             }
 
             let Some(def) = def else {

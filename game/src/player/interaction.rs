@@ -3,7 +3,7 @@ use crate::player::Player;
 use crate::player::action::{ActionShared, ActionState};
 use crate::player::mask::FaceEntityMask as PlayerFaceEntityMask;
 use crate::player::system::{PlayerInitContext, PlayerSystem};
-use crate::world::{Position, World};
+use crate::world::{Position, World, can_interact_rect};
 use macros::player_system;
 use net::ClickOption;
 use std::sync::Arc;
@@ -62,7 +62,11 @@ pub fn resolve(player: &mut Player, world: &World) {
 
     let mut state = world.action_states.lock().remove(&player_index);
     if let Some(ref mut s) = state {
-        if s.shared.delay_remaining.load(std::sync::atomic::Ordering::Relaxed) > 0 {
+        if s.shared
+            .delay_remaining
+            .load(std::sync::atomic::Ordering::Relaxed)
+            > 0
+        {
             s.shared
                 .delay_remaining
                 .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
@@ -78,7 +82,10 @@ pub fn resolve(player: &mut Player, world: &World) {
                 clear_face_if_needed(player, world);
             }
             std::task::Poll::Pending => {
-                world.action_states.lock().insert(player_index, state.unwrap());
+                world
+                    .action_states
+                    .lock()
+                    .insert(player_index, state.unwrap());
             }
         }
         return;
@@ -94,7 +101,21 @@ pub fn resolve(player: &mut Player, world: &World) {
         return;
     };
 
-    if !adjacent(player.position, target_pos) {
+    let collision = crate::provider::get_collision();
+    let is_adjacent = match &pending.target {
+        InteractionTarget::Object { id, .. } => {
+            let (w, h, access) = collision.resolve_object_params(target_pos, *id as u32);
+            can_interact_rect(collision, player.position, target_pos, w, h, access)
+        }
+        InteractionTarget::Npc { .. } => {
+            can_interact_rect(collision, player.position, target_pos, 1, 1, 0)
+        }
+        InteractionTarget::Player { .. } => {
+            can_interact_rect(collision, player.position, target_pos, 1, 1, 0)
+        }
+    };
+
+    if !is_adjacent {
         if !player.entity.has_steps() {
             player.systems.get_mut::<Interaction>().clear();
         }
@@ -118,15 +139,14 @@ pub fn resolve(player: &mut Player, world: &World) {
         crate::player::action::clear_action_context();
 
         if poll_result.is_pending() {
-            world.action_states.lock().insert(player_index, action_state);
+            world
+                .action_states
+                .lock()
+                .insert(player_index, action_state);
         } else {
             clear_face_if_needed(player, world);
         }
     }
-}
-
-fn adjacent(a: Position, b: Position) -> bool {
-    a.chebyshev_pos(b) == 1
 }
 
 fn face_target(

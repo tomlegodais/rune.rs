@@ -32,11 +32,12 @@ impl Entity {
         self.face_direction = run_dir;
     }
 
-    pub fn walk_to(&mut self, dest: Position, stop_adjacent: bool) {
-        self.walk_queue = if stop_adjacent {
-            crate::world::find_path_adjacent(self.position, dest)
-        } else {
-            crate::world::find_path(self.position, dest)
+    pub fn walk_to(&mut self, dest: Position, target: Option<(i32, i32, u8)>) {
+        self.walk_queue = match target {
+            Some((w, h, access)) => {
+                crate::world::find_path_adjacent_rect(self.position, dest, w, h, access)
+            }
+            None => crate::world::find_path(self.position, dest),
         };
     }
 

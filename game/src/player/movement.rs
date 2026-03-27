@@ -55,13 +55,13 @@ impl Movement {
         ctx: &mut MovementContext<'_>,
         dest: Position,
         force_run: bool,
-        stop_adjacent: bool,
+        target: Option<(i32, i32, u8)>,
     ) {
         if force_run && !self.running {
             self.set_run(ctx, true).await;
         }
 
-        ctx.entity.walk_to(dest, stop_adjacent);
+        ctx.entity.walk_to(dest, target);
         match ctx.entity.walk_queue.back().copied() {
             Some(end) => self.set_minimap_flag(end, ctx.region_base).await,
             None => self.reset_minimap_flag().await,
