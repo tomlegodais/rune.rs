@@ -9,8 +9,8 @@ use persistence::player::PlayerData;
 use std::future::Future;
 use std::pin::Pin;
 
-const STACK_MAX: u32 = i32::MAX as u32;
-const SIZE: usize = 28;
+pub const STACK_MAX: u32 = i32::MAX as u32;
+pub const SIZE: usize = 28;
 
 pub struct Inventory {
     outbox: Outbox,

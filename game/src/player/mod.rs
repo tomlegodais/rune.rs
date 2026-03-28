@@ -28,6 +28,7 @@ pub(crate) use appearance::Appearance;
 pub(crate) use info::PlayerInfo;
 pub(crate) use interaction::{InteractionTarget, resolve as resolve_interaction};
 pub(crate) use interface::SubInterface;
+pub(crate) use inventory::SIZE as INVENTORY_SIZE;
 pub(crate) use mask::{
     AnimationMask, AppearanceMask, ChatMask, FaceDirectionMask, MoveTypeMask, SpotAnim1Mask,
     SpotAnim2Mask, TempMoveTypeMask,
