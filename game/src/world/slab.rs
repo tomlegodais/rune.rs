@@ -22,7 +22,6 @@ impl<T> WorldSlab<T> {
     pub fn get_mut(&self, index: usize) -> SlabWriteGuard<'_, T> {
         let slab = self.inner.read();
         let entry = slab.get(index - 1).expect("entity not found");
-        // safety: the slab read guard in SlabWriteGuard keeps the entry alive
         let guard = unsafe { &*(entry as *const RwLock<T>) }.write();
         SlabWriteGuard { _slab: slab, guard }
     }
@@ -45,22 +44,6 @@ impl<T> WorldSlab<T> {
 
     pub fn keys(&self) -> Vec<usize> {
         self.inner.read().iter().map(|(k, _)| k + 1).collect()
-    }
-
-    #[allow(dead_code)]
-    pub fn for_each(&self, mut f: impl FnMut(usize, &T)) {
-        let slab = self.inner.read();
-        for (key, val) in slab.iter() {
-            f(key + 1, &val.read());
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn for_each_mut(&self, mut f: impl FnMut(usize, &mut T)) {
-        let slab = self.inner.read();
-        for (key, val) in slab.iter() {
-            f(key + 1, &mut val.write());
-        }
     }
 
     pub fn map<R>(&self, mut f: impl FnMut(&T) -> R) -> Vec<R> {

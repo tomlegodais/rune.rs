@@ -1,12 +1,8 @@
 mod anim;
-mod interface;
 mod inv;
-mod npc;
 mod pos;
 mod setlevel;
 mod tele;
-mod test;
-mod varbit;
 
 use crate::player::Player;
 use crate::send_message;

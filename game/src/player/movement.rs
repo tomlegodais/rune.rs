@@ -176,6 +176,8 @@ impl Movement {
 
 #[player_system]
 impl PlayerSystem for Movement {
+    type TickContext = ();
+
     fn create(ctx: &PlayerInitContext) -> Self {
         Self::new(ctx.outbox.clone(), ctx.data.running, ctx.data.run_energy)
     }
@@ -195,6 +197,8 @@ impl PlayerSystem for Movement {
             self.send_run_energy().await;
         })
     }
+
+    fn tick_context(_: &std::sync::Arc<crate::world::World>, _: &crate::player::PlayerSnapshot) {}
 
     fn persist(&self, data: &mut PlayerData) {
         data.running = self.running;

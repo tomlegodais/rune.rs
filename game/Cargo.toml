@@ -26,3 +26,6 @@ tokio-util = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 util = { path = "../util" }
+
+[lints.rust]
+dead_code = "allow"

@@ -12,6 +12,18 @@ use strum::IntoEnumIterator;
 pub(crate) use info::NpcInfo;
 pub(crate) use mask::{AnimationMask, FaceEntityMask, SpotAnim1Mask, SpotAnim2Mask};
 
+#[derive(Clone)]
+pub struct NpcSnapshot {
+    pub index: usize,
+    pub npc_id: u16,
+    pub position: Position,
+    pub face_direction: Direction,
+    pub masks: MaskBlock,
+    pub teleport: Option<Teleport>,
+    pub move_step: MoveStep,
+    pub running: bool,
+}
+
 pub struct Npc {
     pub entity: Entity,
     pub npc_id: u16,
@@ -21,19 +33,6 @@ pub struct Npc {
     pub move_step: MoveStep,
     pub teleport: Option<Teleport>,
     pub masks: MaskBlock,
-}
-
-impl Deref for Npc {
-    type Target = Entity;
-    fn deref(&self) -> &Entity {
-        &self.entity
-    }
-}
-
-impl DerefMut for Npc {
-    fn deref_mut(&mut self) -> &mut Entity {
-        &mut self.entity
-    }
 }
 
 impl Npc {
@@ -140,16 +139,15 @@ impl Npc {
     }
 }
 
-#[derive(Clone)]
-pub struct NpcSnapshot {
-    pub index: usize,
-    pub npc_id: u16,
-    pub position: Position,
-    pub face_direction: Direction,
-    pub masks: MaskBlock,
-    pub teleport: Option<Teleport>,
-    pub move_step: MoveStep,
+impl Deref for Npc {
+    type Target = Entity;
+    fn deref(&self) -> &Entity {
+        &self.entity
+    }
+}
 
-    #[allow(dead_code)]
-    pub running: bool,
+impl DerefMut for Npc {
+    fn deref_mut(&mut self) -> &mut Entity {
+        &mut self.entity
+    }
 }

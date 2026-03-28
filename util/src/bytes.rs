@@ -18,6 +18,10 @@ pub trait BufExt: Buf {
         self.get_u8().wrapping_sub(128)
     }
 
+    fn get_u8_neg(&mut self) -> u8 {
+        0u8.wrapping_sub(self.get_u8())
+    }
+
     fn get_u16_add(&mut self) -> u16 {
         let hi = self.get_u8() as u16;
         let lo = self.get_u8().wrapping_sub(128) as u16;
@@ -32,6 +36,13 @@ pub trait BufExt: Buf {
 
     fn get_u24(&mut self) -> u32 {
         (self.get_u8() as u32) << 16 | (self.get_u8() as u32) << 8 | self.get_u8() as u32
+    }
+
+    fn get_u32_mid_le(&mut self) -> u32 {
+        (self.get_u8() as u32) << 8
+            | (self.get_u8() as u32)
+            | (self.get_u8() as u32) << 24
+            | (self.get_u8() as u32) << 16
     }
 
     fn get_smart(&mut self) -> u16 {

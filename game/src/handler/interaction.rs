@@ -1,5 +1,5 @@
 use super::MessageHandler;
-use crate::player::{Interaction, InteractionTarget, Player};
+use crate::player::{InteractionTarget, Player};
 use crate::world::Position;
 use crate::{send_message, with_movement};
 use macros::message_handler;
@@ -13,6 +13,7 @@ pub enum ContentTarget {
     Object(u16, ClickOption),
     Npc(u16, ClickOption),
     Player(ClickOption),
+    Item(i32, ClickOption),
 }
 
 pub type ContentHandlerFn =
@@ -48,6 +49,10 @@ pub fn dispatch(
             ContentTarget::Npc(npc_id, option)
         }
         InteractionTarget::Player { .. } => ContentTarget::Player(option),
+        InteractionTarget::Item { .. } => return None,
+        InteractionTarget::GroundItem { .. } => {
+            return Some(Box::pin(crate::handler::pickup_ground_item(target)));
+        }
     };
 
     match CONTENT_HANDLERS.get(&content_target) {
@@ -59,6 +64,48 @@ pub fn dispatch(
     }
 }
 
+pub fn dispatch_item(player: &mut Player, slot: u16, option: ClickOption) {
+    if !try_dispatch_item(player, slot, option) {
+        send_message!(player, "Nothing interesting happens.");
+    }
+}
+
+pub fn try_dispatch_item(player: &mut Player, slot: u16, option: ClickOption) -> bool {
+    let Some((item_id, _)) = player.inventory().slot(slot as usize) else {
+        return false;
+    };
+
+    let handler = CONTENT_HANDLERS
+        .get(&ContentTarget::Item(item_id as i32, option))
+        .or_else(|| CONTENT_HANDLERS.get(&ContentTarget::Item(-1, option)));
+
+    let Some(handler) = handler else {
+        return false;
+    };
+
+    let future = handler(crate::player::InteractionTarget::Item { slot });
+    let shared = std::sync::Arc::new(crate::player::ActionShared::new());
+    crate::player::set_action_context(player as *mut Player, shared.clone());
+
+    let mut action_state = crate::player::ActionState {
+        active: future,
+        shared,
+    };
+
+    let poll_result = crate::player::poll_action(&mut action_state);
+    crate::player::clear_action_context();
+
+    if poll_result.is_pending() {
+        player
+            .world()
+            .action_states
+            .lock()
+            .insert(player.index, action_state);
+    }
+
+    true
+}
+
 #[message_handler]
 async fn handle_object(player: &mut Player, msg: ObjectClick) {
     if crate::player::is_action_locked(player) {
@@ -67,7 +114,7 @@ async fn handle_object(player: &mut Player, msg: ObjectClick) {
     player.world().action_states.lock().remove(&player.index);
 
     let dest = Position::new(msg.x as i32, msg.y as i32, player.position.plane);
-    player.systems.get_mut::<Interaction>().set(
+    player.interaction_mut().set(
         InteractionTarget::Object {
             id: msg.id,
             x: dest.x,
@@ -96,10 +143,10 @@ async fn handle_npc(player: &mut Player, msg: NpcClick) {
         return;
     }
 
-    let npc = world.npc(index);
-    let npc_pos = npc.position;
-    let npc_id = npc.npc_id;
-    drop(npc);
+    let (npc_pos, npc_id) = {
+        let npc = world.npc(index);
+        (npc.position, npc.npc_id)
+    };
 
     let size = crate::provider::get_npc_definition(npc_id as u32)
         .map(|d| d.size as i32)
@@ -109,8 +156,7 @@ async fn handle_npc(player: &mut Player, msg: NpcClick) {
     player.entity.face_target = Some(index as u16);
 
     player
-        .systems
-        .get_mut::<Interaction>()
+        .interaction_mut()
         .set(InteractionTarget::Npc { index }, msg.option);
 
     with_movement!(player, |m, ctx| m
@@ -135,8 +181,7 @@ async fn handle_player(player: &mut Player, msg: PlayerClick) {
     let target_pos = world.player(index).position;
 
     player
-        .systems
-        .get_mut::<Interaction>()
+        .interaction_mut()
         .set(InteractionTarget::Player { index }, msg.option);
 
     with_movement!(player, |m, ctx| m

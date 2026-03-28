@@ -2,8 +2,8 @@ use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContext};
 use crate::provider;
 use macros::player_system;
 use net::{
-    ChatMessage, ItemContainerEntry, ItemContainerId, Outbox, OutboxExt, UpdateItemContainer,
-    if_events, if_set_events,
+    ItemContainerEntry, ItemContainerId, Outbox, OutboxExt, UpdateItemContainer, if_events,
+    if_set_events,
 };
 use persistence::player::PlayerData;
 use std::future::Future;
@@ -22,12 +22,10 @@ impl Inventory {
         Self { outbox, slots }
     }
 
-    #[allow(dead_code)]
     pub fn slot(&self, index: usize) -> Option<(u16, u32)> {
         self.slots[index]
     }
 
-    #[allow(dead_code)]
     pub fn count(&self, item_id: u16) -> u32 {
         self.slots
             .iter()
@@ -44,16 +42,6 @@ impl Inventory {
         };
 
         self.flush().await;
-
-        if remaining > 0 {
-            self.outbox
-                .write(ChatMessage {
-                    msg_type: 0,
-                    text: "You can't carry any more items.".to_string(),
-                })
-                .await;
-        }
-
         remaining
     }
 
@@ -108,7 +96,6 @@ impl Inventory {
         remaining
     }
 
-    #[allow(dead_code)]
     pub async fn set(&mut self, index: usize, item: Option<(u16, u32)>) {
         self.slots[index] = item;
         self.flush().await;
@@ -116,6 +103,28 @@ impl Inventory {
 
     pub async fn clear(&mut self) {
         self.slots = [None; SIZE];
+        self.flush().await;
+    }
+
+    pub async fn swap(&mut self, a: usize, b: usize) {
+        self.slots.swap(a, b);
+        self.flush().await;
+    }
+
+    pub async fn clear_slot(&mut self, index: usize) {
+        self.slots[index] = None;
+        self.flush().await;
+    }
+
+    pub async fn remove_item(&mut self, slot: usize, amount: u32) {
+        let Some((item_id, qty)) = self.slots[slot] else {
+            return;
+        };
+        if !is_stackable(item_id) || amount >= qty {
+            self.slots[slot] = None;
+        } else {
+            self.slots[slot] = Some((item_id, qty - amount));
+        }
         self.flush().await;
     }
 
@@ -160,6 +169,8 @@ fn is_stackable(item_id: u16) -> bool {
 
 #[player_system]
 impl PlayerSystem for Inventory {
+    type TickContext = ();
+
     fn create(ctx: &PlayerInitContext) -> Self {
         let mut slots = [None; SIZE];
         for (i, slot) in ctx.data.inventory.iter().enumerate().take(SIZE) {
@@ -171,12 +182,14 @@ impl PlayerSystem for Inventory {
     fn on_login<'a>(
         &'a mut self,
         _ctx: &'a mut SystemContext<'_>,
-    ) -> Pin<Box<dyn Future<Output=()> + Send + 'a>> {
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(async move {
             self.flush().await;
             self.send_ifevents().await;
         })
     }
+
+    fn tick_context(_: &std::sync::Arc<crate::world::World>, _: &crate::player::PlayerSnapshot) {}
 
     fn persist(&self, data: &mut PlayerData) {
         data.inventory = self.slots.to_vec();

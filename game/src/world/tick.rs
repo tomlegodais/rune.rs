@@ -6,6 +6,17 @@ use net::{InboxExt, IncomingMessage};
 use parking_lot::Mutex;
 use std::collections::HashMap;
 
+macro_rules! tick {
+    ($world:ident, $( $kind:ident : $phase:ident ),* $(,)?) => {
+        $(
+            tick!(@step $world, $kind, $phase);
+        )*
+    };
+    (@step $world:ident, player, $phase:ident) => { $world.run_player_phase(&$phase).await; };
+    (@step $world:ident, npc,    $phase:ident) => { $world.run_npc_phase(&$phase).await; };
+    (@step $world:ident, world,  $phase:ident) => { $world.run_world_phase(&$phase).await; };
+}
+
 trait TickPhase<E> {
     type Context;
 
@@ -14,12 +25,16 @@ trait TickPhase<E> {
     async fn execute(&self, world: &World, entity: &mut E, ctx: &Self::Context);
 }
 
+trait WorldTickPhase {
+    async fn execute(&self, world: &World);
+}
+
 struct ProcessMessages;
-struct ResolveInteractions;
-struct Wander;
-struct ProcessMovement;
+struct Tick;
 struct Sync;
+struct Flush;
 struct Reset;
+struct WorldTick;
 
 impl TickPhase<Player> for ProcessMessages {
     type Context = Mutex<HashMap<usize, Vec<IncomingMessage>>>;
@@ -46,83 +61,56 @@ impl TickPhase<Player> for ProcessMessages {
     }
 }
 
-impl TickPhase<Player> for ProcessMovement {
-    type Context = ();
-
-    fn context(&self, _: &World) -> Self::Context {}
-
-    async fn execute(&self, _world: &World, player: &mut Player, _: &()) {
-        with_movement!(player, |m, ctx| m.process(&mut ctx).await);
-    }
-}
-
-impl TickPhase<Player> for ResolveInteractions {
+impl TickPhase<Player> for Tick {
     type Context = ();
 
     fn context(&self, _: &World) -> Self::Context {}
 
     async fn execute(&self, world: &World, player: &mut Player, _: &()) {
         crate::player::resolve_interaction(player, world);
+        with_movement!(player, |m, ctx| m.process(&mut ctx).await);
+        player.tick_systems(&world.arc()).await;
     }
 }
 
-impl TickPhase<Npc> for Wander {
+impl TickPhase<Npc> for Tick {
     type Context = ();
 
     fn context(&self, _: &World) -> Self::Context {}
 
     async fn execute(&self, _world: &World, npc: &mut Npc, _: &()) {
         npc.wander();
-    }
-}
-
-impl TickPhase<Npc> for ProcessMovement {
-    type Context = ();
-
-    fn context(&self, _: &World) -> Self::Context {}
-
-    async fn execute(&self, world: &World, npc: &mut Npc, _: &()) {
         npc.process_movement();
-
-        let new_region = npc.position.region_id();
-        if new_region != npc.current_region {
-            world
-                .region_map()
-                .update_npc_region(npc.index, npc.current_region, new_region);
-
-            npc.current_region = new_region;
-        }
     }
-}
-
-struct SyncContext {
-    player_snapshots: Vec<PlayerSnapshot>,
-    npc_snapshots: Vec<NpcSnapshot>,
 }
 
 impl TickPhase<Player> for Sync {
-    type Context = SyncContext;
+    type Context = (Vec<PlayerSnapshot>, Vec<NpcSnapshot>);
 
     fn context(&self, world: &World) -> Self::Context {
-        SyncContext {
-            player_snapshots: world.player_snapshots(),
-            npc_snapshots: world.npc_snapshots(),
-        }
+        (world.player_snapshots(), world.npc_snapshots())
     }
 
-    async fn execute(&self, world: &World, player: &mut Player, ctx: &SyncContext) {
-        let new_region = player.position.region_id();
-        if new_region != player.current_region {
-            world.region_map().update_player_region(
-                player.index,
-                player.current_region,
-                new_region,
-            );
-            player.current_region = new_region;
-        }
+    async fn execute(
+        &self,
+        world: &World,
+        player: &mut Player,
+        ctx: &(Vec<PlayerSnapshot>, Vec<NpcSnapshot>),
+    ) {
+        player.sync(&ctx.0, &ctx.1, &world.arc()).await;
+    }
+}
 
-        player.tick(&ctx.player_snapshots, &ctx.npc_snapshots).await;
-        player.send_info(&ctx.npc_snapshots).await;
+impl TickPhase<Player> for Flush {
+    type Context = Vec<NpcSnapshot>;
+
+    fn context(&self, world: &World) -> Self::Context {
+        world.npc_snapshots()
+    }
+
+    async fn execute(&self, _world: &World, player: &mut Player, npc_snapshots: &Vec<NpcSnapshot>) {
+        player.player_info.flush().await;
+        player.npc_info.flush(npc_snapshots, player.position).await;
     }
 }
 
@@ -146,16 +134,24 @@ impl TickPhase<Npc> for Reset {
     }
 }
 
+impl WorldTickPhase for WorldTick {
+    async fn execute(&self, world: &World) {
+        world.decay_ground_items().await;
+    }
+}
+
 impl World {
     pub async fn tick(&self) {
-        self.run_player_phase(&ProcessMessages).await;
-        self.run_player_phase(&ResolveInteractions).await;
-        self.run_player_phase(&ProcessMovement).await;
-        self.run_npc_phase(&Wander).await;
-        self.run_npc_phase(&ProcessMovement).await;
-        self.run_player_phase(&Sync).await;
-        self.run_player_phase(&Reset).await;
-        self.run_npc_phase(&Reset).await;
+        tick!(self,
+            player: ProcessMessages,
+            npc:    Tick,
+            player: Tick,
+            world:  WorldTick,
+            player: Sync,
+            player: Flush,
+            player: Reset,
+            npc:    Reset,
+        );
     }
 
     async fn run_player_phase(&self, phase: &impl TickPhase<Player>) {
@@ -172,5 +168,9 @@ impl World {
             let mut npc = self.npcs.get_mut(index);
             phase.execute(self, &mut npc, &ctx).await;
         }
+    }
+
+    async fn run_world_phase(&self, phase: &impl WorldTickPhase) {
+        phase.execute(self).await;
     }
 }

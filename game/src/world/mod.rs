@@ -1,21 +1,21 @@
 mod collision;
+mod grounditem;
 mod pathfinding;
 mod position;
-mod region;
 mod slab;
 mod tick;
 
 pub(crate) use collision::CollisionMap;
+pub(crate) use grounditem::GroundItemStore;
 pub(crate) use pathfinding::{can_interact_rect, find_path, find_path_adjacent_rect};
-pub(crate) use position::{Direction, Position, Teleport, running_direction};
-pub(crate) use region::{RegionId, RegionMap};
+pub(crate) use position::{Direction, Position, RegionId, Teleport, running_direction};
 pub(crate) use slab::WorldSlab;
 
 use crate::npc::{Npc, NpcSnapshot};
 use crate::player::{ActionState, Player, PlayerSnapshot};
 use crate::world::slab::{SlabReadGuard, SlabWriteGuard};
 use net::{Frame, IncomingMessage};
-use parking_lot::{Mutex, RwLock, RwLockWriteGuard};
+use parking_lot::Mutex;
 use persistence::account::Account;
 use persistence::player::PlayerData;
 use std::collections::HashMap;
@@ -27,7 +27,7 @@ pub struct World {
     self_ref: OnceLock<Weak<World>>,
     pub players: WorldSlab<Player>,
     pub npcs: WorldSlab<Npc>,
-    region_map: RwLock<RegionMap>,
+    pub ground_items: GroundItemStore,
     pub(crate) action_states: Mutex<HashMap<usize, ActionState>>,
 }
 
@@ -37,7 +37,7 @@ impl Default for World {
             self_ref: OnceLock::new(),
             players: WorldSlab::new(),
             npcs: WorldSlab::new(),
-            region_map: RwLock::new(RegionMap::new()),
+            ground_items: GroundItemStore::default(),
             action_states: Mutex::new(HashMap::new()),
         }
     }
@@ -69,17 +69,10 @@ impl World {
             &snapshots,
         );
 
-        self.region_map()
-            .add_player(index, player.position.region_id());
-
         self.players.insert(player);
         self.players.get_mut(index).set_world(&self.arc());
 
         (index, inbox_tx, outbound_rx)
-    }
-
-    pub async fn on_player_login(&self, player_index: usize) {
-        self.players.get_mut(player_index).on_login().await;
     }
 
     pub fn unregister_player(&self, player_index: usize) -> Option<PlayerData> {
@@ -89,8 +82,6 @@ impl World {
 
         self.action_states.lock().remove(&player_index);
         let player = self.players.remove(player_index);
-        self.region_map()
-            .remove_player(player_index, player.current_region);
 
         info!(
             "Player (id={}, username={}) logged out",
@@ -100,11 +91,21 @@ impl World {
         Some(player.to_player_data())
     }
 
+    pub(super) async fn decay_ground_items(&self) {
+        for item in self.ground_items.decay() {
+            for index in self.players.keys() {
+                self.players
+                    .get_mut(index)
+                    .ground_item_mut()
+                    .forget(item.id, item.item_id, item.position)
+                    .await;
+            }
+        }
+    }
+
     pub fn spawn_npc(&self, npc_id: u16, position: Position, wander_radius: u8) -> usize {
         let index = self.npcs.vacant_index();
         let npc = Npc::new(index, npc_id, position, wander_radius);
-
-        self.region_map().add_npc(index, npc.position.region_id());
 
         self.npcs.insert(npc);
         self.npcs.get_mut(index).set_world(&self.arc());
@@ -116,7 +117,6 @@ impl World {
         self.players.get(index)
     }
 
-    #[allow(dead_code)]
     pub fn player_mut(&self, index: usize) -> SlabWriteGuard<'_, Player> {
         self.players.get_mut(index)
     }
@@ -127,10 +127,6 @@ impl World {
 
     pub fn npc_mut(&self, index: usize) -> SlabWriteGuard<'_, Npc> {
         self.npcs.get_mut(index)
-    }
-
-    pub fn region_map(&self) -> RwLockWriteGuard<'_, RegionMap> {
-        self.region_map.write()
     }
 
     pub fn is_online(&self, account_id: i64) -> bool {
@@ -145,7 +141,7 @@ impl World {
         self.npcs.map(|n| n.snapshot())
     }
 
-    fn arc(&self) -> Arc<World> {
+    pub(crate) fn arc(&self) -> Arc<World> {
         self.self_ref
             .get()
             .expect("world not initialized")

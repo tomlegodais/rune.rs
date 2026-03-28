@@ -88,7 +88,7 @@ impl LoginService for WorldLoginService {
         let (player_index, inbox_tx, outbound_rx) =
             self.world.register_player(&account, &player_data, req.display_mode);
 
-        self.world.on_player_login(player_index).await;
+        self.world.player_mut(player_index).on_login().await;
 
         let success = LoginSuccess {
             rights: account.rights.into(),

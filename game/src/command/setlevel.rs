@@ -1,5 +1,5 @@
 use super::CommandEntry;
-use crate::player::{Player, Skill, SkillManager};
+use crate::player::{Player, Skill};
 use crate::send_message;
 use macros::command;
 
@@ -18,11 +18,8 @@ async fn handle(player: &mut Player, skill_id: usize, level: u8) {
         return;
     }
 
-    {
-        let mut skills = player.systems.guard::<SkillManager>();
-        skills.set_level(skill, level);
-        skills.flush().await;
-    }
+    player.skill_mut().set_level(skill, level);
+    player.skill_mut().flush().await;
 
     send_message!(player, "Set {:?} to level {}", skill, level);
 }

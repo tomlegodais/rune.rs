@@ -1,8 +1,10 @@
 mod button;
 mod chat;
 mod command;
+mod ifmoveslot;
 mod minimap_walk;
 mod npc;
+mod objclick;
 mod object;
 mod player;
 mod walk;
@@ -16,7 +18,9 @@ use tracing::debug;
 pub use button::ButtonClick;
 pub use chat::PublicChat;
 pub use command::ClientCommand;
+pub use ifmoveslot::IfMoveSlot;
 pub use npc::NpcClick;
+pub use objclick::ObjClick;
 pub use object::ObjectClick;
 pub use player::PlayerClick;
 pub use walk::WalkRequest;
@@ -28,6 +32,9 @@ pub enum ClickOption {
     Three,
     Four,
     Five,
+    Six,
+    Seven,
+    Eight,
 }
 
 pub type IncomingMessage = Box<dyn Any + Send>;

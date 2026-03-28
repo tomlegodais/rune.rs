@@ -4,6 +4,7 @@ mod macros;
 mod action;
 mod appearance;
 mod gpi;
+mod grounditem;
 mod info;
 mod interaction;
 mod interface;
@@ -19,38 +20,39 @@ mod varp;
 mod viewport;
 
 pub(crate) use action::{
-    ActionState, SkillActionBuilder, active_player, active_shared, delay, is_action_locked,
-    npc_force_talk, send_message,
+    ActionShared, ActionState, SkillActionBuilder, active_player, active_shared,
+    clear_action_context, delay, is_action_locked, npc_force_talk, poll_action, send_message,
+    set_action_context,
 };
 pub(crate) use appearance::Appearance;
 pub(crate) use info::PlayerInfo;
-pub(crate) use interaction::{Interaction, InteractionTarget, resolve as resolve_interaction};
-pub(crate) use interface::{InterfaceManager, SubInterface};
-pub(crate) use inventory::Inventory;
+pub(crate) use interaction::{InteractionTarget, resolve as resolve_interaction};
+pub(crate) use interface::SubInterface;
 pub(crate) use mask::{
     AnimationMask, AppearanceMask, ChatMask, FaceDirectionMask, MoveTypeMask, SpotAnim1Mask,
     SpotAnim2Mask, TempMoveTypeMask,
 };
 pub(crate) use movement::{Movement, MovementContext};
-pub(crate) use skill::{Skill, SkillManager};
+pub(crate) use skill::Skill;
 pub(crate) use varp::VarpManager;
 pub(crate) use viewport::Viewport;
 
 use crate::entity::{Anim, AnimBuilder, Entity, MaskBlock, MoveStep, SpotAnim, SpotAnimBuilder};
-use crate::npc::{NpcInfo, NpcSnapshot, gni};
+use crate::npc::{NpcInfo, NpcSnapshot};
 use crate::world::{Direction, Position, Teleport};
-use net::{ChatMessage, GameScene, Inbox, Logout, Outbox, OutboxExt};
+use net::{ChatMessage, Inbox, Logout, Outbox, OutboxExt};
 use persistence::account::{Account, Rights};
 use persistence::player::PlayerData;
-use std::array;
 use std::ops::{Deref, DerefMut};
-use system::{PlayerInitContext, PlayerSystem, SystemContextFields, SystemStore};
+use std::sync::Arc;
+use system::{PlayerInitContext, SystemStore};
 use tracing::info;
 
 #[derive(Clone)]
 pub struct PlayerSnapshot {
     pub index: usize,
     pub position: Position,
+    pub region_base: Position,
     pub face_direction: Direction,
     pub appearance: Appearance,
     pub masks: MaskBlock,
@@ -76,19 +78,6 @@ pub struct Player {
     pub systems: SystemStore,
 }
 
-impl Deref for Player {
-    type Target = Entity;
-    fn deref(&self) -> &Entity {
-        &self.entity
-    }
-}
-
-impl DerefMut for Player {
-    fn deref_mut(&mut self) -> &mut Entity {
-        &mut self.entity
-    }
-}
-
 impl Player {
     pub fn new(
         index: usize,
@@ -101,9 +90,11 @@ impl Player {
     ) -> Self {
         let username = account.display_name();
         let position = Position::new(data.x, data.y, data.plane);
-        let viewport = Viewport::new(position, 0);
+        let viewport = Viewport::new(outbox.clone(), position, 0);
         let appearance = Appearance::from_data(&username, data.male, data.look, data.colors);
+        let npc_info = NpcInfo::new(outbox.clone());
         let player_info = PlayerInfo::new(
+            outbox.clone(),
             index,
             snapshots,
             &[
@@ -113,6 +104,7 @@ impl Player {
         );
 
         let init_ctx = PlayerInitContext {
+            index,
             outbox: outbox.clone(),
             data: data.clone(),
             display_mode,
@@ -128,28 +120,20 @@ impl Player {
             outbox,
             viewport,
             player_info,
-            npc_info: NpcInfo::new(),
+            npc_info,
             appearance,
             systems: SystemStore::from_init(&init_ctx),
         }
     }
 
-    pub fn system<T: PlayerSystem>(&self) -> &T {
-        self.systems.get::<T>()
-    }
-
-    #[allow(dead_code)]
-    pub fn system_mut<T: PlayerSystem>(&mut self) -> &mut T {
-        self.systems.get_mut::<T>()
-    }
-
     pub fn snapshot(&self) -> PlayerSnapshot {
         let state = self.player_info.self_state();
-        let running = self.systems.get::<Movement>().running;
+        let running = self.movement().running;
 
         PlayerSnapshot {
             index: self.index,
             position: self.position,
+            region_base: self.viewport.region_base,
             face_direction: self.face_direction,
             appearance: self.appearance.clone(),
             masks: state.masks.clone(),
@@ -180,18 +164,11 @@ impl Player {
     }
 
     pub async fn on_login(&mut self) {
-        self.send_game_scene(true).await;
-
-        self.systems
-            .on_login(&mut SystemContextFields {
-                outbox: &self.outbox,
-                position: &mut self.entity.position,
-                player_info: &mut self.player_info,
-                viewport: &self.viewport,
-                appearance: &self.appearance,
-            })
+        self.viewport
+            .send_game_scene(true, self.index, &self.player_info, self.position)
             .await;
 
+        self.systems.on_login().await;
         self.send_message("Welcome to RuneScape.").await;
 
         info!(
@@ -200,25 +177,49 @@ impl Player {
         );
     }
 
-    pub async fn logout(&mut self) {
-        self.outbox.write(Logout).await;
+    pub async fn tick_systems(&mut self, world: &Arc<crate::world::World>) {
+        self.systems.tick(world, &self.snapshot()).await;
     }
 
-    #[rustfmt::skip]
-    pub async fn tick(
+    pub async fn sync(
         &mut self,
         player_snapshots: &[PlayerSnapshot],
         npc_snapshots: &[NpcSnapshot],
+        world: &Arc<crate::world::World>,
     ) {
-        if self.viewport.needs_rebuild(self.position) {
-            self.viewport.rebuild(self.position);
-            self.send_game_scene(false).await;
+        if self
+            .viewport
+            .try_rebuild(self.position, self.index, &self.player_info)
+            .await
+        {
+            self.ground_item_mut()
+                .on_viewport_rebuild(&world.ground_items)
+                .await;
         }
 
-        let viewport = &self.viewport;
         let player_pos = self.position;
-        self.player_info.sync(player_snapshots, |pos| viewport.is_within_view(player_pos, pos));
-        self.npc_info.sync(npc_snapshots, |pos| viewport.is_within_view(player_pos, pos));
+        let viewport = &self.viewport;
+
+        self.player_info.sync(player_snapshots, |pos| {
+            viewport.is_within_view(player_pos, pos)
+        });
+
+        self.npc_info.sync(npc_snapshots, |pos| {
+            viewport.is_within_view(player_pos, pos)
+        });
+    }
+
+    pub async fn send_message(&mut self, text: &str) {
+        self.outbox
+            .write(ChatMessage {
+                msg_type: 0,
+                text: text.to_string(),
+            })
+            .await;
+    }
+
+    pub async fn logout(&mut self) {
+        self.outbox.write(Logout).await;
     }
 
     pub fn anim(&mut self, id: u16) -> AnimBuilder<impl FnOnce(Anim) + '_> {
@@ -244,36 +245,17 @@ impl Player {
         self.player_info.reset();
         self.npc_info.reset();
     }
+}
 
-    pub async fn send_info(&mut self, npc_snapshots: &[NpcSnapshot]) {
-        let gpi_frame = gpi::encode(&mut self.player_info);
-        let gni_frame = gni::encode(&mut self.npc_info, npc_snapshots, self.entity.position);
-        let _ = self.outbox.send(gpi_frame).await;
-        let _ = self.outbox.send(gni_frame).await;
+impl Deref for Player {
+    type Target = Entity;
+    fn deref(&self) -> &Entity {
+        &self.entity
     }
+}
 
-    pub async fn send_message(&mut self, text: &str) {
-        self.outbox
-            .write(ChatMessage {
-                msg_type: 0,
-                text: text.to_string(),
-            })
-            .await;
-    }
-
-    async fn send_game_scene(&mut self, init: bool) {
-        let pos = self.position;
-        self.outbox
-            .write(GameScene {
-                init,
-                position_bits: pos.to_bits(),
-                player_index: self.index,
-                view_distance: self.viewport.view_distance,
-                chunk_x: pos.chunk_x(),
-                chunk_y: pos.chunk_y(),
-                region_count: self.viewport.region_ids().len(),
-                region_hashes: array::from_fn(|i| self.player_info[i].region_hash),
-            })
-            .await;
+impl DerefMut for Player {
+    fn deref_mut(&mut self) -> &mut Entity {
+        &mut self.entity
     }
 }

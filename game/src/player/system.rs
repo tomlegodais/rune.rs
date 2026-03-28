@@ -1,5 +1,4 @@
-use crate::player::{Appearance, PlayerInfo, Viewport};
-use crate::world::Position;
+use crate::world::World;
 use net::Outbox;
 use persistence::player::PlayerData;
 use std::any::{Any, TypeId};
@@ -8,14 +7,20 @@ use std::collections::HashMap;
 use std::future::Future;
 use std::ops::{Deref, DerefMut};
 use std::pin::Pin;
+use std::sync::Arc;
 
 pub struct PlayerInitContext {
+    pub index: usize,
     pub outbox: Outbox,
     pub data: PlayerData,
     pub display_mode: u8,
 }
 
 pub trait PlayerSystem: Any + Send + Sync + 'static {
+    type TickContext: Send + Sync + 'static
+    where
+        Self: Sized;
+
     fn create(ctx: &PlayerInitContext) -> Self
     where
         Self: Sized;
@@ -34,6 +39,20 @@ pub trait PlayerSystem: Any + Send + Sync + 'static {
         Box::pin(async {})
     }
 
+    fn tick_context(_world: &Arc<World>, _player: &super::PlayerSnapshot) -> Self::TickContext
+    where
+        Self: Sized;
+
+    fn tick<'a>(
+        &'a mut self,
+        _ctx: &'a Self::TickContext,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>>
+    where
+        Self: Sized,
+    {
+        Box::pin(async {})
+    }
+
     fn persist(&self, _data: &mut PlayerData) {}
 }
 
@@ -42,12 +61,21 @@ type OnLoginFn = for<'a> fn(
     &'a mut SystemContext<'_>,
 ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
 
+type TickContextFn = fn(&Arc<World>, &super::PlayerSnapshot) -> Box<dyn Any + Send + Sync>;
+
+type TickFn = for<'a> fn(
+    &'a mut dyn Any,
+    &'a Box<dyn Any + Send + Sync>,
+) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
+
 pub struct SystemRegistration {
     pub type_id: fn() -> TypeId,
     pub deps: fn() -> Vec<TypeId>,
     pub factory: fn(&PlayerInitContext) -> Box<dyn Any + Send + Sync>,
     pub persist: fn(&dyn Any, &mut PlayerData),
     pub on_login: OnLoginFn,
+    pub tick_context: TickContextFn,
+    pub tick: TickFn,
 }
 
 inventory::collect!(SystemRegistration);
@@ -65,7 +93,6 @@ impl SystemSlot {
         unsafe { (*self.0.get()).as_ref().expect("system is currently taken") }.as_ref()
     }
 
-    #[allow(dead_code)]
     fn get_mut(&mut self) -> &mut dyn Any {
         self.0
             .get_mut()
@@ -99,6 +126,8 @@ struct SystemEntry {
     slot: SystemSlot,
     persist: fn(&dyn Any, &mut PlayerData),
     on_login: OnLoginFn,
+    tick_context: TickContextFn,
+    tick: TickFn,
 }
 
 pub struct SystemStore {
@@ -123,6 +152,8 @@ impl SystemStore {
                     slot: SystemSlot::new(value),
                     persist: reg.persist,
                     on_login: reg.on_login,
+                    tick_context: reg.tick_context,
+                    tick: reg.tick,
                 },
             );
         }
@@ -141,7 +172,6 @@ impl SystemStore {
             .unwrap()
     }
 
-    #[allow(dead_code)]
     pub fn get_mut<T: PlayerSystem>(&mut self) -> &mut T {
         self.entry_mut::<T>()
             .slot
@@ -150,7 +180,7 @@ impl SystemStore {
             .unwrap()
     }
 
-    pub fn guard<T: PlayerSystem>(&self) -> SystemGuard<'_, T> {
+    pub(crate) fn guard<T: PlayerSystem>(&self) -> SystemGuard<'_, T> {
         let entry = self
             .systems
             .get(&TypeId::of::<T>())
@@ -170,7 +200,7 @@ impl SystemStore {
         }
     }
 
-    pub async fn on_login(&mut self, ctx_fields: &mut SystemContextFields<'_>) {
+    pub async fn on_login(&mut self) {
         for i in 0..self.login_order.len() {
             let type_id = self.login_order[i];
             let entry = self.systems.get_mut(&type_id).unwrap();
@@ -179,16 +209,27 @@ impl SystemStore {
             let on_login = entry.on_login;
 
             let mut ctx = SystemContext {
-                outbox: ctx_fields.outbox,
-                position: &mut *ctx_fields.position,
-                player_info: &mut *ctx_fields.player_info,
-                viewport: ctx_fields.viewport,
-                appearance: ctx_fields.appearance,
                 store: &self.systems,
             };
 
             on_login(boxed.as_mut(), &mut ctx).await;
 
+            self.systems
+                .get_mut(&type_id)
+                .unwrap()
+                .slot
+                .put_value(boxed);
+        }
+    }
+
+    pub async fn tick(&mut self, world: &Arc<World>, player: &super::PlayerSnapshot) {
+        for i in 0..self.login_order.len() {
+            let type_id = self.login_order[i];
+            let entry = self.systems.get_mut(&type_id).unwrap();
+            let ctx = (entry.tick_context)(world, player);
+            let mut boxed = entry.slot.take_value();
+            let tick = entry.tick;
+            tick(boxed.as_mut(), &ctx).await;
             self.systems
                 .get_mut(&type_id)
                 .unwrap()
@@ -236,36 +277,11 @@ impl<T: PlayerSystem> Drop for SystemGuard<'_, T> {
     }
 }
 
-pub struct SystemContextFields<'a> {
-    pub outbox: &'a Outbox,
-    pub position: &'a mut Position,
-    pub player_info: &'a mut PlayerInfo,
-    pub viewport: &'a Viewport,
-    pub appearance: &'a Appearance,
-}
-
-#[allow(dead_code)]
 pub struct SystemContext<'a> {
-    pub outbox: &'a Outbox,
-    pub position: &'a mut Position,
-    pub player_info: &'a mut PlayerInfo,
-    pub viewport: &'a Viewport,
-    pub appearance: &'a Appearance,
     store: &'a HashMap<TypeId, SystemEntry>,
 }
 
 impl<'a> SystemContext<'a> {
-    #[allow(dead_code)]
-    pub fn get<T: PlayerSystem>(&self) -> &T {
-        self.store
-            .get(&TypeId::of::<T>())
-            .unwrap_or_else(|| panic!("system {} not registered", std::any::type_name::<T>()))
-            .slot
-            .get_ref()
-            .downcast_ref::<T>()
-            .unwrap()
-    }
-
     pub fn take<T: PlayerSystem>(&self) -> T {
         let boxed = unsafe {
             self.store

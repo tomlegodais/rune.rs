@@ -222,14 +222,57 @@ pub fn command(attr: TokenStream, item: TokenStream) -> TokenStream {
     expanded.into()
 }
 
+fn system_accessor_name(ty: &Type) -> syn::Ident {
+    let name = match ty {
+        Type::Path(p) => p
+            .path
+            .segments
+            .last()
+            .map(|s| s.ident.to_string())
+            .unwrap_or_default(),
+        _ => panic!("player_system: unsupported type"),
+    };
+
+    let stripped = ["Manager", "System", "Tracker"]
+        .iter()
+        .find_map(|suffix| name.strip_suffix(suffix))
+        .unwrap_or(&name);
+
+    let snake = stripped
+        .chars()
+        .enumerate()
+        .flat_map(|(i, c)| {
+            if c.is_uppercase() && i > 0 {
+                vec!['_', c.to_lowercase().next().unwrap()]
+            } else {
+                vec![c.to_lowercase().next().unwrap()]
+            }
+        })
+        .collect::<String>();
+
+    format_ident!("{}", snake)
+}
+
 #[proc_macro_attribute]
 pub fn player_system(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let impl_block = parse_macro_input!(item as ItemImpl);
 
     let self_ty = &impl_block.self_ty;
+    let accessor = system_accessor_name(self_ty);
+    let accessor_mut = format_ident!("{}_mut", accessor);
 
     let expanded = quote! {
         #impl_block
+
+        impl crate::player::Player {
+            pub fn #accessor(&self) -> &'_ #self_ty {
+                self.systems.get::<#self_ty>()
+            }
+
+            pub fn #accessor_mut(&mut self) -> &'_ mut #self_ty {
+                self.systems.get_mut::<#self_ty>()
+            }
+        }
 
         inventory::submit! {
             crate::player::system::SystemRegistration {
@@ -241,6 +284,12 @@ pub fn player_system(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 },
                 on_login: |any, ctx| {
                     any.downcast_mut::<#self_ty>().unwrap().on_login(ctx)
+                },
+                tick_context: |world, player| Box::new(<#self_ty as crate::player::system::PlayerSystem>::tick_context(world, player)),
+                tick: |any, ctx| {
+                    any.downcast_mut::<#self_ty>().unwrap().tick(
+                        ctx.downcast_ref::<<#self_ty as crate::player::system::PlayerSystem>::TickContext>().unwrap()
+                    )
                 },
             }
         }
@@ -353,7 +402,10 @@ impl InteractionAttr {
                 3 => "Three",
                 4 => "Four",
                 5 => "Five",
-                _ => return Err(syn::Error::new(opt.span(), "option must be 1-5")),
+                6 => "Six",
+                7 => "Seven",
+                8 => "Eight",
+                _ => return Err(syn::Error::new(opt.span(), "option must be 1-8")),
             }
         );
         Ok(quote! { net::ClickOption::#variant })
@@ -525,6 +577,58 @@ pub fn on_npc_click(attr: TokenStream, item: TokenStream) -> TokenStream {
             let #npc = __npc_index;
         },
         quote! { #base #npc_m },
+        &func.block,
+    )
+}
+
+#[proc_macro_attribute]
+pub fn on_item_option(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let attr = parse_macro_input!(attr as InteractionAttr);
+    let func = parse_macro_input!(item as ItemFn);
+    let wrapper_name = format_ident!("__{}_content_wrapper", func.sig.ident);
+
+    let id_expr = match attr.get("id") {
+        Some(id) => quote! { #id as i32 },
+        None => quote! { -1i32 },
+    };
+
+    let option = match attr.option_variant() {
+        Ok(v) => v,
+        Err(e) => return e.to_compile_error().into(),
+    };
+
+    let base = base_macros();
+    let item_m = quote! {
+        macro_rules! remove_item {
+            ($amount:expr) => {
+                crate::player::active_player()
+                    .inventory_mut()
+                    .remove_item(__slot as usize, $amount)
+                    .await
+            };
+        }
+        macro_rules! slot_item {
+            () => { crate::player::active_player().inventory().slot(__slot as usize) };
+        }
+        macro_rules! clear_slot {
+            () => { crate::player::active_player().inventory_mut().clear_slot(__slot as usize).await };
+        }
+        macro_rules! drop_to_ground {
+            ($item_id:expr, $amount:expr) => {{
+                let __player = crate::player::active_player();
+                let __pos = __player.position;
+                let __world = __player.world();
+                __player.ground_item_mut().drop($item_id, $amount, __pos, &__world);
+            }};
+        }
+    };
+
+    emit_content_handler(
+        &wrapper_name,
+        quote! { crate::handler::ContentTarget::Item(#id_expr, #option) },
+        quote! { let crate::player::InteractionTarget::Item { slot: __slot } = target else { unreachable!() }; },
+        quote! {},
+        quote! { #base #item_m },
         &func.block,
     )
 }

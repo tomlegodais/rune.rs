@@ -3,10 +3,13 @@ use crate::entity::MoveStep;
 use crate::player::PlayerSnapshot;
 use crate::player::state::{MAX_PLAYERS, PlayerState};
 use crate::world::{Position, Teleport};
+use net::Outbox;
 use std::array;
 use std::ops::{Index, IndexMut};
 
 pub struct PlayerInfo {
+    outbox: Outbox,
+
     pub self_index: usize,
     pub players: [PlayerState; MAX_PLAYERS],
     pub pending_add: Vec<PlayerSnapshot>,
@@ -15,6 +18,7 @@ pub struct PlayerInfo {
 
 impl PlayerInfo {
     pub fn new(
+        outbox: Outbox,
         self_index: usize,
         snapshots: &[PlayerSnapshot],
         initial_masks: &[&dyn Mask],
@@ -30,6 +34,7 @@ impl PlayerInfo {
         }
 
         Self {
+            outbox,
             self_index,
             players,
             pending_add: Vec::new(),
@@ -65,6 +70,11 @@ impl PlayerInfo {
                 self.pending_remove.push(idx);
             }
         }
+    }
+
+    pub async fn flush(&mut self) {
+        let frame = crate::player::gpi::encode(self);
+        let _ = self.outbox.send(frame).await;
     }
 
     pub fn add_mask(&mut self, mask: impl Mask) {

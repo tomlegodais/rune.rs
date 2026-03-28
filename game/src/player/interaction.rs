@@ -21,6 +21,8 @@ pub enum InteractionTarget {
     Object { id: u16, x: i32, y: i32 },
     Npc { index: usize },
     Player { index: usize },
+    Item { slot: u16 },
+    GroundItem { id: u32, position: Position },
 }
 
 impl Interaction {
@@ -53,6 +55,8 @@ impl InteractionTarget {
                 .players
                 .contains(*index)
                 .then(|| world.player(*index).position),
+            Self::Item { .. } => None,
+            Self::GroundItem { position, .. } => Some(*position),
         }
     }
 }
@@ -91,13 +95,13 @@ pub fn resolve(player: &mut Player, world: &World) {
         return;
     }
 
-    let Some(pending) = player.system::<Interaction>().pending() else {
+    let Some(pending) = player.interaction().pending() else {
         clear_face_if_needed(player, world);
         return;
     };
 
     let Some(target_pos) = pending.target.target_position(world, player.position.plane) else {
-        player.systems.get_mut::<Interaction>().clear();
+        player.interaction_mut().clear();
         return;
     };
 
@@ -117,17 +121,19 @@ pub fn resolve(player: &mut Player, world: &World) {
         InteractionTarget::Player { .. } => {
             can_interact_rect(collision, player.position, target_pos, 1, 1, 0)
         }
+        InteractionTarget::Item { .. } => return,
+        InteractionTarget::GroundItem { .. } => player.position == target_pos,
     };
 
     if !is_adjacent {
         if !player.entity.has_steps() {
-            player.systems.get_mut::<Interaction>().clear();
+            player.interaction_mut().clear();
         }
         return;
     }
 
     player.entity.stop();
-    let pending = player.systems.get_mut::<Interaction>().take().unwrap();
+    let pending = player.interaction_mut().take().unwrap();
     face_target(player, world, &pending.target, target_pos);
 
     if let Some(future) = crate::handler::dispatch(player, pending.target, pending.option) {
@@ -194,6 +200,7 @@ fn face_target(
                     player.entity.face_direction,
                 ));
         }
+        InteractionTarget::Item { .. } | InteractionTarget::GroundItem { .. } => {}
     }
 }
 
@@ -216,7 +223,11 @@ fn clear_face_if_needed(player: &mut Player, world: &World) {
 
 #[player_system]
 impl PlayerSystem for Interaction {
+    type TickContext = ();
+
     fn create(_ctx: &PlayerInitContext) -> Self {
         Self { pending: None }
     }
+
+    fn tick_context(_: &Arc<World>, _: &crate::player::PlayerSnapshot) {}
 }

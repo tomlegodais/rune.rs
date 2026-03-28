@@ -1,10 +1,14 @@
 mod button;
 mod chat;
 mod command;
+mod drop;
+mod ifmoveslot;
 mod interaction;
+mod objclick;
 mod walk;
 
-pub(crate) use interaction::{ContentHandler, ContentTarget, dispatch};
+pub(crate) use interaction::{ContentHandler, ContentTarget, dispatch, dispatch_item};
+pub(crate) use objclick::pickup_ground_item;
 
 use crate::player::Player;
 use net::IncomingMessage;

@@ -1,5 +1,3 @@
-use crate::world::RegionId;
-
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Position {
     pub x: i32,
@@ -46,6 +44,13 @@ impl Position {
         RegionId::from_coords(rx, ry)
     }
 
+    pub fn zone_coords(self, region_base: Position) -> (u8, u8, u8) {
+        let local_x = self.x - region_base.x;
+        let local_y = self.y - region_base.y;
+        let packed_offset = (((local_x & 7) << 4) | (local_y & 7)) as u8;
+        ((local_x >> 3) as u8, (local_y >> 3) as u8, packed_offset)
+    }
+
     pub fn region_hash(self) -> u32 {
         let rx = (self.x >> 6) as u32;
         let ry = (self.y >> 6) as u32;
@@ -61,6 +66,28 @@ impl Position {
     pub fn step(self, dir: Direction) -> Position {
         let (dx, dy) = dir.delta();
         Position::new(self.x + dx, self.y + dy, self.plane)
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+pub struct RegionId(pub u16);
+
+impl RegionId {
+    pub fn from_coords(x: u16, y: u16) -> Self {
+        Self((x << 8) | y)
+    }
+
+    pub fn x(self) -> u16 {
+        (self.0 >> 8) & 0xFF
+    }
+
+    pub fn y(self) -> u16 {
+        self.0 & 0xFF
+    }
+
+    pub fn to(self, other: RegionId) -> impl Iterator<Item = RegionId> {
+        (self.x()..=other.x())
+            .flat_map(move |x| (self.y()..=other.y()).map(move |y| RegionId::from_coords(x, y)))
     }
 }
 

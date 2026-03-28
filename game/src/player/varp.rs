@@ -73,6 +73,8 @@ impl VarpManager {
 
 #[player_system]
 impl PlayerSystem for VarpManager {
+    type TickContext = ();
+
     fn create(ctx: &PlayerInitContext) -> Self {
         Self::new(ctx.outbox.clone())
     }
@@ -87,4 +89,6 @@ impl PlayerSystem for VarpManager {
             self.send_varp(1159, 1).await;
         })
     }
+
+    fn tick_context(_: &std::sync::Arc<crate::world::World>, _: &crate::player::PlayerSnapshot) {}
 }

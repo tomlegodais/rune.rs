@@ -56,12 +56,10 @@ impl SkillManager {
         self.xp
     }
 
-    #[allow(dead_code)]
     pub fn level(&self, skill: Skill) -> u8 {
         self.levels[skill as usize]
     }
 
-    #[allow(dead_code)]
     pub fn xp(&self, skill: Skill) -> u32 {
         self.xp[skill as usize]
     }
@@ -72,7 +70,6 @@ impl SkillManager {
         self.xp[i] = xp_for_level(level);
     }
 
-    #[allow(dead_code)]
     pub fn set_xp(&mut self, skill: Skill, xp: u32) {
         let i = skill as usize;
         self.xp[i] = xp;
@@ -119,6 +116,8 @@ fn level_for_xp(xp: u32) -> u8 {
 
 #[player_system]
 impl PlayerSystem for SkillManager {
+    type TickContext = ();
+
     fn create(ctx: &PlayerInitContext) -> Self {
         Self::from_data(ctx.outbox.clone(), ctx.data.levels, ctx.data.xp)
     }
@@ -129,6 +128,8 @@ impl PlayerSystem for SkillManager {
     ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(self.flush())
     }
+
+    fn tick_context(_: &std::sync::Arc<crate::world::World>, _: &crate::player::PlayerSnapshot) {}
 
     fn persist(&self, data: &mut PlayerData) {
         data.levels = self.levels();

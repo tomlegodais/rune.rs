@@ -20,14 +20,12 @@ impl PlayerOptions {
         Self { outbox, options }
     }
 
-    #[allow(dead_code)]
     pub async fn set(&mut self, slot: u8, option: impl Into<String>, top: bool) {
         let idx = slot as usize;
         self.options[idx] = Some((option.into(), top));
         self.send_slot(slot).await;
     }
 
-    #[allow(dead_code)]
     pub async fn clear(&mut self, slot: u8) {
         let idx = slot as usize;
         self.options[idx] = None;
@@ -63,6 +61,8 @@ impl PlayerOptions {
 
 #[player_system]
 impl PlayerSystem for PlayerOptions {
+    type TickContext = ();
+
     fn create(ctx: &PlayerInitContext) -> Self {
         Self::new(ctx.outbox.clone())
     }
@@ -73,4 +73,6 @@ impl PlayerSystem for PlayerOptions {
     ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(self.flush())
     }
+
+    fn tick_context(_: &std::sync::Arc<crate::world::World>, _: &crate::player::PlayerSnapshot) {}
 }

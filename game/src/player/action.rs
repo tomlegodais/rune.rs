@@ -107,12 +107,10 @@ pub fn npc_force_talk(player: &Player, npc_index: usize, text: &str) {
     world.npc_mut(npc_index).force_talk(text.to_string());
 }
 
-#[allow(dead_code)]
 pub fn lock(shared: &ActionShared) {
     shared.locked.store(true, Ordering::Relaxed);
 }
 
-#[allow(dead_code)]
 pub fn unlock(shared: &ActionShared) {
     shared.locked.store(false, Ordering::Relaxed);
 }

@@ -7,7 +7,7 @@ pub(crate) use anim::{Anim, AnimBuilder};
 pub(crate) use mask::{Mask, MaskBlock, MaskConfig, MaskFlags};
 pub(crate) use spotanim::{SpotAnim, SpotAnimBuilder};
 
-use crate::world::{Direction, Position, RegionId, World};
+use crate::world::{Direction, Position, World};
 use std::collections::VecDeque;
 use std::sync::{Arc, Weak};
 
@@ -24,7 +24,6 @@ pub struct Entity {
 
     pub index: usize,
     pub position: Position,
-    pub current_region: RegionId,
     pub face_direction: Direction,
     pub walk_queue: VecDeque<Position>,
     pub face_target: Option<u16>,
@@ -35,7 +34,6 @@ impl Entity {
         Self {
             world: Weak::new(),
             index,
-            current_region: position.region_id(),
             position,
             face_direction: Direction::South,
             walk_queue: VecDeque::new(),

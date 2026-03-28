@@ -65,7 +65,6 @@ impl SubInterface {
         }
     }
 
-    #[allow(dead_code)]
     pub const fn modal(interface: u16) -> Self {
         Self {
             interface,
@@ -76,7 +75,6 @@ impl SubInterface {
         }
     }
 
-    #[allow(dead_code)]
     pub const fn overlay(interface: u16) -> Self {
         Self {
             interface,
@@ -101,13 +99,11 @@ impl SubInterface {
         }
     }
 
-    #[allow(dead_code)]
     pub const fn opaque(mut self) -> Self {
         self.transparent = false;
         self
     }
 
-    #[allow(dead_code)]
     pub const fn parent(mut self, parent: u16) -> Self {
         self.parent = Parent::Fixed(parent);
         self
@@ -191,7 +187,6 @@ impl InterfaceManager {
         }
     }
 
-    #[allow(dead_code)]
     pub fn is_open(&self, sub: &SubInterface) -> bool {
         let (_, _, hash) = self.resolve(sub);
         self.interfaces.get(&hash) == Some(&sub.interface)
@@ -200,6 +195,8 @@ impl InterfaceManager {
 
 #[player_system]
 impl PlayerSystem for InterfaceManager {
+    type TickContext = ();
+
     fn create(ctx: &PlayerInitContext) -> Self {
         Self::new(ctx.outbox.clone(), ctx.display_mode)
     }
@@ -215,4 +212,6 @@ impl PlayerSystem for InterfaceManager {
             self.open_subs(ui::chat::interfaces()).await;
         })
     }
+
+    fn tick_context(_: &std::sync::Arc<crate::world::World>, _: &crate::player::PlayerSnapshot) {}
 }
