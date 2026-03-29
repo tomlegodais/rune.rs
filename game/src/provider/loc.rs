@@ -1,16 +1,15 @@
-use filesystem::Cache;
+use crate::provider::ProviderContext;
 use filesystem::definition::LocDefinition;
 use filesystem::loader::LocLoader;
 use macros::data_provider;
 use once_cell::sync::OnceCell;
-use std::sync::Arc;
 
 static INSTANCE: OnceCell<LocLoader> = OnceCell::new();
 
 #[data_provider]
-pub fn load_item_definitions(cache: &Arc<Cache>) -> anyhow::Result<()> {
+async fn load_loc_definitions(ctx: &ProviderContext) -> anyhow::Result<()> {
     Ok(INSTANCE
-        .get_or_try_init(|| LocLoader::load(cache))
+        .get_or_try_init(|| LocLoader::load(&ctx.cache))
         .map(drop)?)
 }
 

@@ -1,7 +1,7 @@
 use crate::entity::MaskBlock;
 use crate::entity::MoveStep;
 use crate::player::state::MAX_PLAYERS;
-use crate::player::{Appearance, AppearanceMask, FaceDirectionMask, MoveTypeMask, PlayerInfo};
+use crate::player::{Appearance, EquipSlots, FaceDirectionMask, MoveTypeMask, PlayerInfo};
 use crate::world::{Direction, Position};
 use net::{Frame, Prefix};
 use tokio_util::bytes::BytesMut;
@@ -151,6 +151,7 @@ struct PlayerAdd<'a> {
     position: Position,
     face_direction: Direction,
     appearance: &'a Appearance,
+    equipment: &'a EquipSlots,
     masks: &'a MaskBlock,
     cached_hash: u32,
     running: bool,
@@ -177,17 +178,18 @@ impl BitEncoder for PlayerAdd<'_> {
         bits.put_bits(bp, 6, self.position.y as u32 & 0x3F);
         bits.put_bits(bp, 1, 1);
 
+        let appearance_mask = self.appearance.to_mask(self.equipment);
         let mut add_masks = self.masks.clone();
         add_masks.extend(&[
             &FaceDirectionMask(self.face_direction),
             &MoveTypeMask(self.running),
-            &AppearanceMask::new(self.appearance),
+            &appearance_mask,
         ]);
         add_masks.write(masks);
     }
 }
 
-pub fn encode(info: &mut PlayerInfo) -> Frame {
+pub fn encode_player_info(info: &mut PlayerInfo) -> Frame {
     let mut bits = BytesMut::new();
     let mut masks = BytesMut::new();
 
@@ -289,6 +291,7 @@ fn write_outside(info: &mut PlayerInfo, bits: &mut BytesMut, masks: &mut BytesMu
             let position = snapshot.position;
             let face_direction = snapshot.face_direction;
             let appearance = snapshot.appearance.clone();
+            let equipment = snapshot.equipment;
             let snap_masks = snapshot.masks.clone();
             let cached_hash = info[idx].region_hash;
             let running = snapshot.running;
@@ -297,6 +300,7 @@ fn write_outside(info: &mut PlayerInfo, bits: &mut BytesMut, masks: &mut BytesMu
                 position,
                 face_direction,
                 appearance: &appearance,
+                equipment: &equipment,
                 masks: &snap_masks,
                 cached_hash,
                 running,

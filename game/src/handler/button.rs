@@ -1,4 +1,4 @@
-use super::MessageHandler;
+use super::{MessageHandler, dispatch_item};
 use crate::player::Player;
 use crate::{send_message, with_movement};
 use macros::message_handler;
@@ -12,14 +12,14 @@ async fn handle(player: &mut Player, msg: ButtonClick) {
             with_movement!(player, |m, ctx| m.set_run(&mut ctx, running).await);
         }
         (6, 182, 6) => player.logout().await,
-        (6, 149, 0) => crate::handler::dispatch_item(player, msg.slot1, ClickOption::One),
-        (38, 149, 0) => crate::handler::dispatch_item(player, msg.slot1, ClickOption::Two),
-        (62, 149, 0) => crate::handler::dispatch_item(player, msg.slot1, ClickOption::Three),
-        (46, 149, 0) => crate::handler::dispatch_item(player, msg.slot1, ClickOption::Four),
-        (46, 64, 0) => crate::handler::dispatch_item(player, msg.slot1, ClickOption::Five),
-        (8, 149, 0) => crate::handler::dispatch_item(player, msg.slot1, ClickOption::Six),
-        (28, 149, 0) => crate::handler::dispatch_item(player, msg.slot1, ClickOption::Seven),
-        (70, 149, 0) => crate::handler::dispatch_item(player, msg.slot1, ClickOption::Eight),
+        (6, 149, 0) => dispatch_item(player, msg.slot1, ClickOption::One),
+        (38, 149, 0) => dispatch_item(player, msg.slot1, ClickOption::Two),
+        (62, 149, 0) => dispatch_item(player, msg.slot1, ClickOption::Three),
+        (46, 149, 0) => dispatch_item(player, msg.slot1, ClickOption::Four),
+        (46, 64, 0) => dispatch_item(player, msg.slot1, ClickOption::Five),
+        (8, 149, 0) => dispatch_item(player, msg.slot1, ClickOption::Six),
+        (28, 149, 0) => dispatch_item(player, msg.slot1, ClickOption::Seven),
+        (70, 149, 0) => dispatch_item(player, msg.slot1, ClickOption::Eight),
         _ => {
             send_message!(
                 player,

@@ -1,4 +1,6 @@
+use crate::player::PlayerSnapshot;
 use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContext};
+use crate::world::World;
 use macros::player_system;
 use net::{Outbox, OutboxExt, PlayerOption};
 use std::future::Future;
@@ -74,5 +76,5 @@ impl PlayerSystem for PlayerOptions {
         Box::pin(self.flush())
     }
 
-    fn tick_context(_: &std::sync::Arc<crate::world::World>, _: &crate::player::PlayerSnapshot) {}
+    fn tick_context(_: &std::sync::Arc<World>, _: &PlayerSnapshot) {}
 }

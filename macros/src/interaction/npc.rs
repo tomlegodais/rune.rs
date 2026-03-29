@@ -31,7 +31,7 @@ pub fn on_npc_click(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let base = base_macros();
     let npc_m = quote! {
-        macro_rules! npc_force_talk { ($($a:tt)*) => { crate::player::npc_force_talk(#player, #npc, &format!($($a)*)) }; }
+        macro_rules! npc_force_talk { ($($a:tt)*) => { crate::player::npc_force_talk(&*#player, #npc, &format!($($a)*)) }; }
         macro_rules! npc_anim {
             ($id:expr) => { drop(#player.world().npc_mut(#npc).anim($id)) };
             ($id:expr, $($k:ident = $v:expr),+) => { drop({ let b = #player.world().npc_mut(#npc).anim($id); $(let b = b.$k($v);)+ b }) };
@@ -47,7 +47,7 @@ pub fn on_npc_click(attr: TokenStream, item: TokenStream) -> TokenStream {
         quote! { crate::handler::ContentTarget::Npc(#npc_id, #option) },
         quote! { let crate::player::InteractionTarget::Npc { index: __npc_index } = target else { unreachable!() }; },
         quote! {
-            let #player = crate::player::active_player();
+            let mut #player = crate::player::PlayerRef;
             let #npc = __npc_index;
         },
         quote! { #base #npc_m },

@@ -36,7 +36,7 @@ static HANDLERS: std::sync::LazyLock<HashMap<TypeId, HandlerFn>> = std::sync::La
     map
 });
 
-pub async fn handle(player: &mut Player, msg: IncomingMessage) {
+pub async fn handle_incoming_message(player: &mut Player, msg: IncomingMessage) {
     let type_id = (*msg).type_id();
     match HANDLERS.get(&type_id) {
         Some(handler) => handler(player, msg).await,

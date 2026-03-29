@@ -1,4 +1,5 @@
 use crate::config::AppConfig;
+use crate::provider::ProviderContext;
 use crate::service::{
     GameLoginService, ServiceManager, WorldLoginService, WorldLoginServiceParameters, WorldService,
 };
@@ -58,11 +59,16 @@ async fn main() -> anyhow::Result<()> {
 
     let mut service_manager = ServiceManager::new();
     let cache = Arc::new(CacheBuilder::new("cache/").open()?);
-    provider::load_all(&cache)?;
+    let persistence = Arc::new(persistence::connect(&app_config.database).await?);
+    provider::load_all(&ProviderContext {
+        cache: cache.clone(),
+        persistence: persistence.clone(),
+    })
+    .await?;
 
     let world = Arc::new(World::default());
     world.init();
-    let persistence = Arc::new(persistence::connect(&app_config.database).await?);
+
     let game = GameModule::builder(persistence)
         .with_component_parameters::<WorldLoginService>(WorldLoginServiceParameters {
             config: app_config.game,

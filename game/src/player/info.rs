@@ -1,7 +1,7 @@
 use crate::entity::Mask;
 use crate::entity::MoveStep;
-use crate::player::PlayerSnapshot;
 use crate::player::state::{MAX_PLAYERS, PlayerState};
+use crate::player::{PlayerSnapshot, encode_player_info};
 use crate::world::{Position, Teleport};
 use net::Outbox;
 use std::array;
@@ -73,7 +73,7 @@ impl PlayerInfo {
     }
 
     pub async fn flush(&mut self) {
-        let frame = crate::player::gpi::encode(self);
+        let frame = encode_player_info(self);
         let _ = self.outbox.send(frame).await;
     }
 

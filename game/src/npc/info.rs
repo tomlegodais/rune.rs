@@ -1,4 +1,4 @@
-use crate::npc::NpcSnapshot;
+use crate::npc::{NpcSnapshot, encode_npc_info};
 use crate::world::Position;
 use net::Outbox;
 
@@ -40,7 +40,7 @@ impl NpcInfo {
     }
 
     pub async fn flush(&mut self, snapshots: &[NpcSnapshot], player_pos: Position) {
-        let frame = crate::npc::gni::encode(self, snapshots, player_pos);
+        let frame = encode_npc_info(self, snapshots, player_pos);
         let _ = self.outbox.send(frame).await;
     }
 

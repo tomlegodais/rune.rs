@@ -1,5 +1,6 @@
+use crate::handler::handle_incoming_message;
 use crate::npc::{Npc, NpcSnapshot};
-use crate::player::{Player, PlayerSnapshot};
+use crate::player::{Player, PlayerSnapshot, resolve_interaction};
 use crate::with_movement;
 use crate::world::World;
 use net::{InboxExt, IncomingMessage};
@@ -56,7 +57,7 @@ impl TickPhase<Player> for ProcessMessages {
     async fn execute(&self, _world: &World, player: &mut Player, ctx: &Self::Context) {
         let messages = ctx.lock().remove(&player.index).unwrap_or_default();
         for msg in messages {
-            crate::handler::handle(player, msg).await;
+            handle_incoming_message(player, msg).await;
         }
     }
 }
@@ -67,7 +68,7 @@ impl TickPhase<Player> for Tick {
     fn context(&self, _: &World) -> Self::Context {}
 
     async fn execute(&self, world: &World, player: &mut Player, _: &()) {
-        crate::player::resolve_interaction(player, world);
+        resolve_interaction(player, world);
         with_movement!(player, |m, ctx| m.process(&mut ctx).await);
         player.tick_systems(&world.arc()).await;
     }

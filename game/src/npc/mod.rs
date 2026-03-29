@@ -1,4 +1,4 @@
-pub(crate) mod gni;
+mod gni;
 mod info;
 mod mask;
 
@@ -9,6 +9,7 @@ use rand::Rng;
 use std::ops::{Deref, DerefMut};
 use strum::IntoEnumIterator;
 
+pub(crate) use gni::encode_npc_info;
 pub(crate) use info::NpcInfo;
 pub(crate) use mask::{AnimationMask, FaceEntityMask, SpotAnim1Mask, SpotAnim2Mask};
 

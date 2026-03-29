@@ -3,6 +3,7 @@ mod macros;
 
 mod action;
 mod appearance;
+mod equipment;
 mod gpi;
 mod grounditem;
 mod info;
@@ -20,18 +21,20 @@ mod varp;
 mod viewport;
 
 pub(crate) use action::{
-    ActionShared, ActionState, SkillActionBuilder, active_player, active_shared,
+    ActionShared, ActionState, PlayerRef, SkillActionBuilder, active_player, active_shared,
     clear_action_context, delay, is_action_locked, npc_force_talk, poll_action, send_message,
     set_action_context,
 };
-pub(crate) use appearance::Appearance;
+pub(crate) use appearance::{Appearance, DEFAULT_RENDER_EMOTE};
+pub(crate) use equipment::{EquipSlots, EquipmentSlot, SIZE as EQUIPMENT_SIZE};
+pub(crate) use gpi::encode_player_info;
 pub(crate) use info::PlayerInfo;
 pub(crate) use interaction::{InteractionTarget, resolve as resolve_interaction};
 pub(crate) use interface::SubInterface;
 pub(crate) use inventory::SIZE as INVENTORY_SIZE;
 pub(crate) use mask::{
-    AnimationMask, AppearanceMask, ChatMask, FaceDirectionMask, MoveTypeMask, SpotAnim1Mask,
-    SpotAnim2Mask, TempMoveTypeMask,
+    AnimationMask, ChatMask, FaceDirectionMask, MoveTypeMask, SpotAnim1Mask, SpotAnim2Mask,
+    TempMoveTypeMask,
 };
 pub(crate) use movement::{Movement, MovementContext};
 pub(crate) use skill::Skill;
@@ -40,7 +43,7 @@ pub(crate) use viewport::Viewport;
 
 use crate::entity::{Anim, AnimBuilder, Entity, MaskBlock, MoveStep, SpotAnim, SpotAnimBuilder};
 use crate::npc::{NpcInfo, NpcSnapshot};
-use crate::world::{Direction, Position, Teleport};
+use crate::world::{Direction, Position, Teleport, World};
 use net::{ChatMessage, Inbox, Logout, Outbox, OutboxExt};
 use persistence::account::{Account, Rights};
 use persistence::player::PlayerData;
@@ -56,6 +59,7 @@ pub struct PlayerSnapshot {
     pub region_base: Position,
     pub face_direction: Direction,
     pub appearance: Appearance,
+    pub equipment: EquipSlots,
     pub masks: MaskBlock,
     pub teleport: Option<Teleport>,
     pub move_step: MoveStep,
@@ -64,7 +68,7 @@ pub struct PlayerSnapshot {
 
 pub struct Player {
     pub entity: Entity,
-    pub player_data_id: i64,
+    pub player_id: i64,
     pub account_id: i64,
     pub username: String,
     pub rights: Rights,
@@ -72,7 +76,6 @@ pub struct Player {
     pub inbox: Inbox,
     pub outbox: Outbox,
 
-    pub appearance: Appearance,
     pub viewport: Viewport,
     pub player_info: PlayerInfo,
     pub npc_info: NpcInfo,
@@ -83,37 +86,34 @@ impl Player {
     pub fn new(
         index: usize,
         account: &Account,
-        data: &PlayerData,
+        player_data: &PlayerData,
         inbox: Inbox,
         outbox: Outbox,
         display_mode: u8,
         snapshots: &[PlayerSnapshot],
     ) -> Self {
         let username = account.display_name();
-        let position = Position::new(data.x, data.y, data.plane);
+        let position = Position::new(player_data.x, player_data.y, player_data.plane);
         let viewport = Viewport::new(outbox.clone(), position, 0);
-        let appearance = Appearance::from_data(&username, data.male, data.look, data.colors);
         let npc_info = NpcInfo::new(outbox.clone());
         let player_info = PlayerInfo::new(
             outbox.clone(),
             index,
             snapshots,
-            &[
-                &MoveTypeMask(data.running),
-                &AppearanceMask::new(&appearance),
-            ],
+            &[&MoveTypeMask(player_data.running)],
         );
 
-        let init_ctx = PlayerInitContext {
+        let systems = SystemStore::from_init(&PlayerInitContext {
             index,
             outbox: outbox.clone(),
-            data: data.clone(),
+            player_data: player_data.clone(),
             display_mode,
-        };
+            display_name: username.clone(),
+        });
 
         Self {
             entity: Entity::new(index, position),
-            player_data_id: data.player_id,
+            player_id: player_data.player_id,
             account_id: account.id,
             username,
             rights: account.rights,
@@ -122,8 +122,7 @@ impl Player {
             viewport,
             player_info,
             npc_info,
-            appearance,
-            systems: SystemStore::from_init(&init_ctx),
+            systems,
         }
     }
 
@@ -136,7 +135,8 @@ impl Player {
             position: self.position,
             region_base: self.viewport.region_base,
             face_direction: self.face_direction,
-            appearance: self.appearance.clone(),
+            appearance: self.appearance().clone(),
+            equipment: *self.equipment().slots(),
             masks: state.masks.clone(),
             teleport: state.teleport,
             move_step: state.move_step,
@@ -146,18 +146,19 @@ impl Player {
 
     pub fn to_player_data(&self) -> PlayerData {
         let mut data = PlayerData {
-            player_id: self.player_data_id,
+            player_id: self.player_id,
             x: self.position.x,
             y: self.position.y,
             plane: self.position.plane,
             running: false,
             run_energy: 0,
-            male: self.appearance.male,
-            look: self.appearance.look,
-            colors: self.appearance.colors,
+            male: true,
+            look: [0; 7],
+            colors: [0; 5],
             levels: [1; 24],
             xp: [0; 24],
-            inventory: vec![None; 28],
+            inventory: vec![None; INVENTORY_SIZE],
+            equipment: vec![None; EQUIPMENT_SIZE],
         };
 
         self.systems.for_each_persist(&mut data);
@@ -169,7 +170,7 @@ impl Player {
             .send_game_scene(true, self.index, &self.player_info, self.position)
             .await;
 
-        self.systems.on_login().await;
+        self.systems.on_login(&mut self.player_info).await;
         self.send_message("Welcome to RuneScape.").await;
 
         info!(
@@ -178,7 +179,7 @@ impl Player {
         );
     }
 
-    pub async fn tick_systems(&mut self, world: &Arc<crate::world::World>) {
+    pub async fn tick_systems(&mut self, world: &Arc<World>) {
         self.systems.tick(world, &self.snapshot()).await;
     }
 
@@ -186,7 +187,7 @@ impl Player {
         &mut self,
         player_snapshots: &[PlayerSnapshot],
         npc_snapshots: &[NpcSnapshot],
-        world: &Arc<crate::world::World>,
+        world: &Arc<World>,
     ) {
         if self
             .viewport
@@ -221,6 +222,11 @@ impl Player {
 
     pub async fn logout(&mut self) {
         self.outbox.write(Logout).await;
+    }
+
+    pub fn flush_appearance(&mut self) {
+        let mask = self.appearance().to_mask(self.equipment().slots());
+        self.player_info.add_mask(mask);
     }
 
     pub fn anim(&mut self, id: u16) -> AnimBuilder<impl FnOnce(Anim) + '_> {

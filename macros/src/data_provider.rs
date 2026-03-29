@@ -21,10 +21,7 @@ impl Parse for Args {
                     priority = Some(lit.base10_parse::<u8>()?);
                 }
                 _ => {
-                    return Err(syn::Error::new(
-                        ident.span(),
-                        "expected `priority`",
-                    ));
+                    return Err(syn::Error::new(ident.span(), "expected `priority`"));
                 }
             }
 
@@ -54,7 +51,7 @@ pub fn data_provider(attr: TokenStream, item: TokenStream) -> TokenStream {
         inventory::submit! {
             crate::provider::DataProvider {
                 priority: #priority,
-                load: #name,
+                load: |ctx| Box::pin(#name(ctx)),
             }
         }
 

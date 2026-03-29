@@ -1,7 +1,9 @@
 use crate::entity::{Anim, Mask, MaskConfig, MaskFlags, SpotAnim};
-use crate::player::Appearance;
+use crate::player::equipment::EquipmentSlot;
+use crate::player::{DEFAULT_RENDER_EMOTE, EquipSlots};
 use crate::provider;
 use crate::world::Direction;
+use filesystem::definition::ParamMap;
 use num_enum::IntoPrimitive;
 use persistence::Rights;
 use tokio_util::bytes::{BufMut, BytesMut};
@@ -102,17 +104,16 @@ impl Mask for TempMoveTypeMask {
     }
 }
 
-pub struct AppearanceMask<'a> {
-    appearance: &'a Appearance,
+pub struct AppearanceMask {
+    pub male: bool,
+    pub look: [u16; 7],
+    pub colors: [u8; 5],
+    pub display_name: String,
+    pub combat_level: u8,
+    pub equipment: EquipSlots,
 }
 
-impl<'a> AppearanceMask<'a> {
-    pub fn new(appearance: &'a Appearance) -> Self {
-        Self { appearance }
-    }
-}
-
-impl Mask for AppearanceMask<'_> {
+impl Mask for AppearanceMask {
     fn flag(&self) -> MaskFlags {
         PlayerMask::APPEARANCE
     }
@@ -126,42 +127,69 @@ impl Mask for AppearanceMask<'_> {
     }
 }
 
-impl<'a> AppearanceMask<'a> {
+impl AppearanceMask {
     fn encode_appearance(&self, buf: &mut BytesMut) {
-        let app = self.appearance;
+        buf.put_u8(if self.male { 0 } else { 1 });
+        buf.put_u8(0);
+        buf.put_u8(0xFF);
+        buf.put_u8(0xFF);
 
-        buf.put_u8(if app.male { 0 } else { 1 });
-        buf.put_u8(0); // title
-        buf.put_u8(0xFF); // skull icon
-        buf.put_u8(0xFF); // prayer icon
+        self.encode_slot(buf, EquipmentSlot::Head, Some(self.look[0]));
+        self.encode_slot(buf, EquipmentSlot::Cape, None);
+        self.encode_slot(buf, EquipmentSlot::Amulet, None);
+        self.encode_slot(buf, EquipmentSlot::Weapon, None);
+        self.encode_slot(buf, EquipmentSlot::Body, Some(self.look[2]));
+        self.encode_slot(buf, EquipmentSlot::Shield, None);
+        buf.put_u16(0x100 | self.look[3]);
+        self.encode_slot(buf, EquipmentSlot::Legs, Some(self.look[5]));
 
-        for _ in 0..4 {
+        if self.equipment[EquipmentSlot::Head].is_some() {
             buf.put_u8(0);
+        } else {
+            buf.put_u16(0x100 | self.look[0]);
         }
-        buf.put_u16(0x100 | app.look[2]); // chest
-        buf.put_u8(0); // shield
-        buf.put_u16(0x100 | app.look[3]); // arms
-        buf.put_u16(0x100 | app.look[5]); // legs
-        buf.put_u16(0x100 | app.look[0]); // hair
-        buf.put_u16(0x100 | app.look[4]); // hands
-        buf.put_u16(0x100 | app.look[6]); // feet
 
-        if app.male {
-            buf.put_u16(0x100 | app.look[1]); // beard
+        self.encode_slot(buf, EquipmentSlot::Gloves, Some(self.look[4]));
+        self.encode_slot(buf, EquipmentSlot::Boots, Some(self.look[6]));
+
+        if self.male {
+            if self.equipment[EquipmentSlot::Head].is_some() {
+                buf.put_u8(0);
+            } else {
+                buf.put_u16(0x100 | self.look[1]);
+            }
         } else {
             buf.put_u8(0);
         }
 
-        for &color in &app.colors {
+        for &color in &self.colors {
             buf.put_u8(color);
         }
 
-        buf.put_u16(app.render_emote);
-        buf.put_string(&app.display_name);
-        buf.put_u8(app.combat_level);
+        buf.put_u16(self.render_emote());
+        buf.put_string(&self.display_name);
+        buf.put_u8(self.combat_level);
         buf.put_u8(0);
         buf.put_u8(0xFF);
         buf.put_u8(0);
+    }
+
+    fn encode_slot(&self, buf: &mut BytesMut, slot: EquipmentSlot, kit_fallback: Option<u16>) {
+        match self.equipment[slot] {
+            Some((item_id, _)) => buf.put_u16(0x4000 + item_id),
+            None => match kit_fallback {
+                Some(kit) => buf.put_u16(0x100 | kit),
+                None => buf.put_u8(0),
+            },
+        }
+    }
+
+    fn render_emote(&self) -> u16 {
+        self.equipment[EquipmentSlot::Weapon]
+            .and_then(|(id, _)| provider::get_item_definition(id as u32))
+            .and_then(|def| def.params.int_param(644))
+            .map(|v| v as u16)
+            .unwrap_or(DEFAULT_RENDER_EMOTE)
     }
 }
 

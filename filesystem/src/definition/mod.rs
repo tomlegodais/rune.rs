@@ -13,3 +13,24 @@ pub enum ParamValue {
     Int(i32),
     String(String),
 }
+
+pub trait ParamMap {
+    fn int_param(&self, key: u32) -> Option<i32>;
+    fn str_param(&self, key: u32) -> Option<&str>;
+}
+
+impl ParamMap for std::collections::HashMap<u32, ParamValue> {
+    fn int_param(&self, key: u32) -> Option<i32> {
+        match self.get(&key)? {
+            ParamValue::Int(v) => Some(*v),
+            _ => None,
+        }
+    }
+
+    fn str_param(&self, key: u32) -> Option<&str> {
+        match self.get(&key)? {
+            ParamValue::String(v) => Some(v),
+            _ => None,
+        }
+    }
+}

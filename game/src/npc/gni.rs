@@ -6,7 +6,11 @@ use net::{Frame, Prefix};
 use tokio_util::bytes::BytesMut;
 use util::BitsMut;
 
-pub fn encode(info: &mut NpcInfo, snapshots: &[NpcSnapshot], player_pos: Position) -> Frame {
+pub fn encode_npc_info(
+    info: &mut NpcInfo,
+    snapshots: &[NpcSnapshot],
+    player_pos: Position,
+) -> Frame {
     let mut bits = BytesMut::new();
     let mut masks = BytesMut::new();
     let mut bp = bits.bits_start();

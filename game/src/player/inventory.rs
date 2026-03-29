@@ -1,5 +1,7 @@
+use crate::player::PlayerSnapshot;
 use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContext};
 use crate::provider;
+use crate::world::World;
 use macros::player_system;
 use net::{
     ItemContainerEntry, ItemContainerId, Outbox, OutboxExt, UpdateItemContainer, if_events,
@@ -111,6 +113,10 @@ impl Inventory {
         self.flush().await;
     }
 
+    pub fn free_slots(&self) -> usize {
+        self.slots.iter().filter(|s| s.is_none()).count()
+    }
+
     pub async fn clear_slot(&mut self, index: usize) {
         self.slots[index] = None;
         self.flush().await;
@@ -173,7 +179,7 @@ impl PlayerSystem for Inventory {
 
     fn create(ctx: &PlayerInitContext) -> Self {
         let mut slots = [None; SIZE];
-        for (i, slot) in ctx.data.inventory.iter().enumerate().take(SIZE) {
+        for (i, slot) in ctx.player_data.inventory.iter().enumerate().take(SIZE) {
             slots[i] = *slot;
         }
         Self::from_slots(ctx.outbox.clone(), slots)
@@ -189,7 +195,7 @@ impl PlayerSystem for Inventory {
         })
     }
 
-    fn tick_context(_: &std::sync::Arc<crate::world::World>, _: &crate::player::PlayerSnapshot) {}
+    fn tick_context(_: &std::sync::Arc<World>, _: &PlayerSnapshot) {}
 
     fn persist(&self, data: &mut PlayerData) {
         data.inventory = self.slots.to_vec();

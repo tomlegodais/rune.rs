@@ -95,10 +95,15 @@ impl MaskBlock {
         mask.encode(&mut buf);
 
         self.flags = self.flags | flag;
-        self.masks.push(EncodedMask {
-            flag,
-            data: buf.to_vec(),
-        });
+        self.masks = self
+            .masks
+            .drain(..)
+            .filter(|m| m.flag != flag)
+            .chain(std::iter::once(EncodedMask {
+                flag,
+                data: buf.to_vec(),
+            }))
+            .collect();
     }
 
     pub fn extend(&mut self, masks: &[&dyn Mask]) {

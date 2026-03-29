@@ -78,6 +78,7 @@ pub fn resolve(player: &mut Player, world: &World) {
 
         let shared = s.shared.clone();
         crate::player::action::set_action_context(player as *mut Player, shared);
+
         let poll_result = crate::player::action::poll_action(s);
         crate::player::action::clear_action_context();
 

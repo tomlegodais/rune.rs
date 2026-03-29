@@ -46,7 +46,7 @@ pub fn on_object_click(attr: TokenStream, item: TokenStream) -> TokenStream {
         quote! { crate::handler::ContentTarget::Object(#id, #option) },
         quote! { let crate::player::InteractionTarget::Object { id: __id, x: __x, y: __y } = target else { unreachable!() }; },
         quote! {
-            let #player = crate::player::active_player();
+            let mut #player = crate::player::PlayerRef;
             let #id_p = __id;
             let #x_p = __x;
             let #y_p = __y;

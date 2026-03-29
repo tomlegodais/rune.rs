@@ -1,6 +1,6 @@
 use crate::player::PlayerSnapshot;
 use crate::player::system::{PlayerInitContext, PlayerSystem};
-use crate::world::{Position, World};
+use crate::world::{GroundItemStore, Position, World};
 use macros::player_system;
 use net::{ObjAdd, ObjDel, Outbox, OutboxExt, ZoneFrame};
 use std::collections::HashSet;
@@ -34,7 +34,7 @@ impl GroundItemManager {
         }
     }
 
-    pub async fn on_viewport_rebuild(&mut self, ground_items: &crate::world::GroundItemStore) {
+    pub async fn on_viewport_rebuild(&mut self, ground_items: &GroundItemStore) {
         let ids: Vec<u32> = self.known.drain().collect();
         for id in ids {
             if let Some(item) = ground_items.get(id) {

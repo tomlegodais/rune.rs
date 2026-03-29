@@ -1,16 +1,15 @@
-use filesystem::Cache;
+use crate::provider::ProviderContext;
 use filesystem::definition::NpcDefinition;
 use filesystem::loader::NpcLoader;
 use macros::data_provider;
 use once_cell::sync::OnceCell;
-use std::sync::Arc;
 
 static INSTANCE: OnceCell<NpcLoader> = OnceCell::new();
 
 #[data_provider]
-pub fn load_npc_definitions(cache: &Arc<Cache>) -> anyhow::Result<()> {
+async fn load_npc_definitions(ctx: &ProviderContext) -> anyhow::Result<()> {
     Ok(INSTANCE
-        .get_or_try_init(|| NpcLoader::load(cache))
+        .get_or_try_init(|| NpcLoader::load(&ctx.cache))
         .map(drop)?)
 }
 

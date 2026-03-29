@@ -1,8 +1,10 @@
 use crate::entity::Entity;
 use crate::entity::MoveStep;
 use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContext};
-use crate::player::{FaceDirectionMask, MoveTypeMask, PlayerInfo, TempMoveTypeMask, VarpManager};
-use crate::world::{Direction, Position, Teleport, running_direction};
+use crate::player::{
+    FaceDirectionMask, MoveTypeMask, PlayerInfo, PlayerSnapshot, TempMoveTypeMask, VarpManager,
+};
+use crate::world::{Direction, Position, Teleport, World, running_direction};
 use macros::player_system;
 use net::{MinimapFlag, Outbox, OutboxExt, RunEnergy};
 use persistence::player::PlayerData;
@@ -179,7 +181,7 @@ impl PlayerSystem for Movement {
     type TickContext = ();
 
     fn create(ctx: &PlayerInitContext) -> Self {
-        Self::new(ctx.outbox.clone(), ctx.data.running, ctx.data.run_energy)
+        Self::new(ctx.outbox.clone(), ctx.player_data.running, ctx.player_data.run_energy)
     }
 
     fn dependencies() -> Vec<TypeId> {
@@ -198,7 +200,7 @@ impl PlayerSystem for Movement {
         })
     }
 
-    fn tick_context(_: &std::sync::Arc<crate::world::World>, _: &crate::player::PlayerSnapshot) {}
+    fn tick_context(_: &std::sync::Arc<World>, _: &PlayerSnapshot) {}
 
     fn persist(&self, data: &mut PlayerData) {
         data.running = self.running;

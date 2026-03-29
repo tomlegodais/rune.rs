@@ -1,6 +1,7 @@
 pub mod account;
 mod config;
 mod database;
+pub mod item;
 mod migration;
 pub mod player;
 

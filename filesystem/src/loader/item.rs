@@ -52,6 +52,10 @@ impl ItemLoader {
         self.definitions.get(&id)
     }
 
+    pub fn get_mut(&mut self, id: u32) -> Option<&mut ItemDefinition> {
+        self.definitions.get_mut(&id)
+    }
+
     pub fn len(&self) -> usize {
         self.definitions.len()
     }

@@ -1,20 +1,23 @@
-use filesystem::{Cache, FileId, IndexId};
+use crate::provider::ProviderContext;
+use filesystem::{FileId, IndexId};
 use macros::data_provider;
 use once_cell::sync::OnceCell;
-use std::sync::Arc;
 use util::HuffmanTable;
 
 static INSTANCE: OnceCell<HuffmanTable> = OnceCell::new();
 
 #[data_provider]
-pub fn load_huffman(cache: &Arc<Cache>) -> anyhow::Result<()> {
-    let archive = cache
+async fn load_huffman(ctx: &ProviderContext) -> anyhow::Result<()> {
+    let archive = ctx
+        .cache
         .find_archive(IndexId::HUFFMAN, "huffman")?
         .ok_or_else(|| anyhow::anyhow!("huffman archive not found"))?;
 
-    let table = cache.read_file(IndexId::HUFFMAN, archive, FileId::new(0))?;
-    INSTANCE.get_or_init(|| HuffmanTable::build(&table));
+    let table = ctx
+        .cache
+        .read_file(IndexId::HUFFMAN, archive, FileId::new(0))?;
 
+    INSTANCE.get_or_init(|| HuffmanTable::build(&table));
     Ok(())
 }
 

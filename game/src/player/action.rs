@@ -48,6 +48,21 @@ pub fn active_player<'a>() -> &'a mut Player {
     unsafe { &mut *ptr }
 }
 
+pub struct PlayerRef;
+
+impl std::ops::Deref for PlayerRef {
+    type Target = Player;
+    fn deref(&self) -> &Player {
+        active_player()
+    }
+}
+
+impl std::ops::DerefMut for PlayerRef {
+    fn deref_mut(&mut self) -> &mut Player {
+        active_player()
+    }
+}
+
 pub fn active_shared() -> Arc<ActionShared> {
     ACTIVE_SHARED.with(|s| {
         s.borrow()

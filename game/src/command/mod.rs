@@ -31,7 +31,7 @@ static COMMANDS: std::sync::LazyLock<HashMap<&'static str, CommandFn>> =
         map
     });
 
-pub async fn dispatch(player: &mut Player, client_sent: bool, name: &str, args: &str) {
+pub async fn dispatch_command(player: &mut Player, client_sent: bool, name: &str, args: &str) {
     match COMMANDS.get(name) {
         Some(handler) => handler(player, client_sent, args).await,
         None => send_message!(player, "Unknown command: {}", name),

@@ -1,16 +1,15 @@
-use filesystem::Cache;
+use crate::provider::ProviderContext;
 use filesystem::definition::VarbitDefinition;
 use filesystem::loader::VarbitLoader;
 use macros::data_provider;
 use once_cell::sync::OnceCell;
-use std::sync::Arc;
 
 static INSTANCE: OnceCell<VarbitLoader> = OnceCell::new();
 
 #[data_provider]
-pub fn load_varbit_definitions(cache: &Arc<Cache>) -> anyhow::Result<()> {
+async fn load_varbit_definitions(ctx: &ProviderContext) -> anyhow::Result<()> {
     Ok(INSTANCE
-        .get_or_try_init(|| VarbitLoader::load(cache))
+        .get_or_try_init(|| VarbitLoader::load(&ctx.cache))
         .map(drop)?)
 }
 

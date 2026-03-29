@@ -1,6 +1,6 @@
 use crate::entity::Entity;
 use crate::provider;
-use crate::world::{Direction, Position};
+use crate::world::{Direction, Position, find_path, find_path_adjacent_rect};
 
 impl Entity {
     pub fn step(&mut self) -> Option<Direction> {
@@ -34,10 +34,8 @@ impl Entity {
 
     pub fn walk_to(&mut self, dest: Position, target: Option<(i32, i32, u8)>) {
         self.walk_queue = match target {
-            Some((w, h, access)) => {
-                crate::world::find_path_adjacent_rect(self.position, dest, w, h, access)
-            }
-            None => crate::world::find_path(self.position, dest),
+            Some((w, h, access)) => find_path_adjacent_rect(self.position, dest, w, h, access),
+            None => find_path(self.position, dest),
         };
     }
 

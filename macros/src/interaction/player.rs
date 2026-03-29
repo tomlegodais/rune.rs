@@ -31,7 +31,7 @@ pub fn on_player_click(attr: TokenStream, item: TokenStream) -> TokenStream {
         quote! { crate::handler::ContentTarget::Player(#option) },
         quote! { let crate::player::InteractionTarget::Player { index: __player_index } = target else { unreachable!() }; },
         quote! {
-            let #player = crate::player::active_player();
+            let mut #player = crate::player::PlayerRef;
             let #target_p = __player_index;
         },
         base,

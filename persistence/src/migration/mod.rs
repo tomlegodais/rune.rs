@@ -6,6 +6,8 @@ mod m003_create_players;
 mod m004_add_running;
 mod m005_add_run_energy;
 mod m006_create_inventory;
+mod m007_create_item_configs;
+mod m008_create_player_equipment;
 
 pub struct Migrator;
 
@@ -19,6 +21,8 @@ impl MigratorTrait for Migrator {
             Box::new(m004_add_running::Migration),
             Box::new(m005_add_run_energy::Migration),
             Box::new(m006_create_inventory::Migration),
+            Box::new(m007_create_item_configs::Migration),
+            Box::new(m008_create_player_equipment::Migration),
         ]
     }
 }

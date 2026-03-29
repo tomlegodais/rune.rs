@@ -1,4 +1,5 @@
 use super::MessageHandler;
+use crate::command::dispatch_command;
 use crate::player::Player;
 use macros::message_handler;
 use net::ClientCommand;
@@ -9,5 +10,5 @@ async fn handle(player: &mut Player, msg: ClientCommand) {
     let name = parts.next().unwrap_or("");
     let args = parts.next().unwrap_or("");
 
-    crate::command::dispatch(player, msg.client_sent, name, args).await;
+    dispatch_command(player, msg.client_sent, name, args).await;
 }

@@ -1,4 +1,6 @@
+use crate::player::PlayerSnapshot;
 use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContext};
+use crate::world::World;
 use macros::player_system;
 use net::{Outbox, OutboxExt, UpdateSkill};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
@@ -119,7 +121,7 @@ impl PlayerSystem for SkillManager {
     type TickContext = ();
 
     fn create(ctx: &PlayerInitContext) -> Self {
-        Self::from_data(ctx.outbox.clone(), ctx.data.levels, ctx.data.xp)
+        Self::from_data(ctx.outbox.clone(), ctx.player_data.levels, ctx.player_data.xp)
     }
 
     fn on_login<'a>(
@@ -129,7 +131,7 @@ impl PlayerSystem for SkillManager {
         Box::pin(self.flush())
     }
 
-    fn tick_context(_: &std::sync::Arc<crate::world::World>, _: &crate::player::PlayerSnapshot) {}
+    fn tick_context(_: &std::sync::Arc<World>, _: &PlayerSnapshot) {}
 
     fn persist(&self, data: &mut PlayerData) {
         data.levels = self.levels();

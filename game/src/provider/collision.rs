@@ -1,5 +1,5 @@
+use crate::provider::ProviderContext;
 use crate::world::CollisionMap;
-use filesystem::Cache;
 use macros::data_provider;
 use once_cell::sync::OnceCell;
 use std::sync::Arc;
@@ -7,9 +7,9 @@ use std::sync::Arc;
 static INSTANCE: OnceCell<CollisionMap> = OnceCell::new();
 
 #[data_provider(priority = 10)]
-fn load_collision(cache: &Arc<Cache>) -> anyhow::Result<()> {
+async fn load_collision(ctx: &ProviderContext) -> anyhow::Result<()> {
     INSTANCE
-        .get_or_try_init(|| CollisionMap::new(Arc::clone(cache)))
+        .get_or_try_init(|| CollisionMap::new(Arc::clone(&ctx.cache)))
         .map(drop)
 }
 

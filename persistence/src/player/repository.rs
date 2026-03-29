@@ -1,3 +1,4 @@
+use super::entity::equipment::{self, EquipmentEntry};
 use super::entity::inventory::InventoryEntry;
 use super::entity::skills::SkillEntry;
 use super::entity::{appearance, inventory, player, skills};
@@ -20,6 +21,7 @@ pub struct PlayerData {
     pub levels: [u8; 24],
     pub xp: [u32; 24],
     pub inventory: Vec<Option<(u16, u32)>>,
+    pub equipment: Vec<Option<(u16, u32)>>,
 }
 
 #[async_trait]
@@ -42,6 +44,7 @@ impl PlayerData {
         appearance: appearance::Model,
         skill_model: skills::Model,
         inventory_model: inventory::Model,
+        equipment_model: equipment::Model,
     ) -> Result<Self, DbErr> {
         let skill_entries: Vec<SkillEntry> =
             serde_json::from_value(skill_model.skills).map_err(|e| DbErr::Type(e.to_string()))?;
@@ -77,6 +80,14 @@ impl PlayerData {
             .map(|e| e.map(|e| (e.item_id, e.amount)))
             .collect();
 
+        let equip_entries: Vec<Option<EquipmentEntry>> =
+            serde_json::from_value(equipment_model.items)
+                .map_err(|e| DbErr::Type(e.to_string()))?;
+        let equipment = equip_entries
+            .into_iter()
+            .map(|e| e.map(|e| (e.item_id, e.amount)))
+            .collect();
+
         Ok(PlayerData {
             player_id: player.id,
             x: player.x,
@@ -90,6 +101,7 @@ impl PlayerData {
             levels,
             xp,
             inventory,
+            equipment,
         })
     }
 }
@@ -120,7 +132,12 @@ impl PlayerRepository for PgPlayerRepository {
             .await?
             .ok_or_else(|| DbErr::RecordNotFound("player_inventory".to_string()))?;
 
-        PlayerData::from_models(player, appearance, skills, inv).map(Some)
+        let equip = equipment::Entity::find_by_id(player.id)
+            .one(&self.db)
+            .await?
+            .ok_or_else(|| DbErr::RecordNotFound("player_equipment".to_string()))?;
+
+        PlayerData::from_models(player, appearance, skills, inv, equip).map(Some)
     }
 
     async fn create_default(&self, account_id: i64) -> Result<PlayerData, DbErr> {
@@ -152,7 +169,14 @@ impl PlayerRepository for PgPlayerRepository {
         .insert(&self.db)
         .await?;
 
-        PlayerData::from_models(player, appearance, skills, inv)
+        let equip = equipment::ActiveModel {
+            player_id: Set(player.id),
+            ..Default::default()
+        }
+        .insert(&self.db)
+        .await?;
+
+        PlayerData::from_models(player, appearance, skills, inv, equip)
     }
 
     async fn save(&self, data: &PlayerData) -> Result<(), DbErr> {
@@ -210,6 +234,20 @@ impl PlayerRepository for PgPlayerRepository {
         inventory::Entity::update_many()
             .filter(inventory::Column::PlayerId.eq(data.player_id))
             .col_expr(inventory::Column::Items, Expr::value(inv_json))
+            .exec(&self.db)
+            .await?;
+
+        let equip_entries: Vec<Option<EquipmentEntry>> = data
+            .equipment
+            .iter()
+            .map(|slot| slot.map(|(item_id, amount)| EquipmentEntry { item_id, amount }))
+            .collect();
+        let equip_json =
+            serde_json::to_value(&equip_entries).map_err(|e| DbErr::Type(e.to_string()))?;
+
+        equipment::Entity::update_many()
+            .filter(equipment::Column::PlayerId.eq(data.player_id))
+            .col_expr(equipment::Column::Items, Expr::value(equip_json))
             .exec(&self.db)
             .await?;
 

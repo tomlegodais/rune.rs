@@ -1,5 +1,6 @@
 use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContext};
-use crate::player::ui;
+use crate::player::{PlayerSnapshot, ui};
+use crate::world::World;
 use macros::player_system;
 use net::{IfCloseSub, IfOpenSub, IfOpenTop, Outbox, OutboxExt};
 use std::collections::HashMap;
@@ -213,5 +214,5 @@ impl PlayerSystem for InterfaceManager {
         })
     }
 
-    fn tick_context(_: &std::sync::Arc<crate::world::World>, _: &crate::player::PlayerSnapshot) {}
+    fn tick_context(_: &std::sync::Arc<World>, _: &PlayerSnapshot) {}
 }

@@ -12,8 +12,9 @@ use std::sync::Arc;
 pub struct PlayerInitContext {
     pub index: usize,
     pub outbox: Outbox,
-    pub data: PlayerData,
+    pub player_data: PlayerData,
     pub display_mode: u8,
+    pub display_name: String,
 }
 
 pub trait PlayerSystem: Any + Send + Sync + 'static {
@@ -200,7 +201,7 @@ impl SystemStore {
         }
     }
 
-    pub async fn on_login(&mut self) {
+    pub async fn on_login(&mut self, player_info: &mut super::PlayerInfo) {
         for i in 0..self.login_order.len() {
             let type_id = self.login_order[i];
             let entry = self.systems.get_mut(&type_id).unwrap();
@@ -210,6 +211,7 @@ impl SystemStore {
 
             let mut ctx = SystemContext {
                 store: &self.systems,
+                player_info,
             };
 
             on_login(boxed.as_mut(), &mut ctx).await;
@@ -279,6 +281,7 @@ impl<T: PlayerSystem> Drop for SystemGuard<'_, T> {
 
 pub struct SystemContext<'a> {
     store: &'a HashMap<TypeId, SystemEntry>,
+    pub player_info: &'a mut super::PlayerInfo,
 }
 
 impl<'a> SystemContext<'a> {
