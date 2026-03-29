@@ -1,11 +1,16 @@
-use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContext};
-use crate::player::{PlayerSnapshot, ui};
-use crate::world::World;
+use std::{collections::HashMap, future::Future, pin::Pin};
+
 use macros::player_system;
 use net::{IfCloseSub, IfOpenSub, IfOpenTop, Outbox, OutboxExt};
-use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
+
+use crate::{
+    player::{
+        PlayerSnapshot,
+        system::{PlayerInitContext, PlayerSystem, SystemContext},
+        ui,
+    },
+    world::World,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum DisplayMode {
@@ -202,10 +207,7 @@ impl PlayerSystem for InterfaceManager {
         Self::new(ctx.outbox.clone(), ctx.display_mode)
     }
 
-    fn on_login<'a>(
-        &'a mut self,
-        _ctx: &'a mut SystemContext<'_>,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+    fn on_login<'a>(&'a mut self, _ctx: &'a mut SystemContext<'_>) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(async {
             self.open_top(self.top).await;
             self.open_subs(ui::tabs::interfaces()).await;

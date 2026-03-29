@@ -1,16 +1,17 @@
-use super::entity::{self, Column, Entity as AccountEntity};
-use super::{Account, Rights};
 use async_trait::async_trait;
-use sea_orm::prelude::Expr;
-use sea_orm::*;
+use sea_orm::{prelude::Expr, *};
 use shaku::{Component, Interface};
+
+use super::{
+    Account, Rights,
+    entity::{self, Column, Entity as AccountEntity},
+};
 
 impl TryFrom<entity::Model> for Account {
     type Error = DbErr;
 
     fn try_from(model: entity::Model) -> Result<Self, Self::Error> {
-        let rights =
-            Rights::try_from(model.rights as u8).map_err(|e| DbErr::Type(e.to_string()))?;
+        let rights = Rights::try_from(model.rights as u8).map_err(|e| DbErr::Type(e.to_string()))?;
 
         Ok(Account {
             id: model.id,

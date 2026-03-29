@@ -1,9 +1,12 @@
-use crate::codec::WorldListCodec;
-use crate::error::SessionError;
-use crate::message::{Country, CountryFlag, World, WorldFlag, WorldListOutbound};
 use futures_util::SinkExt;
 use tokio::net::TcpStream;
 use tokio_util::codec::Framed;
+
+use crate::{
+    codec::WorldListCodec,
+    error::SessionError,
+    message::{Country, CountryFlag, World, WorldFlag, WorldListOutbound},
+};
 
 pub struct WorldListHandler;
 

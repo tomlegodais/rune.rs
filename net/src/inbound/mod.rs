@@ -9,11 +9,7 @@ mod object;
 mod player;
 mod walk;
 
-use crate::Frame;
 use std::any::Any;
-use tokio::sync::mpsc;
-use tokio_util::bytes::Bytes;
-use tracing::debug;
 
 pub use button::ButtonClick;
 pub use chat::PublicChat;
@@ -23,7 +19,12 @@ pub use npc::NpcClick;
 pub use objclick::ObjClick;
 pub use object::ObjectClick;
 pub use player::PlayerClick;
+use tokio::sync::mpsc;
+use tokio_util::bytes::Bytes;
+use tracing::debug;
 pub use walk::WalkRequest;
+
+use crate::Frame;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ClickOption {

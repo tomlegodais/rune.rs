@@ -1,6 +1,8 @@
-use crate::entity::Entity;
-use crate::provider;
-use crate::world::{Direction, Position, find_path, find_path_adjacent_rect};
+use crate::{
+    entity::Entity,
+    provider,
+    world::{Direction, Position, find_path, find_path_adjacent_rect},
+};
 
 impl Entity {
     pub fn step(&mut self) -> Option<Direction> {

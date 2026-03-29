@@ -20,10 +20,14 @@ mod ui;
 mod varp;
 mod viewport;
 
+use std::{
+    ops::{Deref, DerefMut},
+    sync::Arc,
+};
+
 pub(crate) use action::{
-    ActionShared, ActionState, PlayerRef, SkillActionBuilder, active_player, active_shared,
-    clear_action_context, delay, is_action_locked, npc_force_talk, poll_action, send_message,
-    set_action_context,
+    ActionShared, ActionState, PlayerRef, SkillActionBuilder, active_player, active_shared, clear_action_context,
+    delay, is_action_locked, npc_force_talk, poll_action, send_message, set_action_context,
 };
 pub(crate) use appearance::{Appearance, DEFAULT_RENDER_EMOTE};
 pub(crate) use equipment::{EquipSlots, EquipmentSlot, SIZE as EQUIPMENT_SIZE};
@@ -33,24 +37,25 @@ pub(crate) use interaction::{InteractionTarget, resolve as resolve_interaction};
 pub(crate) use interface::SubInterface;
 pub(crate) use inventory::SIZE as INVENTORY_SIZE;
 pub(crate) use mask::{
-    AnimationMask, ChatMask, FaceDirectionMask, MoveTypeMask, SpotAnim1Mask, SpotAnim2Mask,
-    TempMoveTypeMask,
+    AnimationMask, ChatMask, FaceDirectionMask, MoveTypeMask, SpotAnim1Mask, SpotAnim2Mask, TempMoveTypeMask,
 };
 pub(crate) use movement::{Movement, MovementContext};
+use net::{ChatMessage, Inbox, Logout, Outbox, OutboxExt};
+use persistence::{
+    account::{Account, Rights},
+    player::PlayerData,
+};
 pub(crate) use skill::Skill;
+use system::{PlayerInitContext, SystemStore};
+use tracing::info;
 pub(crate) use varp::VarpManager;
 pub(crate) use viewport::Viewport;
 
-use crate::entity::{Anim, AnimBuilder, Entity, MaskBlock, MoveStep, SpotAnim, SpotAnimBuilder};
-use crate::npc::{NpcInfo, NpcSnapshot};
-use crate::world::{Direction, Position, Teleport, World};
-use net::{ChatMessage, Inbox, Logout, Outbox, OutboxExt};
-use persistence::account::{Account, Rights};
-use persistence::player::PlayerData;
-use std::ops::{Deref, DerefMut};
-use std::sync::Arc;
-use system::{PlayerInitContext, SystemStore};
-use tracing::info;
+use crate::{
+    entity::{Anim, AnimBuilder, Entity, MaskBlock, MoveStep, SpotAnim, SpotAnimBuilder},
+    npc::{NpcInfo, NpcSnapshot},
+    world::{Direction, Position, Teleport, World},
+};
 
 #[derive(Clone)]
 pub struct PlayerSnapshot {
@@ -96,12 +101,7 @@ impl Player {
         let position = Position::new(player_data.x, player_data.y, player_data.plane);
         let viewport = Viewport::new(outbox.clone(), position, 0);
         let npc_info = NpcInfo::new(outbox.clone());
-        let player_info = PlayerInfo::new(
-            outbox.clone(),
-            index,
-            snapshots,
-            &[&MoveTypeMask(player_data.running)],
-        );
+        let player_info = PlayerInfo::new(outbox.clone(), index, snapshots, &[&MoveTypeMask(player_data.running)]);
 
         let systems = SystemStore::from_init(&PlayerInitContext {
             index,
@@ -173,10 +173,7 @@ impl Player {
         self.systems.on_login(&mut self.player_info).await;
         self.send_message("Welcome to RuneScape.").await;
 
-        info!(
-            "Player (index={}, username={}) logged in",
-            self.index, self.username
-        );
+        info!("Player (index={}, username={}) logged in", self.index, self.username);
     }
 
     pub async fn tick_systems(&mut self, world: &Arc<World>) {
@@ -194,21 +191,17 @@ impl Player {
             .try_rebuild(self.position, self.index, &self.player_info)
             .await
         {
-            self.ground_item_mut()
-                .on_viewport_rebuild(&world.ground_items)
-                .await;
+            self.ground_item_mut().on_viewport_rebuild(&world.ground_items).await;
         }
 
         let player_pos = self.position;
         let viewport = &self.viewport;
 
-        self.player_info.sync(player_snapshots, |pos| {
-            viewport.is_within_view(player_pos, pos)
-        });
+        self.player_info
+            .sync(player_snapshots, |pos| viewport.is_within_view(player_pos, pos));
 
-        self.npc_info.sync(npc_snapshots, |pos| {
-            viewport.is_within_view(player_pos, pos)
-        });
+        self.npc_info
+            .sync(npc_snapshots, |pos| viewport.is_within_view(player_pos, pos));
     }
 
     pub async fn send_message(&mut self, text: &str) {
@@ -235,12 +228,7 @@ impl Player {
 
     pub fn spot_anim(&mut self, id: u16) -> SpotAnimBuilder<impl FnOnce(SpotAnim) + '_> {
         SpotAnimBuilder::new(id, |sa| {
-            if self
-                .player_info
-                .self_state()
-                .masks
-                .has(mask::PlayerMask::SPOT_ANIM_1)
-            {
+            if self.player_info.self_state().masks.has(mask::PlayerMask::SPOT_ANIM_1) {
                 self.player_info.add_mask(SpotAnim2Mask(sa));
             } else {
                 self.player_info.add_mask(SpotAnim1Mask(sa));

@@ -1,5 +1,6 @@
-use crate::{Encodable, Frame, Prefix};
 use tokio_util::bytes::BytesMut;
+
+use crate::{Encodable, Frame, Prefix};
 
 pub struct Logout;
 

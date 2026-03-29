@@ -1,6 +1,7 @@
-use super::{InboundDecoder, IncomingMessage};
 use macros::message_decoder;
 use tokio_util::bytes::{Buf, Bytes};
+
+use super::{InboundDecoder, IncomingMessage};
 
 pub struct WalkRequest {
     pub x: u16,

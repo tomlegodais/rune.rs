@@ -1,6 +1,8 @@
-use crate::id::{ArchiveId, FileId, IndexId};
 use std::path::PathBuf;
+
 use thiserror::Error;
+
+use crate::id::{ArchiveId, FileId, IndexId};
 
 #[derive(Debug, Error)]
 pub enum CacheError {

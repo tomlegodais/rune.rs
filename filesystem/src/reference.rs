@@ -1,8 +1,12 @@
-use crate::error::CacheResult;
-use crate::id::{ArchiveId, FileId};
 use std::collections::BTreeMap;
+
 use tokio_util::bytes::{Buf, Bytes};
 use util::BufExt;
+
+use crate::{
+    error::CacheResult,
+    id::{ArchiveId, FileId},
+};
 
 #[derive(Debug, Clone)]
 pub struct ReferenceTable {
@@ -33,30 +37,18 @@ impl ReferenceTable {
     pub fn parse(data: &[u8]) -> CacheResult<Self> {
         let mut buffer = Bytes::copy_from_slice(data);
         let format = buffer.get_u8();
-        let version = if format >= 6 {
-            Some(buffer.get_u32())
-        } else {
-            None
-        };
+        let version = if format >= 6 { Some(buffer.get_u32()) } else { None };
 
         let flags = buffer.get_u8();
         let has_names = flags & Self::FLAG_NAMES != 0;
         let _has_whirlpool = flags & Self::FLAG_WHIRLPOOL != 0;
         let _has_sizes = flags & Self::FLAG_SIZES != 0;
-        let archive_count = if format >= 7 {
-            buffer.get_smart_u32()
-        } else {
-            buffer.get_u16() as u32
-        };
+        let archive_count = if format >= 7 { buffer.get_smart_u32() } else { buffer.get_u16() as u32 };
 
         let mut archive_ids = Vec::with_capacity(archive_count as usize);
         let mut accumulator: u32 = 0;
         for _ in 0..archive_count {
-            let delta = if format >= 7 {
-                buffer.get_smart_u32()
-            } else {
-                buffer.get_u16() as u32
-            };
+            let delta = if format >= 7 { buffer.get_smart_u32() } else { buffer.get_u16() as u32 };
             accumulator += delta;
             archive_ids.push(ArchiveId::new(accumulator));
         }
@@ -110,11 +102,7 @@ impl ReferenceTable {
 
         let mut file_counts: Vec<u32> = Vec::with_capacity(archive_ids.len());
         for _ in &archive_ids {
-            let count = if format >= 7 {
-                buffer.get_smart_u32()
-            } else {
-                buffer.get_u16() as u32
-            };
+            let count = if format >= 7 { buffer.get_smart_u32() } else { buffer.get_u16() as u32 };
             file_counts.push(count);
         }
 
@@ -124,11 +112,7 @@ impl ReferenceTable {
 
             if let Some(archive) = archives.get_mut(&archive_id) {
                 for _ in 0..file_count {
-                    let delta = if format >= 7 {
-                        buffer.get_smart_u32()
-                    } else {
-                        buffer.get_u16() as u32
-                    };
+                    let delta = if format >= 7 { buffer.get_smart_u32() } else { buffer.get_u16() as u32 };
                     file_accumulator += delta;
                     let file_id = FileId::new(file_accumulator);
                     archive.files.insert(file_id, FileEntry { name_hash: None });

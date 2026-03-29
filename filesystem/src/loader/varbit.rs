@@ -1,6 +1,6 @@
-use crate::definition::VarbitDefinition;
-use crate::{Cache, CacheResult, IndexId};
 use std::collections::HashMap;
+
+use crate::{Cache, CacheResult, IndexId, definition::VarbitDefinition};
 
 pub struct VarbitLoader {
     definitions: HashMap<u32, VarbitDefinition>,

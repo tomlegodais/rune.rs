@@ -1,10 +1,8 @@
-use crate::codec::GameCodec;
-use crate::crypto::StreamCipher;
-use crate::{Frame, IncomingMessage, SessionError};
 use futures_util::{SinkExt, StreamExt};
-use tokio::net::TcpStream;
-use tokio::sync::mpsc;
+use tokio::{net::TcpStream, sync::mpsc};
 use tokio_util::codec::Framed;
+
+use crate::{Frame, IncomingMessage, SessionError, codec::GameCodec, crypto::StreamCipher};
 
 pub struct GameHandler;
 

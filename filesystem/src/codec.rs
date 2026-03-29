@@ -1,7 +1,9 @@
-use crate::error::{CacheError, CacheResult};
+use std::io::Read;
+
 use bzip2::read::BzDecoder;
 use flate2::read::GzDecoder;
-use std::io::Read;
+
+use crate::error::{CacheError, CacheResult};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -22,11 +24,7 @@ impl Compression {
     }
 }
 
-pub fn decompress(
-    compression: Compression,
-    data: &[u8],
-    expected_size: usize,
-) -> CacheResult<Vec<u8>> {
+pub fn decompress(compression: Compression, data: &[u8], expected_size: usize) -> CacheResult<Vec<u8>> {
     match compression {
         Compression::None => Ok(data.to_vec()),
         Compression::Bzip2 => {
@@ -62,9 +60,7 @@ pub struct ContainerHeader {
 impl ContainerHeader {
     pub fn parse(data: &[u8]) -> CacheResult<(Self, usize)> {
         if data.len() < 5 {
-            return Err(CacheError::InvalidContainer(
-                "container too small for header".into(),
-            ));
+            return Err(CacheError::InvalidContainer("container too small for header".into()));
         }
 
         let compression = Compression::from_byte(data[0])?;

@@ -1,5 +1,7 @@
-use tokio_util::bytes::BytesMut;
-use tokio_util::codec::{Decoder, Encoder};
+use tokio_util::{
+    bytes::BytesMut,
+    codec::{Decoder, Encoder},
+};
 
 pub struct XorCodec<C> {
     inner: C,

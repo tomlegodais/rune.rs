@@ -1,11 +1,15 @@
-use super::entity::equipment::{self, EquipmentEntry};
-use super::entity::inventory::InventoryEntry;
-use super::entity::skills::SkillEntry;
-use super::entity::{appearance, inventory, player, skills};
 use async_trait::async_trait;
-use sea_orm::prelude::Expr;
-use sea_orm::*;
+use sea_orm::{prelude::Expr, *};
 use shaku::{Component, Interface};
+
+use super::entity::{
+    appearance,
+    equipment::{self, EquipmentEntry},
+    inventory,
+    inventory::InventoryEntry,
+    player, skills,
+    skills::SkillEntry,
+};
 
 #[derive(Clone)]
 pub struct PlayerData {
@@ -73,16 +77,14 @@ impl PlayerData {
             .map_err(|_| DbErr::Type("invalid colors array length".to_string()))?;
 
         let inv_entries: Vec<Option<InventoryEntry>> =
-            serde_json::from_value(inventory_model.items)
-                .map_err(|e| DbErr::Type(e.to_string()))?;
+            serde_json::from_value(inventory_model.items).map_err(|e| DbErr::Type(e.to_string()))?;
         let inventory = inv_entries
             .into_iter()
             .map(|e| e.map(|e| (e.item_id, e.amount)))
             .collect();
 
         let equip_entries: Vec<Option<EquipmentEntry>> =
-            serde_json::from_value(equipment_model.items)
-                .map_err(|e| DbErr::Type(e.to_string()))?;
+            serde_json::from_value(equipment_model.items).map_err(|e| DbErr::Type(e.to_string()))?;
         let equipment = equip_entries
             .into_iter()
             .map(|e| e.map(|e| (e.item_id, e.amount)))
@@ -187,8 +189,7 @@ impl PlayerRepository for PgPlayerRepository {
             .map(|(&level, &xp)| SkillEntry { level, xp })
             .collect();
 
-        let skills_json =
-            serde_json::to_value(&skill_entries).map_err(|e| DbErr::Type(e.to_string()))?;
+        let skills_json = serde_json::to_value(&skill_entries).map_err(|e| DbErr::Type(e.to_string()))?;
 
         player::Entity::update_many()
             .filter(player::Column::Id.eq(data.player_id))
@@ -196,10 +197,7 @@ impl PlayerRepository for PgPlayerRepository {
             .col_expr(player::Column::Y, Expr::value(data.y))
             .col_expr(player::Column::Plane, Expr::value(data.plane))
             .col_expr(player::Column::Running, Expr::value(data.running))
-            .col_expr(
-                player::Column::RunEnergy,
-                Expr::value(data.run_energy as i16),
-            )
+            .col_expr(player::Column::RunEnergy, Expr::value(data.run_energy as i16))
             .exec(&self.db)
             .await?;
 
@@ -228,8 +226,7 @@ impl PlayerRepository for PgPlayerRepository {
             .iter()
             .map(|slot| slot.map(|(item_id, amount)| InventoryEntry { item_id, amount }))
             .collect();
-        let inv_json =
-            serde_json::to_value(&inv_entries).map_err(|e| DbErr::Type(e.to_string()))?;
+        let inv_json = serde_json::to_value(&inv_entries).map_err(|e| DbErr::Type(e.to_string()))?;
 
         inventory::Entity::update_many()
             .filter(inventory::Column::PlayerId.eq(data.player_id))
@@ -242,8 +239,7 @@ impl PlayerRepository for PgPlayerRepository {
             .iter()
             .map(|slot| slot.map(|(item_id, amount)| EquipmentEntry { item_id, amount }))
             .collect();
-        let equip_json =
-            serde_json::to_value(&equip_entries).map_err(|e| DbErr::Type(e.to_string()))?;
+        let equip_json = serde_json::to_value(&equip_entries).map_err(|e| DbErr::Type(e.to_string()))?;
 
         equipment::Entity::update_many()
             .filter(equipment::Column::PlayerId.eq(data.player_id))

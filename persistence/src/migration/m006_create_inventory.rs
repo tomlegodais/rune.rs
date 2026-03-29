@@ -24,11 +24,7 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(PlayerInventory::Table)
                     .if_not_exists()
-                    .col(
-                        big_integer(PlayerInventory::PlayerId)
-                            .primary_key()
-                            .not_null(),
-                    )
+                    .col(big_integer(PlayerInventory::PlayerId).primary_key().not_null())
                     .col(
                         ColumnDef::new(PlayerInventory::Items)
                             .json_binary()

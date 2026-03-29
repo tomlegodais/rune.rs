@@ -1,9 +1,13 @@
-use crate::LoginService;
-use crate::error::SessionError;
-use crate::handler::{HandshakeHandler, Js5Handler, LoginHandler, WorldListHandler};
-use crate::service::CacheService;
 use std::sync::Arc;
+
 use tokio::net::TcpStream;
+
+use crate::{
+    LoginService,
+    error::SessionError,
+    handler::{HandshakeHandler, Js5Handler, LoginHandler, WorldListHandler},
+    service::CacheService,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub enum SessionPhase {
@@ -19,11 +23,7 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(
-        stream: TcpStream,
-        cache_service: Arc<CacheService>,
-        login_service: Arc<dyn LoginService>,
-    ) -> Self {
+    pub fn new(stream: TcpStream, cache_service: Arc<CacheService>, login_service: Arc<dyn LoginService>) -> Self {
         Self {
             stream,
             cache_service,
@@ -36,12 +36,8 @@ impl Session {
 
         match phase {
             SessionPhase::Js5 => Js5Handler::run(stream, self.cache_service).await,
-            SessionPhase::WorldList { full_update } => {
-                WorldListHandler::run(stream, full_update).await
-            }
-            SessionPhase::Login { hash } => {
-                LoginHandler::run(stream, hash, self.login_service).await
-            }
+            SessionPhase::WorldList { full_update } => WorldListHandler::run(stream, full_update).await,
+            SessionPhase::Login { hash } => LoginHandler::run(stream, hash, self.login_service).await,
         }
     }
 }

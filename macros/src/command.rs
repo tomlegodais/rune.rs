@@ -1,8 +1,9 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::parse::{Parse, ParseStream};
 use syn::{
-    FnArg, GenericArgument, ItemFn, LitStr, Pat, PathArguments, Token, Type, parse_macro_input,
+    FnArg, GenericArgument, ItemFn, LitStr, Pat, PathArguments, Token, Type,
+    parse::{Parse, ParseStream},
+    parse_macro_input,
 };
 
 struct CommandAttr {
@@ -23,11 +24,7 @@ impl Parse for CommandAttr {
 
 fn is_raw_args_type(ty: &Type) -> bool {
     if let Type::Path(type_path) = ty {
-        type_path
-            .path
-            .segments
-            .last()
-            .is_some_and(|s| s.ident == "RawArgs")
+        type_path.path.segments.last().is_some_and(|s| s.ident == "RawArgs")
     } else {
         false
     }
@@ -79,22 +76,16 @@ pub fn command(attr: TokenStream, item: TokenStream) -> TokenStream {
         .map(|(name, _)| name == "client_sent")
         .unwrap_or(false);
 
-    let params = if has_client_sent {
-        &all_params[1..]
-    } else {
-        &all_params[..]
-    };
+    let params = if has_client_sent { &all_params[1..] } else { &all_params[..] };
 
     let usage_parts: Vec<String> = params
         .iter()
         .filter(|(_, ty)| !is_raw_args_type(ty))
-        .map(|(name, ty)| {
-            if extract_option_inner(ty).is_some() {
-                format!("[{}]", name)
-            } else {
-                format!("<lt>{}<gt>", name)
-            }
-        })
+        .map(
+            |(name, ty)| {
+                if extract_option_inner(ty).is_some() { format!("[{}]", name) } else { format!("<lt>{}<gt>", name) }
+            },
+        )
         .collect();
 
     let usage_lit = LitStr::new(

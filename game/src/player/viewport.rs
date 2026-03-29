@@ -1,7 +1,11 @@
-use crate::player::PlayerInfo;
-use crate::world::{Position, RegionId};
-use net::{GameScene, Outbox, OutboxExt};
 use std::array;
+
+use net::{GameScene, Outbox, OutboxExt};
+
+use crate::{
+    player::PlayerInfo,
+    world::{Position, RegionId},
+};
 
 const VIEW_DISTANCES: [i32; 4] = [104, 120, 136, 168];
 
@@ -19,46 +23,29 @@ impl Viewport {
         Self {
             outbox,
             view_distance,
-            region_base: Position::from_chunks(
-                position.chunk_x() - half_chunks,
-                position.chunk_y() - half_chunks,
-            ),
+            region_base: Position::from_chunks(position.chunk_x() - half_chunks, position.chunk_y() - half_chunks),
         }
     }
 
-    pub async fn try_rebuild(
-        &mut self,
-        position: Position,
-        player_index: usize,
-        player_info: &PlayerInfo,
-    ) -> bool {
+    pub async fn try_rebuild(&mut self, position: Position, player_index: usize, player_info: &PlayerInfo) -> bool {
         let half_chunks = VIEW_DISTANCES[self.view_distance] >> 4;
         let center_cx = self.region_base.chunk_x() + half_chunks;
         let center_cy = self.region_base.chunk_y() + half_chunks;
         let threshold = ((VIEW_DISTANCES[self.view_distance] >> 3) / 2) - 1;
-        let needs = (position.chunk_x() - center_cx).abs() >= threshold
-            || (position.chunk_y() - center_cy).abs() >= threshold;
+        let needs =
+            (position.chunk_x() - center_cx).abs() >= threshold || (position.chunk_y() - center_cy).abs() >= threshold;
 
         if needs {
-            self.region_base = Position::from_chunks(
-                position.chunk_x() - half_chunks,
-                position.chunk_y() - half_chunks,
-            );
+            self.region_base =
+                Position::from_chunks(position.chunk_x() - half_chunks, position.chunk_y() - half_chunks);
 
-            self.send_game_scene(false, player_index, player_info, position)
-                .await;
+            self.send_game_scene(false, player_index, player_info, position).await;
         }
 
         needs
     }
 
-    pub async fn send_game_scene(
-        &mut self,
-        init: bool,
-        player_index: usize,
-        player_info: &PlayerInfo,
-        pos: Position,
-    ) {
+    pub async fn send_game_scene(&mut self, init: bool, player_index: usize, player_info: &PlayerInfo, pos: Position) {
         self.outbox
             .write(GameScene {
                 init,
@@ -79,11 +66,7 @@ impl Viewport {
 
     pub fn region_ids(&self) -> Vec<RegionId> {
         let map_size = VIEW_DISTANCES[self.view_distance];
-        let max = Position::new(
-            self.region_base.x + map_size,
-            self.region_base.y + map_size,
-            0,
-        );
+        let max = Position::new(self.region_base.x + map_size, self.region_base.y + map_size, 0);
         self.region_base.region_id().to(max.region_id()).collect()
     }
 }

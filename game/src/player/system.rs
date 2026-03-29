@@ -1,13 +1,17 @@
-use crate::world::World;
+use std::{
+    any::{Any, TypeId},
+    cell::UnsafeCell,
+    collections::HashMap,
+    future::Future,
+    ops::{Deref, DerefMut},
+    pin::Pin,
+    sync::Arc,
+};
+
 use net::Outbox;
 use persistence::player::PlayerData;
-use std::any::{Any, TypeId};
-use std::cell::UnsafeCell;
-use std::collections::HashMap;
-use std::future::Future;
-use std::ops::{Deref, DerefMut};
-use std::pin::Pin;
-use std::sync::Arc;
+
+use crate::world::World;
 
 pub struct PlayerInitContext {
     pub index: usize,
@@ -33,10 +37,7 @@ pub trait PlayerSystem: Any + Send + Sync + 'static {
         vec![]
     }
 
-    fn on_login<'a>(
-        &'a mut self,
-        _ctx: &'a mut SystemContext<'_>,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+    fn on_login<'a>(&'a mut self, _ctx: &'a mut SystemContext<'_>) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(async {})
     }
 
@@ -44,10 +45,7 @@ pub trait PlayerSystem: Any + Send + Sync + 'static {
     where
         Self: Sized;
 
-    fn tick<'a>(
-        &'a mut self,
-        _ctx: &'a Self::TickContext,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>>
+    fn tick<'a>(&'a mut self, _ctx: &'a Self::TickContext) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>>
     where
         Self: Sized,
     {
@@ -57,17 +55,13 @@ pub trait PlayerSystem: Any + Send + Sync + 'static {
     fn persist(&self, _data: &mut PlayerData) {}
 }
 
-type OnLoginFn = for<'a> fn(
-    &'a mut dyn Any,
-    &'a mut SystemContext<'_>,
-) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
+type OnLoginFn =
+    for<'a> fn(&'a mut dyn Any, &'a mut SystemContext<'_>) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
 
 type TickContextFn = fn(&Arc<World>, &super::PlayerSnapshot) -> Box<dyn Any + Send + Sync>;
 
-type TickFn = for<'a> fn(
-    &'a mut dyn Any,
-    &'a Box<dyn Any + Send + Sync>,
-) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
+type TickFn =
+    for<'a> fn(&'a mut dyn Any, &'a Box<dyn Any + Send + Sync>) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
 
 pub struct SystemRegistration {
     pub type_id: fn() -> TypeId,
@@ -95,11 +89,7 @@ impl SystemSlot {
     }
 
     fn get_mut(&mut self) -> &mut dyn Any {
-        self.0
-            .get_mut()
-            .as_mut()
-            .expect("system is currently taken")
-            .as_mut()
+        self.0.get_mut().as_mut().expect("system is currently taken").as_mut()
     }
 
     fn take_value(&mut self) -> Box<dyn Any + Send + Sync> {
@@ -138,8 +128,7 @@ pub struct SystemStore {
 
 impl SystemStore {
     pub fn from_init(ctx: &PlayerInitContext) -> Self {
-        let registrations: Vec<&SystemRegistration> =
-            inventory::iter::<SystemRegistration>().collect();
+        let registrations: Vec<&SystemRegistration> = inventory::iter::<SystemRegistration>().collect();
 
         let login_order = topological_sort(&registrations);
 
@@ -159,26 +148,15 @@ impl SystemStore {
             );
         }
 
-        Self {
-            systems,
-            login_order,
-        }
+        Self { systems, login_order }
     }
 
     pub fn get<T: PlayerSystem>(&self) -> &T {
-        self.entry::<T>()
-            .slot
-            .get_ref()
-            .downcast_ref::<T>()
-            .unwrap()
+        self.entry::<T>().slot.get_ref().downcast_ref::<T>().unwrap()
     }
 
     pub fn get_mut<T: PlayerSystem>(&mut self) -> &mut T {
-        self.entry_mut::<T>()
-            .slot
-            .get_mut()
-            .downcast_mut::<T>()
-            .unwrap()
+        self.entry_mut::<T>().slot.get_mut().downcast_mut::<T>().unwrap()
     }
 
     pub(crate) fn guard<T: PlayerSystem>(&self) -> SystemGuard<'_, T> {
@@ -216,11 +194,7 @@ impl SystemStore {
 
             on_login(boxed.as_mut(), &mut ctx).await;
 
-            self.systems
-                .get_mut(&type_id)
-                .unwrap()
-                .slot
-                .put_value(boxed);
+            self.systems.get_mut(&type_id).unwrap().slot.put_value(boxed);
         }
     }
 
@@ -232,11 +206,7 @@ impl SystemStore {
             let mut boxed = entry.slot.take_value();
             let tick = entry.tick;
             tick(boxed.as_mut(), &ctx).await;
-            self.systems
-                .get_mut(&type_id)
-                .unwrap()
-                .slot
-                .put_value(boxed);
+            self.systems.get_mut(&type_id).unwrap().slot.put_value(boxed);
         }
     }
 
@@ -309,10 +279,7 @@ impl<'a> SystemContext<'a> {
 
 fn topological_sort(registrations: &[&SystemRegistration]) -> Vec<TypeId> {
     let ids: Vec<TypeId> = registrations.iter().map(|r| (r.type_id)()).collect();
-    let deps: HashMap<TypeId, Vec<TypeId>> = registrations
-        .iter()
-        .map(|r| ((r.type_id)(), (r.deps)()))
-        .collect();
+    let deps: HashMap<TypeId, Vec<TypeId>> = registrations.iter().map(|r| ((r.type_id)(), (r.deps)())).collect();
 
     let mut visited = HashMap::new();
     let mut order = Vec::new();

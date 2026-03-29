@@ -1,8 +1,11 @@
-use crate::error::{CacheError, CacheResult};
-use crate::id::{ArchiveId, IndexId};
+use std::{fs::File, path::Path};
+
 use memmap2::Mmap;
-use std::fs::File;
-use std::path::Path;
+
+use crate::{
+    error::{CacheError, CacheResult},
+    id::{ArchiveId, IndexId},
+};
 
 const INDEX_ENTRY_SIZE: usize = 6;
 const SECTOR_SIZE: usize = 520;
@@ -22,20 +25,10 @@ impl DataStore {
         Ok(Self { mmap })
     }
 
-    pub fn read_archive(
-        &self,
-        index: IndexId,
-        archive: ArchiveId,
-        sector: u32,
-        size: u32,
-    ) -> CacheResult<Vec<u8>> {
+    pub fn read_archive(&self, index: IndexId, archive: ArchiveId, sector: u32, size: u32) -> CacheResult<Vec<u8>> {
         let mut data = Vec::with_capacity(size as usize);
         let extended = archive.as_u32() > EXTENDED_ARCHIVE_THRESHOLD;
-        let header_size = if extended {
-            SECTOR_HEADER_EXTENDED
-        } else {
-            SECTOR_HEADER_NORMAL
-        };
+        let header_size = if extended { SECTOR_HEADER_EXTENDED } else { SECTOR_HEADER_NORMAL };
 
         let data_per_sector = SECTOR_SIZE - header_size;
         let mut current_sector = sector;
@@ -50,12 +43,7 @@ impl DataStore {
 
             let sector_data = &self.mmap[offset..offset + SECTOR_SIZE];
             let (header_archive, header_chunk, next_sector, header_index) = if extended {
-                let archive_id = u32::from_be_bytes([
-                    sector_data[0],
-                    sector_data[1],
-                    sector_data[2],
-                    sector_data[3],
-                ]);
+                let archive_id = u32::from_be_bytes([sector_data[0], sector_data[1], sector_data[2], sector_data[3]]);
                 let chunk = u16::from_be_bytes([sector_data[4], sector_data[5]]);
                 let next = u32::from_be_bytes([0, sector_data[6], sector_data[7], sector_data[8]]);
                 let idx = sector_data[9];

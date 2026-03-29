@@ -1,7 +1,10 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::parse::{Parse, ParseStream};
-use syn::{ItemFn, LitInt, Token, parse_macro_input};
+use syn::{
+    ItemFn, LitInt, Token,
+    parse::{Parse, ParseStream},
+    parse_macro_input,
+};
 
 struct Args {
     priority: Option<u8>,
@@ -40,10 +43,7 @@ pub fn data_provider(attr: TokenStream, item: TokenStream) -> TokenStream {
     let name = &func.sig.ident;
     let name_str = name.to_string();
     let priority = args.priority.unwrap_or(0);
-    let submit_ident = syn::Ident::new(
-        &format!("__REGISTER_PROVIDER_{}", name_str.to_uppercase()),
-        name.span(),
-    );
+    let submit_ident = syn::Ident::new(&format!("__REGISTER_PROVIDER_{}", name_str.to_uppercase()), name.span());
 
     quote! {
         #func

@@ -5,23 +5,27 @@ mod position;
 mod slab;
 mod tick;
 
+use std::{
+    collections::HashMap,
+    sync::{Arc, OnceLock, Weak},
+};
+
 pub(crate) use collision::CollisionMap;
 pub(crate) use grounditem::GroundItemStore;
-pub(crate) use pathfinding::{can_interact_rect, find_path, find_path_adjacent_rect};
-pub(crate) use position::{Direction, Position, RegionId, Teleport, running_direction};
-pub(crate) use slab::WorldSlab;
-
-use crate::npc::{Npc, NpcSnapshot};
-use crate::player::{ActionState, Player, PlayerSnapshot};
-use crate::world::slab::{SlabReadGuard, SlabWriteGuard};
 use net::{Frame, IncomingMessage};
 use parking_lot::Mutex;
-use persistence::account::Account;
-use persistence::player::PlayerData;
-use std::collections::HashMap;
-use std::sync::{Arc, OnceLock, Weak};
+pub(crate) use pathfinding::{can_interact_rect, find_path, find_path_adjacent_rect};
+use persistence::{account::Account, player::PlayerData};
+pub(crate) use position::{Direction, Position, RegionId, Teleport, running_direction};
+pub(crate) use slab::WorldSlab;
 use tokio::sync::mpsc;
 use tracing::info;
+
+use crate::{
+    npc::{Npc, NpcSnapshot},
+    player::{ActionState, Player, PlayerSnapshot},
+    world::slab::{SlabReadGuard, SlabWriteGuard},
+};
 
 pub struct World {
     self_ref: OnceLock<Weak<World>>,
@@ -83,10 +87,7 @@ impl World {
         self.action_states.lock().remove(&player_index);
         let player = self.players.remove(player_index);
 
-        info!(
-            "Player (id={}, username={}) logged out",
-            player.index, player.username
-        );
+        info!("Player (id={}, username={}) logged out", player.index, player.username);
 
         Some(player.to_player_data())
     }

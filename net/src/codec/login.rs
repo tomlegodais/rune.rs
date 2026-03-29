@@ -1,9 +1,14 @@
-use crate::error::SessionError;
-use crate::message::{LoginInbound, LoginOutbound, LoginRequest, LoginResponse, LoginState};
 use rand::RngExt;
-use tokio_util::bytes::{Buf, BufMut, BytesMut};
-use tokio_util::codec::{Decoder, Encoder};
+use tokio_util::{
+    bytes::{Buf, BufMut, BytesMut},
+    codec::{Decoder, Encoder},
+};
 use util::{BufExt, EXPONENT, MODULUS, decode_base37, rsa_decrypt};
+
+use crate::{
+    error::SessionError,
+    message::{LoginInbound, LoginOutbound, LoginRequest, LoginResponse, LoginState},
+};
 
 #[derive(Debug)]
 pub struct LoginCodec {
@@ -119,8 +124,7 @@ impl Encoder<LoginOutbound> for LoginCodec {
         match item {
             LoginOutbound::SessionKey(session_key) => dst.put_i64(session_key),
             LoginOutbound::Response(LoginResponse {
-                payload: Some(payload),
-                ..
+                payload: Some(payload), ..
             }) => {
                 dst.put(payload);
             }

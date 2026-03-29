@@ -1,6 +1,6 @@
-use crate::definition::NpcDefinition;
-use crate::{Cache, CacheResult, IndexId};
 use std::collections::HashMap;
+
+use crate::{Cache, CacheResult, IndexId, definition::NpcDefinition};
 
 pub struct NpcLoader {
     definitions: HashMap<u32, NpcDefinition>,

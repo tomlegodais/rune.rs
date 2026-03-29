@@ -1,7 +1,8 @@
-use crate::{Frame, IncomingMessage};
 use num_enum::IntoPrimitive;
 use tokio::sync::mpsc;
 use tokio_util::bytes::{BufMut, Bytes, BytesMut};
+
+use crate::{Frame, IncomingMessage};
 
 #[derive(Debug, Copy, Clone, IntoPrimitive)]
 #[repr(u8)]

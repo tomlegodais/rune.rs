@@ -1,10 +1,16 @@
-use crate::provider;
-use crate::world::{Direction, Position};
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
+
 use filesystem::{ArchiveId, Cache, IndexId};
-use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
 use tokio_util::bytes::{Buf, Bytes};
 use util::BufExt;
+
+use crate::{
+    provider,
+    world::{Direction, Position},
+};
 
 const FLOOR_BLOCKED: u32 = 0x200000;
 const FLOOR_DECO_BLOCKED: u32 = 0x40000;
@@ -75,9 +81,7 @@ const DIAGONAL_SIDES: [[SideCheck; 2]; 8] = [
     [(1, 0, BLOCKED | WALL_W), (0, 1, BLOCKED | WALL_S)],
 ];
 
-const OBJECT_SLOTS: [u8; 23] = [
-    0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3,
-];
+const OBJECT_SLOTS: [u8; 23] = [0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3];
 
 #[derive(Clone, Copy)]
 pub struct GameObject {
@@ -142,11 +146,7 @@ impl CollisionMap {
         let lx = (pos.x & 63) as usize;
         let ly = (pos.y & 63) as usize;
 
-        if plane < PLANES && lx < REGION_SIZE && ly < REGION_SIZE {
-            region.flags[plane][lx][ly]
-        } else {
-            0
-        }
+        if plane < PLANES && lx < REGION_SIZE && ly < REGION_SIZE { region.flags[plane][lx][ly] } else { 0 }
     }
 
     pub fn get_object(&self, pos: Position, id: u32) -> Option<GameObject> {
@@ -172,16 +172,9 @@ impl CollisionMap {
             .map(|d| (d.size_x as i32, d.size_y as i32, d.access_block_flag))
             .unwrap_or((1, 1, 0));
 
-        let rotation = self
-            .get_object(pos, id)
-            .map(|obj| obj.rotation)
-            .unwrap_or(0);
+        let rotation = self.get_object(pos, id).map(|obj| obj.rotation).unwrap_or(0);
 
-        let (w, h) = if rotation & 1 == 1 {
-            (base_h, base_w)
-        } else {
-            (base_w, base_h)
-        };
+        let (w, h) = if rotation & 1 == 1 { (base_h, base_w) } else { (base_w, base_h) };
 
         let access = if rotation != 0 {
             ((base_access << rotation) & 0xF) | (base_access >> (4 - rotation))
@@ -266,11 +259,7 @@ fn parse_tile_settings(data: &[u8], flags: &mut TileFlags, settings: &mut TileSe
                     continue;
                 }
 
-                let ep = if settings[1][x][y] & 0x2 != 0 {
-                    plane.wrapping_sub(1)
-                } else {
-                    plane
-                };
+                let ep = if settings[1][x][y] & 0x2 != 0 { plane.wrapping_sub(1) } else { plane };
 
                 if ep < PLANES {
                     flags[ep][x][y] |= FLOOR_BLOCKED;
@@ -280,12 +269,7 @@ fn parse_tile_settings(data: &[u8], flags: &mut TileFlags, settings: &mut TileSe
     }
 }
 
-fn parse_loc_placements(
-    data: &[u8],
-    flags: &mut TileFlags,
-    settings: &TileSettings,
-    objects: &mut ObjectStore,
-) {
+fn parse_loc_placements(data: &[u8], flags: &mut TileFlags, settings: &TileSettings, objects: &mut ObjectStore) {
     let mut buf = Bytes::copy_from_slice(data);
     let mut loc_id: i32 = -1;
 
@@ -324,11 +308,7 @@ fn parse_loc_placements(
                 continue;
             }
 
-            let plane = if settings[1][local_x][local_y] & 0x2 != 0 {
-                raw_plane.wrapping_sub(1)
-            } else {
-                raw_plane
-            };
+            let plane = if settings[1][local_x][local_y] & 0x2 != 0 { raw_plane.wrapping_sub(1) } else { raw_plane };
             if plane >= PLANES {
                 continue;
             }

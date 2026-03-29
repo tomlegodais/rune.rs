@@ -1,12 +1,18 @@
-use crate::npc::FaceEntityMask as NpcFaceMask;
-use crate::player::Player;
-use crate::player::action::{ActionShared, ActionState};
-use crate::player::mask::FaceEntityMask as PlayerFaceEntityMask;
-use crate::player::system::{PlayerInitContext, PlayerSystem};
-use crate::world::{Position, World, can_interact_rect};
+use std::sync::Arc;
+
 use macros::player_system;
 use net::ClickOption;
-use std::sync::Arc;
+
+use crate::{
+    npc::FaceEntityMask as NpcFaceMask,
+    player::{
+        Player,
+        action::{ActionShared, ActionState},
+        mask::FaceEntityMask as PlayerFaceEntityMask,
+        system::{PlayerInitContext, PlayerSystem},
+    },
+    world::{Position, World, can_interact_rect},
+};
 
 pub struct Interaction {
     pending: Option<PendingInteraction>,
@@ -47,14 +53,8 @@ impl InteractionTarget {
     fn target_position(&self, world: &World, plane: i32) -> Option<Position> {
         match self {
             Self::Object { x, y, .. } => Some(Position::new(*x, *y, plane)),
-            Self::Npc { index } => world
-                .npcs
-                .contains(*index)
-                .then(|| world.npc(*index).position),
-            Self::Player { index } => world
-                .players
-                .contains(*index)
-                .then(|| world.player(*index).position),
+            Self::Npc { index } => world.npcs.contains(*index).then(|| world.npc(*index).position),
+            Self::Player { index } => world.players.contains(*index).then(|| world.player(*index).position),
             Self::Item { .. } => None,
             Self::GroundItem { position, .. } => Some(*position),
         }
@@ -66,11 +66,7 @@ pub fn resolve(player: &mut Player, world: &World) {
 
     let mut state = world.action_states.lock().remove(&player_index);
     if let Some(ref mut s) = state {
-        if s.shared
-            .delay_remaining
-            .load(std::sync::atomic::Ordering::Relaxed)
-            > 0
-        {
+        if s.shared.delay_remaining.load(std::sync::atomic::Ordering::Relaxed) > 0 {
             s.shared
                 .delay_remaining
                 .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
@@ -87,10 +83,7 @@ pub fn resolve(player: &mut Player, world: &World) {
                 clear_face_if_needed(player, world);
             }
             std::task::Poll::Pending => {
-                world
-                    .action_states
-                    .lock()
-                    .insert(player_index, state.unwrap());
+                world.action_states.lock().insert(player_index, state.unwrap());
             }
         }
         return;
@@ -119,9 +112,7 @@ pub fn resolve(player: &mut Player, world: &World) {
                 .unwrap_or(1);
             can_interact_rect(collision, player.position, target_pos, size, size, 0)
         }
-        InteractionTarget::Player { .. } => {
-            can_interact_rect(collision, player.position, target_pos, 1, 1, 0)
-        }
+        InteractionTarget::Player { .. } => can_interact_rect(collision, player.position, target_pos, 1, 1, 0),
         InteractionTarget::Item { .. } => return,
         InteractionTarget::GroundItem { .. } => player.position == target_pos,
     };
@@ -150,22 +141,14 @@ pub fn resolve(player: &mut Player, world: &World) {
         crate::player::action::clear_action_context();
 
         if poll_result.is_pending() {
-            world
-                .action_states
-                .lock()
-                .insert(player_index, action_state);
+            world.action_states.lock().insert(player_index, action_state);
         } else {
             clear_face_if_needed(player, world);
         }
     }
 }
 
-fn face_target(
-    player: &mut Player,
-    world: &World,
-    target: &InteractionTarget,
-    target_pos: Position,
-) {
+fn face_target(player: &mut Player, world: &World, target: &InteractionTarget, target_pos: Position) {
     if let Some(dir) = player.position.direction_to(target_pos) {
         player.entity.face_direction = dir;
     }
@@ -174,9 +157,7 @@ fn face_target(
         InteractionTarget::Npc { index } => {
             let npc_client_index = *index as u16;
             player.entity.face_target = Some(npc_client_index);
-            player
-                .player_info
-                .add_mask(PlayerFaceEntityMask(npc_client_index));
+            player.player_info.add_mask(PlayerFaceEntityMask(npc_client_index));
 
             let player_client_index = player.index as u16 + 32768;
             let mut npc = world.npc_mut(*index);
@@ -190,16 +171,12 @@ fn face_target(
         InteractionTarget::Player { index } => {
             let client_index = *index as u16 + 32768;
             player.entity.face_target = Some(client_index);
-            player
-                .player_info
-                .add_mask(PlayerFaceEntityMask(client_index));
+            player.player_info.add_mask(PlayerFaceEntityMask(client_index));
         }
         InteractionTarget::Object { .. } => {
             player
                 .player_info
-                .add_mask(crate::player::FaceDirectionMask(
-                    player.entity.face_direction,
-                ));
+                .add_mask(crate::player::FaceDirectionMask(player.entity.face_direction));
         }
         InteractionTarget::Item { .. } | InteractionTarget::GroundItem { .. } => {}
     }

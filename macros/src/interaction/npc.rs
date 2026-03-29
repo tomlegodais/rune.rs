@@ -19,15 +19,9 @@ pub fn on_npc_click(attr: TokenStream, item: TokenStream) -> TokenStream {
     };
 
     let params = extract_params(&func);
-    let player = params
-        .first()
-        .cloned()
-        .unwrap_or_else(|| format_ident!("_player"));
+    let player = params.first().cloned().unwrap_or_else(|| format_ident!("_player"));
 
-    let npc = params
-        .get(1)
-        .cloned()
-        .unwrap_or_else(|| format_ident!("_npc_index"));
+    let npc = params.get(1).cloned().unwrap_or_else(|| format_ident!("_npc_index"));
 
     let base = base_macros();
     let npc_m = quote! {

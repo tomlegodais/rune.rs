@@ -1,5 +1,6 @@
-use serde::Deserialize;
 use std::net::SocketAddr;
+
+use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(default)]

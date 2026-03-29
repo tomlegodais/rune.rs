@@ -1,10 +1,13 @@
-use crate::codec::HandshakeCodec;
-use crate::error::SessionError;
-use crate::message::{HandshakeInbound, HandshakeOutbound, HandshakeResponse};
-use crate::session::SessionPhase;
 use futures_util::{SinkExt, StreamExt};
 use tokio::net::TcpStream;
 use tokio_util::codec::Framed;
+
+use crate::{
+    codec::HandshakeCodec,
+    error::SessionError,
+    message::{HandshakeInbound, HandshakeOutbound, HandshakeResponse},
+    session::SessionPhase,
+};
 
 pub struct HandshakeHandler;
 

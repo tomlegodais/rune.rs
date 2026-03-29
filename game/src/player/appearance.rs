@@ -1,15 +1,19 @@
 pub const DEFAULT_RENDER_EMOTE: u16 = 1426;
 
-use crate::player::PlayerSnapshot;
-use crate::player::equipment::{EquipSlots, Equipment};
-use crate::player::mask::AppearanceMask;
-use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContext};
-use crate::world::World;
+use std::{future::Future, pin::Pin, sync::Arc};
+
 use macros::player_system;
 use persistence::player::PlayerData;
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::Arc;
+
+use crate::{
+    player::{
+        PlayerSnapshot,
+        equipment::{EquipSlots, Equipment},
+        mask::AppearanceMask,
+        system::{PlayerInitContext, PlayerSystem, SystemContext},
+    },
+    world::World,
+};
 
 #[derive(Clone)]
 pub struct Appearance {
@@ -51,10 +55,7 @@ impl PlayerSystem for Appearance {
         vec![std::any::TypeId::of::<Equipment>()]
     }
 
-    fn on_login<'a>(
-        &'a mut self,
-        ctx: &'a mut SystemContext<'_>,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+    fn on_login<'a>(&'a mut self, ctx: &'a mut SystemContext<'_>) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(async move {
             let equipment = ctx.take::<Equipment>();
             ctx.player_info.add_mask(self.to_mask(equipment.slots()));

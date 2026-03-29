@@ -1,11 +1,17 @@
-use crate::player::Player;
+use std::{
+    cell::{Cell, RefCell},
+    future::Future,
+    pin::Pin,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, AtomicU16, Ordering},
+    },
+    task::{Context, Poll, Waker},
+};
+
 use net::{ChatMessage, Encodable};
-use std::cell::{Cell, RefCell};
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
-use std::task::{Context, Poll, Waker};
+
+use crate::player::Player;
 
 pub struct ActionShared {
     pub(crate) delay_remaining: AtomicU16,
@@ -42,9 +48,7 @@ pub fn clear_action_context() {
 }
 
 pub fn active_player<'a>() -> &'a mut Player {
-    let ptr = ACTIVE_PLAYER
-        .get()
-        .expect("no active player in action context");
+    let ptr = ACTIVE_PLAYER.get().expect("no active player in action context");
     unsafe { &mut *ptr }
 }
 
@@ -64,11 +68,7 @@ impl std::ops::DerefMut for PlayerRef {
 }
 
 pub fn active_shared() -> Arc<ActionShared> {
-    ACTIVE_SHARED.with(|s| {
-        s.borrow()
-            .clone()
-            .expect("no active shared in action context")
-    })
+    ACTIVE_SHARED.with(|s| s.borrow().clone().expect("no active shared in action context"))
 }
 
 pub struct DelayFuture {
@@ -86,11 +86,7 @@ impl Future for DelayFuture {
                 return Poll::Pending;
             }
         }
-        if self.shared.delay_remaining.load(Ordering::Relaxed) == 0 {
-            Poll::Ready(())
-        } else {
-            Poll::Pending
-        }
+        if self.shared.delay_remaining.load(Ordering::Relaxed) == 0 { Poll::Ready(()) } else { Poll::Pending }
     }
 }
 
@@ -190,7 +186,6 @@ impl IntoFuture for SkillActionBuilder {
     type Output = ();
     type IntoFuture = Pin<Box<dyn Future<Output = ()> + Send>>;
 
-    #[rustfmt::skip]
     fn into_future(self) -> Self::IntoFuture {
         Box::pin(async move {
             let mut on_attempt = self.on_attempt;
@@ -198,15 +193,23 @@ impl IntoFuture for SkillActionBuilder {
 
             loop {
                 let player = active_player();
-                self.anim.inspect(|&id| { player.anim(id); });
-                self.spot_anim.inspect(|&id| { player.spot_anim(id); });
+                self.anim.inspect(|&id| {
+                    player.anim(id);
+                });
+                self.spot_anim.inspect(|&id| {
+                    player.spot_anim(id);
+                });
 
-                if let Some(f) = on_attempt.as_mut() { f(); }
+                if let Some(f) = on_attempt.as_mut() {
+                    f();
+                }
 
                 delay(&self.shared, self.interval).await;
 
                 if (self.success_predicate)() {
-                    self.anim.inspect(|_| { player.anim(0xFFFF); });
+                    self.anim.inspect(|_| {
+                        player.anim(0xFFFF);
+                    });
                     handler();
                     break;
                 }

@@ -10,12 +10,7 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(Players::Table)
-                    .add_column(
-                        ColumnDef::new(Players::Running)
-                            .boolean()
-                            .not_null()
-                            .default(false),
-                    )
+                    .add_column(ColumnDef::new(Players::Running).boolean().not_null().default(false))
                     .to_owned(),
             )
             .await

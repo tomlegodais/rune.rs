@@ -1,7 +1,8 @@
-use super::{InboundDecoder, IncomingMessage};
-use crate::inbound::walk::WalkRequest;
 use macros::message_decoder;
 use tokio_util::bytes::{Buf, Bytes};
+
+use super::{InboundDecoder, IncomingMessage};
+use crate::inbound::walk::WalkRequest;
 
 const OPCODE: u8 = 59;
 

@@ -1,6 +1,8 @@
-use crate::world::Position;
-use parking_lot::Mutex;
 use std::collections::HashMap;
+
+use parking_lot::Mutex;
+
+use crate::world::Position;
 
 pub struct GroundItem {
     pub id: u32,
@@ -97,10 +99,7 @@ impl GroundItemStore {
             }
         });
 
-        expired_ids
-            .into_iter()
-            .filter_map(|id| self.remove(id))
-            .collect()
+        expired_ids.into_iter().filter_map(|id| self.remove(id)).collect()
     }
 
     pub fn visible_to(
@@ -112,10 +111,7 @@ impl GroundItemStore {
         inner
             .items
             .values()
-            .filter(|g| {
-                viewport_contains(g.position)
-                    && (g.owner.is_none() || g.owner == Some(player_index))
-            })
+            .filter(|g| viewport_contains(g.position) && (g.owner.is_none() || g.owner == Some(player_index)))
             .map(|g| (g.id, g.item_id, g.amount, g.position))
             .collect()
     }

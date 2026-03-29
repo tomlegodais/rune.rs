@@ -1,6 +1,9 @@
-use crate::definition::{ItemDefinition, TransformKind};
-use crate::{Cache, CacheResult, IndexId};
 use std::collections::HashMap;
+
+use crate::{
+    Cache, CacheResult, IndexId,
+    definition::{ItemDefinition, TransformKind},
+};
 
 pub struct ItemLoader {
     definitions: HashMap<u32, ItemDefinition>,

@@ -1,6 +1,9 @@
-use crate::npc::{NpcSnapshot, encode_npc_info};
-use crate::world::Position;
 use net::Outbox;
+
+use crate::{
+    npc::{NpcSnapshot, encode_npc_info},
+    world::Position,
+};
 
 pub struct NpcInfo {
     outbox: Outbox,

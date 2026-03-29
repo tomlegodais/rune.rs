@@ -1,11 +1,18 @@
-use crate::entity::Mask;
-use crate::entity::MoveStep;
-use crate::player::state::{MAX_PLAYERS, PlayerState};
-use crate::player::{PlayerSnapshot, encode_player_info};
-use crate::world::{Position, Teleport};
+use std::{
+    array,
+    ops::{Index, IndexMut},
+};
+
 use net::Outbox;
-use std::array;
-use std::ops::{Index, IndexMut};
+
+use crate::{
+    entity::{Mask, MoveStep},
+    player::{
+        PlayerSnapshot, encode_player_info,
+        state::{MAX_PLAYERS, PlayerState},
+    },
+    world::{Position, Teleport},
+};
 
 pub struct PlayerInfo {
     outbox: Outbox,
@@ -17,12 +24,7 @@ pub struct PlayerInfo {
 }
 
 impl PlayerInfo {
-    pub fn new(
-        outbox: Outbox,
-        self_index: usize,
-        snapshots: &[PlayerSnapshot],
-        initial_masks: &[&dyn Mask],
-    ) -> Self {
+    pub fn new(outbox: Outbox, self_index: usize, snapshots: &[PlayerSnapshot], initial_masks: &[&dyn Mask]) -> Self {
         let mut players: [PlayerState; MAX_PLAYERS] = array::from_fn(|_| PlayerState::default());
         players[self_index].local = true;
         players[self_index].masks.extend(initial_masks);

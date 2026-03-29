@@ -1,6 +1,7 @@
-use crate::{Encodable, Frame, Prefix};
 use tokio_util::bytes::BytesMut;
 use util::BytesMutExt;
+
+use crate::{Encodable, Frame, Prefix};
 
 pub struct PlayerOption {
     pub slot: u8,

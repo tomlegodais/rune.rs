@@ -1,5 +1,6 @@
-use crate::{Encodable, Frame, Prefix};
 use tokio_util::bytes::{BufMut, BytesMut};
+
+use crate::{Encodable, Frame, Prefix};
 
 pub struct RunEnergy(pub u8);
 

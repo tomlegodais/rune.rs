@@ -1,5 +1,6 @@
-use crate::service::ServiceManager;
 use std::pin::Pin;
+
+use crate::service::ServiceManager;
 
 pub struct ServiceMonitor<F> {
     pub manager: ServiceManager,

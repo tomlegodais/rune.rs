@@ -1,7 +1,9 @@
-use crate::provider;
-use crate::world::collision::CollisionMap;
-use crate::world::{Direction, Position};
 use std::collections::{HashMap, VecDeque};
+
+use crate::{
+    provider,
+    world::{Direction, Position, collision::CollisionMap},
+};
 
 const MAX_PATH_LENGTH: usize = 64;
 
@@ -62,11 +64,7 @@ pub fn find_path_adjacent_rect(
 
     if access_block_flag & 0x8 == 0 {
         for ty in goal.y..goal.y + height {
-            try_candidate(
-                (goal.x - 1, ty),
-                Position::new(goal.x, ty, start.plane),
-                WALL_W,
-            );
+            try_candidate((goal.x - 1, ty), Position::new(goal.x, ty, start.plane), WALL_W);
         }
     }
 
@@ -82,11 +80,7 @@ pub fn find_path_adjacent_rect(
 
     if access_block_flag & 0x1 == 0 {
         for tx in goal.x..goal.x + width {
-            try_candidate(
-                (tx, goal.y - 1),
-                Position::new(tx, goal.y, start.plane),
-                WALL_S,
-            );
+            try_candidate((tx, goal.y - 1), Position::new(tx, goal.y, start.plane), WALL_S);
         }
     }
 
@@ -196,11 +190,7 @@ fn walk_closest(
         }
     }
 
-    if closest_key != start_key {
-        reconstruct_path(came_from, closest_key, start_key, plane)
-    } else {
-        VecDeque::new()
-    }
+    if closest_key != start_key { reconstruct_path(came_from, closest_key, start_key, plane) } else { VecDeque::new() }
 }
 
 fn chebyshev(a: (i32, i32), b: (i32, i32)) -> i32 {

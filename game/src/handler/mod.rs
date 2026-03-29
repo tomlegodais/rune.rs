@@ -7,19 +7,16 @@ mod interaction;
 mod objclick;
 mod walk;
 
-pub(crate) use interaction::{ContentHandler, ContentTarget, dispatch, dispatch_item};
-pub(crate) use objclick::pickup_ground_item;
+use std::{any::TypeId, collections::HashMap, future::Future, pin::Pin};
 
-use crate::player::Player;
+pub(crate) use interaction::{ContentHandler, ContentTarget, dispatch, dispatch_item};
 use net::IncomingMessage;
-use std::any::TypeId;
-use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
+pub(crate) use objclick::pickup_ground_item;
 use tracing::debug;
 
-type HandlerFn =
-    for<'a> fn(&'a mut Player, IncomingMessage) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
+use crate::player::Player;
+
+type HandlerFn = for<'a> fn(&'a mut Player, IncomingMessage) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
 
 pub struct MessageHandler {
     pub type_id_fn: fn() -> TypeId,

@@ -1,6 +1,7 @@
-use crate::{Encodable, Frame, Prefix};
 use tokio_util::bytes::{BufMut, BytesMut};
 use util::{BitsMut, BytesMutExt};
+
+use crate::{Encodable, Frame, Prefix};
 
 pub struct GameScene {
     pub init: bool,

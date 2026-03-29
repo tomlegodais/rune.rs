@@ -1,12 +1,13 @@
-use crate::LoginService;
-use crate::config::TcpConfig;
-use crate::service::cache::CacheService;
-use crate::session::Session;
-use filesystem::Cache;
 use std::sync::Arc;
-use tokio::net::TcpListener;
-use tokio::sync::{Semaphore, oneshot};
+
+use filesystem::Cache;
+use tokio::{
+    net::TcpListener,
+    sync::{Semaphore, oneshot},
+};
 use tracing::{error, info};
+
+use crate::{LoginService, config::TcpConfig, service::cache::CacheService, session::Session};
 
 pub struct TcpService {
     config: TcpConfig,
@@ -15,11 +16,7 @@ pub struct TcpService {
 }
 
 impl TcpService {
-    pub fn new(
-        config: TcpConfig,
-        cache: Arc<Cache>,
-        login_service: Arc<dyn LoginService>,
-    ) -> anyhow::Result<Self> {
+    pub fn new(config: TcpConfig, cache: Arc<Cache>, login_service: Arc<dyn LoginService>) -> anyhow::Result<Self> {
         Ok(Self {
             config,
             cache,
@@ -42,19 +39,10 @@ impl TcpService {
         loop {
             let permit = semaphore.clone().acquire_owned().await?;
             let (socket, _) = listener.accept().await?;
-            let session = Session::new(
-                socket,
-                Arc::clone(&cache_service),
-                Arc::clone(&login_service),
-            );
+            let session = Session::new(socket, Arc::clone(&cache_service), Arc::clone(&login_service));
 
             tokio::spawn(async move {
-                if let Some(e) = session
-                    .run()
-                    .await
-                    .err()
-                    .filter(|err| !err.is_disconnect())
-                {
+                if let Some(e) = session.run().await.err().filter(|err| !err.is_disconnect()) {
                     error!("{e}");
                 }
 
@@ -63,11 +51,7 @@ impl TcpService {
         }
     }
 
-    pub async fn run_until<F>(
-        self,
-        shutdown: F,
-        on_ready: Option<oneshot::Sender<()>>,
-    ) -> anyhow::Result<()>
+    pub async fn run_until<F>(self, shutdown: F, on_ready: Option<oneshot::Sender<()>>) -> anyhow::Result<()>
     where
         F: Future<Output = ()>,
     {

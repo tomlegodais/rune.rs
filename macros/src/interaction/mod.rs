@@ -1,7 +1,9 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::parse::{Parse, ParseStream};
-use syn::{FnArg, ItemFn, LitInt, Pat, Token};
+use syn::{
+    FnArg, ItemFn, LitInt, Pat, Token,
+    parse::{Parse, ParseStream},
+};
 
 pub mod item;
 pub mod npc;
@@ -34,9 +36,8 @@ impl InteractionAttr {
     }
 
     pub fn require(&self, key: &str) -> syn::Result<&LitInt> {
-        self.get(key).ok_or_else(|| {
-            syn::Error::new(proc_macro2::Span::call_site(), format!("missing `{key}`"))
-        })
+        self.get(key)
+            .ok_or_else(|| syn::Error::new(proc_macro2::Span::call_site(), format!("missing `{key}`")))
     }
 
     pub fn option_variant(&self) -> syn::Result<proc_macro2::TokenStream> {
@@ -71,13 +72,7 @@ pub fn extract_params(func: &ItemFn) -> Vec<syn::Ident> {
     func.sig
         .inputs
         .iter()
-        .filter_map(|arg| {
-            if let FnArg::Typed(pat_type) = arg {
-                Some(extract_param_name(&pat_type.pat))
-            } else {
-                None
-            }
-        })
+        .filter_map(|arg| if let FnArg::Typed(pat_type) = arg { Some(extract_param_name(&pat_type.pat)) } else { None })
         .collect()
 }
 

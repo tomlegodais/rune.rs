@@ -1,12 +1,17 @@
-use crate::player::PlayerSnapshot;
-use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContext};
-use crate::world::World;
+use std::{future::Future, pin::Pin};
+
 use macros::player_system;
 use net::{Outbox, OutboxExt, UpdateSkill};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use persistence::player::PlayerData;
-use std::future::Future;
-use std::pin::Pin;
+
+use crate::{
+    player::{
+        PlayerSnapshot,
+        system::{PlayerInitContext, PlayerSystem, SystemContext},
+    },
+    world::World,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive, IntoPrimitive)]
 #[repr(usize)]
@@ -79,9 +84,7 @@ impl SkillManager {
     }
 
     pub async fn flush(&mut self) {
-        let skills: Vec<_> = (0..NUM_SKILLS)
-            .filter_map(|i| Skill::try_from(i).ok())
-            .collect();
+        let skills: Vec<_> = (0..NUM_SKILLS).filter_map(|i| Skill::try_from(i).ok()).collect();
         for skill in skills {
             self.send_skill(skill).await;
         }
@@ -124,10 +127,7 @@ impl PlayerSystem for SkillManager {
         Self::from_data(ctx.outbox.clone(), ctx.player_data.levels, ctx.player_data.xp)
     }
 
-    fn on_login<'a>(
-        &'a mut self,
-        _ctx: &'a mut SystemContext<'_>,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+    fn on_login<'a>(&'a mut self, _ctx: &'a mut SystemContext<'_>) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(self.flush())
     }
 

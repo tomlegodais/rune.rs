@@ -1,7 +1,8 @@
-use crate::entity::MaskBlock;
-use crate::entity::MoveStep;
-use crate::player::mask;
-use crate::world::Teleport;
+use crate::{
+    entity::{MaskBlock, MoveStep},
+    player::mask,
+    world::Teleport,
+};
 
 pub const MAX_PLAYERS: usize = 2048;
 

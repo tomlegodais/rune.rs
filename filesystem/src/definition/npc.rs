@@ -57,11 +57,8 @@ impl NpcDefinition {
             12 => self.size = buf.get_u8(),
             30..=34 => {
                 let opt = buf.get_string();
-                self.options[(opcode - 30) as usize] = if opt.eq_ignore_ascii_case("Hidden") {
-                    None
-                } else {
-                    Some(opt)
-                };
+                self.options[(opcode - 30) as usize] =
+                    if opt.eq_ignore_ascii_case("Hidden") { None } else { Some(opt) };
             }
             40 => {
                 let count = buf.get_u8() as usize;
@@ -122,11 +119,8 @@ impl NpcDefinition {
             141..=143 => {}
             150..=154 => {
                 let opt = buf.get_string();
-                self.options[(opcode - 150) as usize] = if opt.eq_ignore_ascii_case("Hidden") {
-                    None
-                } else {
-                    Some(opt)
-                };
+                self.options[(opcode - 150) as usize] =
+                    if opt.eq_ignore_ascii_case("Hidden") { None } else { Some(opt) };
             }
             155 => buf.advance(4),
             158 | 159 | 162 => {}

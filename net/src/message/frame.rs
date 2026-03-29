@@ -21,9 +21,7 @@ pub struct FrameBuilder {
 
 impl FrameBuilder {
     pub fn embed(parent: impl Encodable) -> Self {
-        let Frame {
-            opcode, payload, ..
-        } = parent.encode();
+        let Frame { opcode, payload, .. } = parent.encode();
 
         let mut buf = BytesMut::with_capacity(payload.len() + 8);
         buf.extend_from_slice(&payload);

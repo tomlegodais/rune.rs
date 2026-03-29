@@ -1,8 +1,9 @@
-use crate::provider::ProviderContext;
-use crate::world::CollisionMap;
+use std::sync::Arc;
+
 use macros::data_provider;
 use once_cell::sync::OnceCell;
-use std::sync::Arc;
+
+use crate::{provider::ProviderContext, world::CollisionMap};
 
 static INSTANCE: OnceCell<CollisionMap> = OnceCell::new();
 

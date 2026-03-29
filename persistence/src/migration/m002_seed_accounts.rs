@@ -10,7 +10,7 @@ impl MigrationTrait for Migration {
             .get_connection()
             .execute_unprepared(
                 "INSERT INTO accounts (username, password_hash, rights) \
-                 VALUES ('tom', '$argon2id$v=19$m=19456,t=2,p=1$U2faud9cRjW7G5jyddcyZg$miqHk358nJLT9rFALyNoL9bcpdHyE1cG5ZAjA5KXVOo', 2)"
+                 VALUES ('tom', '$argon2id$v=19$m=19456,t=2,p=1$U2faud9cRjW7G5jyddcyZg$miqHk358nJLT9rFALyNoL9bcpdHyE1cG5ZAjA5KXVOo', 2)",
             )
             .await?;
 

@@ -1,8 +1,9 @@
-use super::{InboundDecoder, IncomingMessage};
-use crate::inbound::ClickOption;
 use macros::message_decoder;
 use tokio_util::bytes::{Buf, Bytes};
 use util::BufExt;
+
+use super::{InboundDecoder, IncomingMessage};
+use crate::inbound::ClickOption;
 
 pub struct NpcClick {
     pub option: ClickOption,

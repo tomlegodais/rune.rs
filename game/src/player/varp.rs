@@ -1,10 +1,12 @@
-use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContext};
-use crate::provider;
+use std::{collections::HashMap, future::Future, pin::Pin};
+
 use macros::player_system;
 use net::{LargeVarbit, LargeVarp, Outbox, OutboxExt, SmallVarbit, SmallVarp};
-use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
+
+use crate::{
+    player::system::{PlayerInitContext, PlayerSystem, SystemContext},
+    provider,
+};
 
 pub struct VarpManager {
     outbox: Outbox,
@@ -26,12 +28,7 @@ impl VarpManager {
     pub async fn send_varp(&mut self, id: u16, value: i32) {
         self.varps.insert(id, value);
         if value >= i8::MIN as i32 && value <= i8::MAX as i32 {
-            self.outbox
-                .write(SmallVarp {
-                    id,
-                    value: value as u8,
-                })
-                .await;
+            self.outbox.write(SmallVarp { id, value: value as u8 }).await;
         } else {
             self.outbox
                 .write(LargeVarp {
@@ -79,10 +76,7 @@ impl PlayerSystem for VarpManager {
         Self::new(ctx.outbox.clone())
     }
 
-    fn on_login<'a>(
-        &'a mut self,
-        _ctx: &'a mut SystemContext<'_>,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+    fn on_login<'a>(&'a mut self, _ctx: &'a mut SystemContext<'_>) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(async {
             self.send_varp(281, 1000).await;
             self.send_varp(1160, -1).await;

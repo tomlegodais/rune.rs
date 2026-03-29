@@ -1,7 +1,6 @@
-use crate::command::CommandEntry;
-use crate::player::Player;
-use crate::send_message;
 use macros::command;
+
+use crate::{command::CommandEntry, player::Player, send_message};
 
 #[command(name = "anim")]
 async fn anim(player: &mut Player, id: u16, speed: Option<u8>) {
@@ -9,13 +8,7 @@ async fn anim(player: &mut Player, id: u16, speed: Option<u8>) {
 }
 
 #[command(name = "spotanim")]
-async fn spotanim(
-    player: &mut Player,
-    id: u16,
-    speed: Option<u16>,
-    height: Option<u16>,
-    rotation: Option<u8>,
-) {
+async fn spotanim(player: &mut Player, id: u16, speed: Option<u16>, height: Option<u16>, rotation: Option<u8>) {
     player
         .spot_anim(id)
         .speed(speed.unwrap_or(0))

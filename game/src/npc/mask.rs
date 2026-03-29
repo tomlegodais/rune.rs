@@ -1,6 +1,7 @@
-use crate::entity::{Anim, Mask, MaskConfig, MaskFlags, SpotAnim};
 use tokio_util::bytes::{BufMut, BytesMut};
 use util::BytesMutExt;
+
+use crate::entity::{Anim, Mask, MaskConfig, MaskFlags, SpotAnim};
 
 pub struct NpcMask;
 

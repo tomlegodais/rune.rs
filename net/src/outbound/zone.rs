@@ -1,6 +1,7 @@
-use crate::{Encodable, Frame, Prefix};
 use tokio_util::bytes::{BufMut, BytesMut};
 use util::BytesMutExt;
+
+use crate::{Encodable, Frame, Prefix};
 
 pub struct ZoneFrame {
     pub zone_x: u8,
@@ -10,11 +11,7 @@ pub struct ZoneFrame {
 
 impl ZoneFrame {
     pub fn new(zone_x: u8, zone_y: u8, plane: u8) -> Self {
-        Self {
-            zone_x,
-            zone_y,
-            plane,
-        }
+        Self { zone_x, zone_y, plane }
     }
 }
 
@@ -24,7 +21,7 @@ impl Encodable for ZoneFrame {
         buf.put_u8_sub(self.zone_x);
         buf.put_u8(self.zone_y);
         buf.put_u8_neg(self.plane);
-        
+
         Frame {
             opcode: 28,
             prefix: Prefix::Fixed,

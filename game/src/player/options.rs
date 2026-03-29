@@ -1,10 +1,15 @@
-use crate::player::PlayerSnapshot;
-use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContext};
-use crate::world::World;
+use std::{future::Future, pin::Pin};
+
 use macros::player_system;
 use net::{Outbox, OutboxExt, PlayerOption};
-use std::future::Future;
-use std::pin::Pin;
+
+use crate::{
+    player::{
+        PlayerSnapshot,
+        system::{PlayerInitContext, PlayerSystem, SystemContext},
+    },
+    world::World,
+};
 
 const NUM_OPTIONS: usize = 5;
 
@@ -69,10 +74,7 @@ impl PlayerSystem for PlayerOptions {
         Self::new(ctx.outbox.clone())
     }
 
-    fn on_login<'a>(
-        &'a mut self,
-        _ctx: &'a mut SystemContext<'_>,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+    fn on_login<'a>(&'a mut self, _ctx: &'a mut SystemContext<'_>) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(self.flush())
     }
 

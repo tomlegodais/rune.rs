@@ -1,11 +1,15 @@
-use crate::handler::handle_incoming_message;
-use crate::npc::{Npc, NpcSnapshot};
-use crate::player::{Player, PlayerSnapshot, resolve_interaction};
-use crate::with_movement;
-use crate::world::World;
+use std::collections::HashMap;
+
 use net::{InboxExt, IncomingMessage};
 use parking_lot::Mutex;
-use std::collections::HashMap;
+
+use crate::{
+    handler::handle_incoming_message,
+    npc::{Npc, NpcSnapshot},
+    player::{Player, PlayerSnapshot, resolve_interaction},
+    with_movement,
+    world::World,
+};
 
 macro_rules! tick {
     ($world:ident, $( $kind:ident : $phase:ident ),* $(,)?) => {
@@ -92,12 +96,7 @@ impl TickPhase<Player> for Sync {
         (world.player_snapshots(), world.npc_snapshots())
     }
 
-    async fn execute(
-        &self,
-        world: &World,
-        player: &mut Player,
-        ctx: &(Vec<PlayerSnapshot>, Vec<NpcSnapshot>),
-    ) {
+    async fn execute(&self, world: &World, player: &mut Player, ctx: &(Vec<PlayerSnapshot>, Vec<NpcSnapshot>)) {
         player.sync(&ctx.0, &ctx.1, &world.arc()).await;
     }
 }

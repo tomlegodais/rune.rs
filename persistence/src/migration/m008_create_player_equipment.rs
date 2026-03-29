@@ -3,8 +3,7 @@ use sea_orm_migration::{prelude::*, schema::*};
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
-const DEFAULT_EQUIPMENT: &str =
-    "[null,null,null,null,null,null,null,null,null,null,null,null,null,null]";
+const DEFAULT_EQUIPMENT: &str = "[null,null,null,null,null,null,null,null,null,null,null,null,null,null]";
 
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
@@ -14,11 +13,7 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(PlayerEquipment::Table)
                     .if_not_exists()
-                    .col(
-                        big_integer(PlayerEquipment::PlayerId)
-                            .primary_key()
-                            .not_null(),
-                    )
+                    .col(big_integer(PlayerEquipment::PlayerId).primary_key().not_null())
                     .col(
                         ColumnDef::new(PlayerEquipment::Items)
                             .json_binary()

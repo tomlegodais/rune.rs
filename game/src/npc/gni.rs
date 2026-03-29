@@ -1,16 +1,14 @@
-use crate::entity::MoveStep;
-use crate::npc::NpcInfo;
-use crate::npc::NpcSnapshot;
-use crate::world::{Direction, Position};
 use net::{Frame, Prefix};
 use tokio_util::bytes::BytesMut;
 use util::BitsMut;
 
-pub fn encode_npc_info(
-    info: &mut NpcInfo,
-    snapshots: &[NpcSnapshot],
-    player_pos: Position,
-) -> Frame {
+use crate::{
+    entity::MoveStep,
+    npc::{NpcInfo, NpcSnapshot},
+    world::{Direction, Position},
+};
+
+pub fn encode_npc_info(info: &mut NpcInfo, snapshots: &[NpcSnapshot], player_pos: Position) -> Frame {
     let mut bits = BytesMut::new();
     let mut masks = BytesMut::new();
     let mut bp = bits.bits_start();
@@ -34,13 +32,7 @@ pub fn encode_npc_info(
     }
 }
 
-fn write_local(
-    info: &NpcInfo,
-    snapshots: &[NpcSnapshot],
-    bits: &mut BytesMut,
-    bp: &mut usize,
-    masks: &mut BytesMut,
-) {
+fn write_local(info: &NpcInfo, snapshots: &[NpcSnapshot], bits: &mut BytesMut, bp: &mut usize, masks: &mut BytesMut) {
     for &npc_id in &info.local_npcs {
         if info.pending_remove.contains(&npc_id) {
             bits.put_bits(bp, 1, 1);

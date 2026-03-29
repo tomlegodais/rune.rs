@@ -1,8 +1,10 @@
-use crate::error::SessionError;
-use crate::message::WorldListOutbound;
-use tokio_util::bytes::{BufMut, BytesMut};
-use tokio_util::codec::Encoder;
+use tokio_util::{
+    bytes::{BufMut, BytesMut},
+    codec::Encoder,
+};
 use util::BytesMutExt;
+
+use crate::{error::SessionError, message::WorldListOutbound};
 
 #[derive(Debug, Default)]
 pub struct WorldListCodec;

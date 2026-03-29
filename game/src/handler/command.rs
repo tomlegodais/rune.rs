@@ -1,8 +1,8 @@
-use super::MessageHandler;
-use crate::command::dispatch_command;
-use crate::player::Player;
 use macros::message_handler;
 use net::ClientCommand;
+
+use super::MessageHandler;
+use crate::{command::dispatch_command, player::Player};
 
 #[message_handler]
 async fn handle(player: &mut Player, msg: ClientCommand) {

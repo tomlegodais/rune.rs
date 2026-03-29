@@ -1,6 +1,8 @@
-use crate::message::FileRequest;
-use filesystem::{Cache, CacheResult};
 use std::sync::Arc;
+
+use filesystem::{Cache, CacheResult};
+
+use crate::message::FileRequest;
 
 pub struct CacheService {
     cache: Arc<Cache>,
@@ -18,9 +20,7 @@ impl CacheService {
             return Ok(self.checksum.clone());
         }
 
-        let mut data = self
-            .cache
-            .read_archive_raw(request.index, request.archive)?;
+        let mut data = self.cache.read_archive_raw(request.index, request.archive)?;
 
         if !request.index.is_reference() && data.len() >= 2 {
             data.truncate(data.len() - 2);

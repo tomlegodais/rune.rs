@@ -1,6 +1,6 @@
-use crate::definition::LocDefinition;
-use crate::{Cache, CacheResult, IndexId};
 use std::collections::HashMap;
+
+use crate::{Cache, CacheResult, IndexId, definition::LocDefinition};
 
 pub struct LocLoader {
     definitions: HashMap<u32, LocDefinition>,

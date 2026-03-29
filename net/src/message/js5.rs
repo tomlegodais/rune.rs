@@ -1,6 +1,7 @@
+use std::cmp::Ordering;
+
 use filesystem::{ArchiveId, IndexId};
 use num_enum::TryFromPrimitive;
-use std::cmp::Ordering;
 
 #[derive(Debug)]
 pub struct FileRequest {
@@ -11,11 +12,7 @@ pub struct FileRequest {
 
 impl FileRequest {
     pub fn new(urgent: bool, index: IndexId, archive: ArchiveId) -> Self {
-        Self {
-            urgent,
-            index,
-            archive,
-        }
+        Self { urgent, index, archive }
     }
 }
 

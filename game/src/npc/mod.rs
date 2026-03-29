@@ -2,16 +2,19 @@ mod gni;
 mod info;
 mod mask;
 
-use crate::entity::{Anim, AnimBuilder, Entity, MaskBlock, MoveStep, SpotAnim, SpotAnimBuilder};
-use crate::provider;
-use crate::world::{Direction, Position, Teleport};
-use rand::Rng;
 use std::ops::{Deref, DerefMut};
-use strum::IntoEnumIterator;
 
 pub(crate) use gni::encode_npc_info;
 pub(crate) use info::NpcInfo;
 pub(crate) use mask::{AnimationMask, FaceEntityMask, SpotAnim1Mask, SpotAnim2Mask};
+use rand::Rng;
+use strum::IntoEnumIterator;
+
+use crate::{
+    entity::{Anim, AnimBuilder, Entity, MaskBlock, MoveStep, SpotAnim, SpotAnimBuilder},
+    provider,
+    world::{Direction, Position, Teleport},
+};
 
 #[derive(Clone)]
 pub struct NpcSnapshot {

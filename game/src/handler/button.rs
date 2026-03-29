@@ -1,8 +1,8 @@
-use super::{MessageHandler, dispatch_item};
-use crate::player::Player;
-use crate::{send_message, with_movement};
 use macros::message_handler;
 use net::{ButtonClick, ClickOption};
+
+use super::{MessageHandler, dispatch_item};
+use crate::{player::Player, send_message, with_movement};
 
 #[message_handler]
 async fn handle(player: &mut Player, msg: ButtonClick) {

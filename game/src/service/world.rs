@@ -1,8 +1,9 @@
-use crate::world::World;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
+
 use tokio::time::{Instant, sleep};
 use tokio_util::sync::CancellationToken;
+
+use crate::world::World;
 
 const TICK_MS: Duration = Duration::from_millis(600);
 

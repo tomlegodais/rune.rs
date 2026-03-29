@@ -18,8 +18,7 @@ pub use reference::{ArchiveEntry, FileEntry, ReferenceTable, name_hash};
 
 pub mod prelude {
     pub use crate::{
-        ArchiveId, Cache, CacheBuilder, CacheError, CacheResult, FileId, IndexId, REFERENCE_INDEX,
-        ReferenceTable,
+        ArchiveId, Cache, CacheBuilder, CacheError, CacheResult, FileId, IndexId, REFERENCE_INDEX, ReferenceTable,
     };
 }
 

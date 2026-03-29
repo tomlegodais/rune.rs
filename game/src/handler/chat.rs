@@ -1,9 +1,12 @@
-use super::MessageHandler;
-use crate::player::{ChatMask, Player};
-use crate::provider;
 use macros::message_handler;
 use net::PublicChat;
 use util::format_sentence;
+
+use super::MessageHandler;
+use crate::{
+    player::{ChatMask, Player},
+    provider,
+};
 
 #[message_handler]
 async fn handle(player: &mut Player, msg: PublicChat) {

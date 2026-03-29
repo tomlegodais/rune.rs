@@ -1,6 +1,7 @@
-use crate::{Encodable, Frame, Prefix};
 use tokio_util::bytes::{BufMut, BytesMut};
 use util::BytesMutExt;
+
+use crate::{Encodable, Frame, Prefix};
 
 pub struct ChatMessage {
     pub msg_type: u16,

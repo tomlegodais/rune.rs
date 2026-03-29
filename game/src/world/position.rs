@@ -25,9 +25,7 @@ impl Position {
     }
 
     pub fn to_bits(self) -> u32 {
-        ((self.plane as u32 & 0x3) << 28)
-            | ((self.x as u32 & 0x3fff) << 14)
-            | (self.y as u32 & 0x3fff)
+        ((self.plane as u32 & 0x3) << 28) | ((self.x as u32 & 0x3fff) << 14) | (self.y as u32 & 0x3fff)
     }
 
     pub fn chunk_x(self) -> i32 {
@@ -86,8 +84,7 @@ impl RegionId {
     }
 
     pub fn to(self, other: RegionId) -> impl Iterator<Item = RegionId> {
-        (self.x()..=other.x())
-            .flat_map(move |x| (self.y()..=other.y()).map(move |y| RegionId::from_coords(x, y)))
+        (self.x()..=other.x()).flat_map(move |x| (self.y()..=other.y()).map(move |y| RegionId::from_coords(x, y)))
     }
 }
 
@@ -133,8 +130,7 @@ impl Direction {
 
     pub fn to_angle(self) -> u16 {
         let (dx, dy) = self.delta();
-        (f64::atan2(-dx as f64, -dy as f64) * (16384.0 / std::f64::consts::TAU)) as i16 as u16
-            & 0x3FFF
+        (f64::atan2(-dx as f64, -dy as f64) * (16384.0 / std::f64::consts::TAU)) as i16 as u16 & 0x3FFF
     }
 }
 

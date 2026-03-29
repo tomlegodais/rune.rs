@@ -1,11 +1,11 @@
-use crate::error::{CacheError, CacheResult};
-use crate::id::FileId;
 use std::collections::BTreeMap;
 
-pub fn unpack_archive<'a>(
-    data: &'a [u8],
-    file_ids: &[FileId],
-) -> CacheResult<BTreeMap<FileId, &'a [u8]>> {
+use crate::{
+    error::{CacheError, CacheResult},
+    id::FileId,
+};
+
+pub fn unpack_archive<'a>(data: &'a [u8], file_ids: &[FileId]) -> CacheResult<BTreeMap<FileId, &'a [u8]>> {
     let file_count = file_ids.len();
     if file_count == 1 {
         let mut result = BTreeMap::new();
@@ -57,9 +57,7 @@ pub fn unpack_archive<'a>(
         let size = file_sizes[idx] as usize;
         let end = offset + size;
         if end > trailer_start {
-            return Err(CacheError::InvalidContainer(
-                "file extends into trailer".into(),
-            ));
+            return Err(CacheError::InvalidContainer("file extends into trailer".into()));
         }
 
         result.insert(file_id, &data[offset..end]);
@@ -69,10 +67,6 @@ pub fn unpack_archive<'a>(
     Ok(result)
 }
 
-pub fn unpack_archive_owned(
-    data: &[u8],
-    file_ids: &[FileId],
-) -> CacheResult<BTreeMap<FileId, Vec<u8>>> {
-    unpack_archive(data, file_ids)
-        .map(|map| map.into_iter().map(|(k, v)| (k, v.to_vec())).collect())
+pub fn unpack_archive_owned(data: &[u8], file_ids: &[FileId]) -> CacheResult<BTreeMap<FileId, Vec<u8>>> {
+    unpack_archive(data, file_ids).map(|map| map.into_iter().map(|(k, v)| (k, v.to_vec())).collect())
 }

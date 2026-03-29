@@ -39,8 +39,6 @@ impl Default for LogConfig {
 
 impl Default for GameConfig {
     fn default() -> Self {
-        Self {
-            client_version: 592,
-        }
+        Self { client_version: 592 }
     }
 }

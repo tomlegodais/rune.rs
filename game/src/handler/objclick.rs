@@ -1,10 +1,13 @@
-use super::MessageHandler;
-use crate::player::{InteractionTarget, Player};
-use crate::with_movement;
+use std::{future::Future, pin::Pin};
+
 use macros::message_handler;
 use net::{ChatMessage, ClickOption, ObjClick, OutboxExt};
-use std::future::Future;
-use std::pin::Pin;
+
+use super::MessageHandler;
+use crate::{
+    player::{InteractionTarget, Player},
+    with_movement,
+};
 
 #[message_handler]
 async fn handle_obj_click(player: &mut Player, msg: ObjClick) {
@@ -16,10 +19,9 @@ async fn handle_obj_click(player: &mut Player, msg: ObjClick) {
 
     let (id, position) = {
         let world = player.world();
-        let Some(id) =
-            world
-                .ground_items
-                .find(msg.item_id, msg.x as i32, msg.y as i32, player.index)
+        let Some(id) = world
+            .ground_items
+            .find(msg.item_id, msg.x as i32, msg.y as i32, player.index)
         else {
             return;
         };
@@ -30,33 +32,21 @@ async fn handle_obj_click(player: &mut Player, msg: ObjClick) {
         (id, snap.position)
     };
 
-    player.interaction_mut().set(
-        InteractionTarget::GroundItem { id, position },
-        ClickOption::One,
-    );
+    player
+        .interaction_mut()
+        .set(InteractionTarget::GroundItem { id, position }, ClickOption::One);
 
     with_movement!(player, |m, ctx| m
         .walk_to(&mut ctx, position, msg.force_run, None)
         .await);
 }
 
-pub fn pickup_ground_item(
-    target: InteractionTarget,
-) -> Pin<Box<dyn Future<Output = ()> + Send + 'static>> {
-    let InteractionTarget::GroundItem { id, position } = target else {
-        unreachable!()
-    };
+pub fn pickup_ground_item(target: InteractionTarget) -> Pin<Box<dyn Future<Output = ()> + Send + 'static>> {
+    let InteractionTarget::GroundItem { id, position } = target else { unreachable!() };
 
     Box::pin(async move {
         let player = crate::player::active_player();
-        let (
-            item_id,
-            amount,
-            owner,
-            private_ticks_remaining,
-            public_ticks_remaining,
-            other_indices,
-        ) = {
+        let (item_id, amount, owner, private_ticks_remaining, public_ticks_remaining, other_indices) = {
             let world = player.world();
             let Some(snap) = world.ground_items.get(id) else {
                 return;

@@ -1,11 +1,12 @@
-use crate::entity::MaskBlock;
-use crate::entity::MoveStep;
-use crate::player::state::MAX_PLAYERS;
-use crate::player::{Appearance, EquipSlots, FaceDirectionMask, MoveTypeMask, PlayerInfo};
-use crate::world::{Direction, Position};
 use net::{Frame, Prefix};
 use tokio_util::bytes::BytesMut;
 use util::BitsMut;
+
+use crate::{
+    entity::{MaskBlock, MoveStep},
+    player::{Appearance, EquipSlots, FaceDirectionMask, MoveTypeMask, PlayerInfo, state::MAX_PLAYERS},
+    world::{Direction, Position},
+};
 
 trait BitEncoder {
     fn encode(&self, bits: &mut BytesMut, bp: &mut usize, masks: &mut BytesMut);

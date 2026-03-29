@@ -1,7 +1,10 @@
-use super::CommandEntry;
-use crate::player::{Player, Skill};
-use crate::send_message;
 use macros::command;
+
+use super::CommandEntry;
+use crate::{
+    player::{Player, Skill},
+    send_message,
+};
 
 #[command(name = "setlevel")]
 async fn handle(player: &mut Player, skill_id: usize, level: u8) {

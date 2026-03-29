@@ -1,7 +1,9 @@
-use crate::crypto::StreamCipher;
-use crate::{Frame, Prefix, SessionError};
-use tokio_util::bytes::{Buf, BufMut, BytesMut};
-use tokio_util::codec::{Decoder, Encoder};
+use tokio_util::{
+    bytes::{Buf, BufMut, BytesMut},
+    codec::{Decoder, Encoder},
+};
+
+use crate::{Frame, Prefix, SessionError, crypto::StreamCipher};
 
 const SIZES: [i16; 256] = {
     let mut a = [-3; 256];
@@ -95,15 +97,8 @@ const SIZES: [i16; 256] = {
 #[derive(Debug)]
 enum State {
     Opcode,
-    Size {
-        opcode: u8,
-        prefix: Prefix,
-    },
-    Payload {
-        opcode: u8,
-        prefix: Prefix,
-        size: usize,
-    },
+    Size { opcode: u8, prefix: Prefix },
+    Payload { opcode: u8, prefix: Prefix, size: usize },
 }
 
 #[derive(Debug)]
@@ -180,11 +175,7 @@ where
                     };
                 }
 
-                State::Payload {
-                    opcode,
-                    prefix,
-                    size,
-                } => {
+                State::Payload { opcode, prefix, size } => {
                     if src.len() < size {
                         return Ok(None);
                     }

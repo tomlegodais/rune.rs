@@ -1,8 +1,13 @@
-use crate::error::SessionError;
-use crate::message::{FileRequest, Js5Inbound, Js5Outbound, RequestOpcode};
 use filesystem::{ArchiveId, IndexId};
-use tokio_util::bytes::{Buf, BufMut, BytesMut};
-use tokio_util::codec::{Decoder, Encoder};
+use tokio_util::{
+    bytes::{Buf, BufMut, BytesMut},
+    codec::{Decoder, Encoder},
+};
+
+use crate::{
+    error::SessionError,
+    message::{FileRequest, Js5Inbound, Js5Outbound, RequestOpcode},
+};
 
 #[derive(Debug, Default)]
 pub struct Js5Codec;
@@ -18,19 +23,15 @@ impl Decoder for Js5Codec {
             }
 
             let opcode = src.get_u8();
-            let request_opcode = RequestOpcode::try_from(opcode)
-                .map_err(|_| SessionError::InvalidRequestOpcode(opcode))?;
+            let request_opcode =
+                RequestOpcode::try_from(opcode).map_err(|_| SessionError::InvalidRequestOpcode(opcode))?;
 
             match request_opcode {
                 RequestOpcode::Normal | RequestOpcode::Urgent => {
                     let urgent = request_opcode == RequestOpcode::Urgent;
                     let index_id = src.get_u8();
                     let archive_id = src.get_u16() as u32;
-                    let request = FileRequest::new(
-                        urgent,
-                        IndexId::new(index_id),
-                        ArchiveId::new(archive_id),
-                    );
+                    let request = FileRequest::new(urgent, IndexId::new(index_id), ArchiveId::new(archive_id));
 
                     return Ok(Some(Js5Inbound::FileRequest(request)));
                 }
@@ -57,19 +58,11 @@ impl Encoder<Js5Outbound> for Js5Codec {
         }
 
         let compression = item.data[0];
-        let compression_byte = if item.urgent {
-            compression
-        } else {
-            compression | 0x80
-        };
+        let compression_byte = if item.urgent { compression } else { compression | 0x80 };
 
         let container_data = &item.data[1..];
         let data_len = container_data.len();
-        let num_markers = if data_len <= 508 {
-            0
-        } else {
-            1 + (data_len - 508 - 1) / 511
-        };
+        let num_markers = if data_len <= 508 { 0 } else { 1 + (data_len - 508 - 1) / 511 };
 
         let total_size = 4 + data_len + num_markers;
         dst.reserve(total_size);

@@ -1,15 +1,12 @@
-use super::MessageHandler;
-use crate::player::{INVENTORY_SIZE, Player};
 use macros::message_handler;
 use net::IfMoveSlot;
 
+use super::MessageHandler;
+use crate::player::{INVENTORY_SIZE, Player};
+
 #[message_handler]
 async fn handle_if_move_slot(player: &mut Player, msg: IfMoveSlot) {
-    if msg.from_interface != 149
-        || msg.from_component != 0
-        || msg.to_interface != 149
-        || msg.to_component != 0
-    {
+    if msg.from_interface != 149 || msg.from_component != 0 || msg.to_interface != 149 || msg.to_component != 0 {
         return;
     }
 

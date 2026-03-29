@@ -1,12 +1,15 @@
-use crate::config::GameConfig;
-use crate::world::World;
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use net::{LoginOutcome, LoginRequest, LoginService, LoginSuccess, SessionError};
-use persistence::account::AccountRepository;
-use persistence::player::{PlayerData, PlayerRepository};
+use persistence::{
+    account::AccountRepository,
+    player::{PlayerData, PlayerRepository},
+};
 use shaku::{Component, Interface};
-use std::sync::Arc;
 use tracing::warn;
+
+use crate::{config::GameConfig, world::World};
 
 pub trait GameLoginService: LoginService + Interface {}
 

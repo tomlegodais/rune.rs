@@ -1,15 +1,17 @@
-use crate::player::PlayerSnapshot;
-use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContext};
-use crate::provider;
-use crate::world::World;
+use std::{future::Future, pin::Pin};
+
 use macros::player_system;
-use net::{
-    ItemContainerEntry, ItemContainerId, Outbox, OutboxExt, UpdateItemContainer, if_events,
-    if_set_events,
-};
+use net::{ItemContainerEntry, ItemContainerId, Outbox, OutboxExt, UpdateItemContainer, if_events, if_set_events};
 use persistence::player::PlayerData;
-use std::future::Future;
-use std::pin::Pin;
+
+use crate::{
+    player::{
+        PlayerSnapshot,
+        system::{PlayerInitContext, PlayerSystem, SystemContext},
+    },
+    provider,
+    world::World,
+};
 
 pub const STACK_MAX: u32 = i32::MAX as u32;
 pub const SIZE: usize = 28;
@@ -47,7 +49,6 @@ impl Inventory {
         remaining
     }
 
-    #[rustfmt::skip]
     fn add_stackable(&mut self, item_id: u16, amount: u32) -> u32 {
         if let Some((_, qty)) = self.slots.iter_mut().flatten().find(|(id, _)| *id == item_id) {
             let added = amount.min(STACK_MAX - *qty);
@@ -56,7 +57,10 @@ impl Inventory {
         }
 
         match self.slots.iter_mut().find(|s| s.is_none()) {
-            Some(slot) => { *slot = Some((item_id, amount.min(STACK_MAX))); amount.saturating_sub(STACK_MAX) }
+            Some(slot) => {
+                *slot = Some((item_id, amount.min(STACK_MAX)));
+                amount.saturating_sub(STACK_MAX)
+            }
             None => amount,
         }
     }
@@ -185,10 +189,7 @@ impl PlayerSystem for Inventory {
         Self::from_slots(ctx.outbox.clone(), slots)
     }
 
-    fn on_login<'a>(
-        &'a mut self,
-        _ctx: &'a mut SystemContext<'_>,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+    fn on_login<'a>(&'a mut self, _ctx: &'a mut SystemContext<'_>) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(async move {
             self.flush().await;
             self.send_ifevents().await;

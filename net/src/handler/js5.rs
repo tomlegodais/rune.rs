@@ -1,22 +1,20 @@
-use crate::codec::{Js5Codec, XorCodec};
-use crate::error::SessionError;
-use crate::message::{Js5Inbound, Js5Outbound, PriorityRequest};
-use crate::service::CacheService;
+use std::{collections::BinaryHeap, future::poll_fn, sync::Arc, task::Poll};
+
 use futures_util::{SinkExt, StreamExt};
-use std::collections::BinaryHeap;
-use std::future::poll_fn;
-use std::sync::Arc;
-use std::task::Poll;
 use tokio::net::TcpStream;
 use tokio_util::codec::Framed;
+
+use crate::{
+    codec::{Js5Codec, XorCodec},
+    error::SessionError,
+    message::{Js5Inbound, Js5Outbound, PriorityRequest},
+    service::CacheService,
+};
 
 pub struct Js5Handler;
 
 impl Js5Handler {
-    pub async fn run(
-        stream: TcpStream,
-        service: Arc<CacheService>,
-    ) -> anyhow::Result<(), SessionError> {
+    pub async fn run(stream: TcpStream, service: Arc<CacheService>) -> anyhow::Result<(), SessionError> {
         let codec = Js5Codec;
         let xor_codec = XorCodec::new(codec);
         let mut framed = Framed::new(stream, xor_codec);

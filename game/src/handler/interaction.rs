@@ -1,12 +1,14 @@
-use super::MessageHandler;
-use crate::player::{InteractionTarget, Player};
-use crate::world::Position;
-use crate::{send_message, with_movement};
+use std::{collections::HashMap, future::Future, pin::Pin};
+
 use macros::message_handler;
 use net::{ClickOption, NpcClick, ObjectClick, PlayerClick};
-use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
+
+use super::MessageHandler;
+use crate::{
+    player::{InteractionTarget, Player},
+    send_message, with_movement,
+    world::Position,
+};
 
 #[derive(Hash, Eq, PartialEq, Clone, Copy)]
 pub enum ContentTarget {
@@ -16,8 +18,7 @@ pub enum ContentTarget {
     Item(i32, ClickOption),
 }
 
-pub type ContentHandlerFn =
-    fn(InteractionTarget) -> Pin<Box<dyn Future<Output = ()> + Send + 'static>>;
+pub type ContentHandlerFn = fn(InteractionTarget) -> Pin<Box<dyn Future<Output = ()> + Send + 'static>>;
 
 pub struct ContentHandler {
     pub target: ContentTarget,
@@ -87,20 +88,13 @@ pub fn try_dispatch_item(player: &mut Player, slot: u16, option: ClickOption) ->
     let shared = std::sync::Arc::new(crate::player::ActionShared::new());
     crate::player::set_action_context(player as *mut Player, shared.clone());
 
-    let mut action_state = crate::player::ActionState {
-        active: future,
-        shared,
-    };
+    let mut action_state = crate::player::ActionState { active: future, shared };
 
     let poll_result = crate::player::poll_action(&mut action_state);
     crate::player::clear_action_context();
 
     if poll_result.is_pending() {
-        player
-            .world()
-            .action_states
-            .lock()
-            .insert(player.index, action_state);
+        player.world().action_states.lock().insert(player.index, action_state);
     }
 
     true

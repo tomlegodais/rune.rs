@@ -19,25 +19,13 @@ pub fn on_object_click(attr: TokenStream, item: TokenStream) -> TokenStream {
     };
 
     let params = extract_params(&func);
-    let player = params
-        .first()
-        .cloned()
-        .unwrap_or_else(|| format_ident!("_player"));
+    let player = params.first().cloned().unwrap_or_else(|| format_ident!("_player"));
 
-    let id_p = params
-        .get(1)
-        .cloned()
-        .unwrap_or_else(|| format_ident!("_id"));
+    let id_p = params.get(1).cloned().unwrap_or_else(|| format_ident!("_id"));
 
-    let x_p = params
-        .get(2)
-        .cloned()
-        .unwrap_or_else(|| format_ident!("_x"));
+    let x_p = params.get(2).cloned().unwrap_or_else(|| format_ident!("_x"));
 
-    let y_p = params
-        .get(3)
-        .cloned()
-        .unwrap_or_else(|| format_ident!("_y"));
+    let y_p = params.get(3).cloned().unwrap_or_else(|| format_ident!("_y"));
 
     let base = base_macros();
 

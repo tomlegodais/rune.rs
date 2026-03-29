@@ -1,9 +1,12 @@
-use super::MessageHandler;
-use crate::player::{Player, is_action_locked};
-use crate::with_movement;
-use crate::world::Position;
 use macros::message_handler;
 use net::WalkRequest;
+
+use super::MessageHandler;
+use crate::{
+    player::{Player, is_action_locked},
+    with_movement,
+    world::Position,
+};
 
 #[message_handler]
 async fn handle(player: &mut Player, msg: WalkRequest) {
@@ -15,7 +18,5 @@ async fn handle(player: &mut Player, msg: WalkRequest) {
     player.interaction_mut().clear();
 
     let dest = Position::new(msg.x as i32, msg.y as i32, player.position.plane);
-    with_movement!(player, |m, ctx| m
-        .walk_to(&mut ctx, dest, msg.force_run, None)
-        .await);
+    with_movement!(player, |m, ctx| m.walk_to(&mut ctx, dest, msg.force_run, None).await);
 }

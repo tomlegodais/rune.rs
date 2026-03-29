@@ -1,8 +1,8 @@
-use crate::service::monitor::ServiceMonitor;
-use tokio::sync::oneshot;
-use tokio::task::JoinSet;
+use tokio::{sync::oneshot, task::JoinSet};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
+
+use crate::service::monitor::ServiceMonitor;
 
 pub struct ServiceManager {
     token: CancellationToken,

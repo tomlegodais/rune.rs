@@ -1,7 +1,7 @@
-use super::CommandEntry;
-use crate::player::Player;
-use crate::send_message;
 use macros::command;
+
+use super::CommandEntry;
+use crate::{player::Player, send_message};
 
 #[command(name = "item")]
 async fn add(player: &mut Player, item_id: u16, amount: Option<u32>) {

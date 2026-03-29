@@ -1,12 +1,15 @@
-use crate::player::PlayerSnapshot;
-use crate::player::system::{PlayerInitContext, PlayerSystem};
-use crate::world::{GroundItemStore, Position, World};
+use std::{collections::HashSet, future::Future, pin::Pin, sync::Arc};
+
 use macros::player_system;
 use net::{ObjAdd, ObjDel, Outbox, OutboxExt, ZoneFrame};
-use std::collections::HashSet;
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::Arc;
+
+use crate::{
+    player::{
+        PlayerSnapshot,
+        system::{PlayerInitContext, PlayerSystem},
+    },
+    world::{GroundItemStore, Position, World},
+};
 
 pub struct GroundItemManager {
     player_index: usize,
@@ -23,9 +26,7 @@ pub struct GroundItemTickContext {
 
 impl GroundItemManager {
     pub fn drop(&self, item_id: u16, amount: u32, pos: Position, world: &World) {
-        world
-            .ground_items
-            .add(item_id, amount, pos, Some(self.player_index));
+        world.ground_items.add(item_id, amount, pos, Some(self.player_index));
     }
 
     pub async fn forget(&mut self, id: u32, item_id: u16, pos: Position) {
@@ -90,10 +91,7 @@ impl PlayerSystem for GroundItemManager {
         }
     }
 
-    fn tick<'a>(
-        &'a mut self,
-        ctx: &'a GroundItemTickContext,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+    fn tick<'a>(&'a mut self, ctx: &'a GroundItemTickContext) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(async move {
             self.region_base = ctx.region_base;
             let player_pos = ctx.position;
@@ -119,10 +117,7 @@ impl PlayerSystem for GroundItemManager {
                     ctx.world
                         .ground_items
                         .get(*id)
-                        .map(|g| {
-                            !in_range(g.position)
-                                || (g.owner.is_some() && g.owner != Some(player_index))
-                        })
+                        .map(|g| !in_range(g.position) || (g.owner.is_some() && g.owner != Some(player_index)))
                         .unwrap_or(true)
                 })
                 .collect();

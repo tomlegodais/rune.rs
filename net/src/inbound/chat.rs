@@ -1,7 +1,8 @@
-use super::{InboundDecoder, IncomingMessage};
 use macros::message_decoder;
 use tokio_util::bytes::{Buf, Bytes};
 use util::BufExt;
+
+use super::{InboundDecoder, IncomingMessage};
 
 #[derive(Debug)]
 pub struct PublicChat {

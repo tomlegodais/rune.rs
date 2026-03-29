@@ -1,6 +1,7 @@
-use crate::{Encodable, Frame, Prefix};
 use tokio_util::bytes::{BufMut, BytesMut};
 use util::BytesMutExt;
+
+use crate::{Encodable, Frame, Prefix};
 
 pub struct SmallVarp {
     pub id: u16,

@@ -4,12 +4,7 @@ use syn::{ItemImpl, Type, parse_macro_input};
 
 fn system_accessor_name(ty: &Type) -> syn::Ident {
     let name = match ty {
-        Type::Path(p) => p
-            .path
-            .segments
-            .last()
-            .map(|s| s.ident.to_string())
-            .unwrap_or_default(),
+        Type::Path(p) => p.path.segments.last().map(|s| s.ident.to_string()).unwrap_or_default(),
         _ => panic!("player_system: unsupported type"),
     };
 

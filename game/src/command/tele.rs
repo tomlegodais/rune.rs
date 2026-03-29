@@ -1,8 +1,7 @@
-use super::{CommandEntry, RawArgs};
-use crate::player::Player;
-use crate::world::Position;
-use crate::{send_message, with_movement};
 use macros::command;
+
+use super::{CommandEntry, RawArgs};
+use crate::{player::Player, send_message, with_movement, world::Position};
 
 #[command(name = "tele")]
 async fn handle(player: &mut Player, client_sent: bool, args: RawArgs) {
@@ -12,17 +11,9 @@ async fn handle(player: &mut Player, client_sent: bool, args: RawArgs) {
             send_message!(player, "Usage: ::tele <x> <y> [plane]");
             return;
         }
-        (
-            (parts[1] << 6) | parts[3],
-            (parts[2] << 6) | parts[4],
-            parts[0],
-        )
+        ((parts[1] << 6) | parts[3], (parts[2] << 6) | parts[4], parts[0])
     } else {
-        let parts: Vec<i32> = args
-            .0
-            .split_whitespace()
-            .filter_map(|s| s.parse().ok())
-            .collect();
+        let parts: Vec<i32> = args.0.split_whitespace().filter_map(|s| s.parse().ok()).collect();
         if parts.len() < 2 {
             send_message!(player, "Usage: ::tele <x> <y> [plane]");
             return;

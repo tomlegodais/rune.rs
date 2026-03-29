@@ -3,13 +3,16 @@ mod mask;
 mod movement;
 mod spotanim;
 
+use std::{
+    collections::VecDeque,
+    sync::{Arc, Weak},
+};
+
 pub(crate) use anim::{Anim, AnimBuilder};
 pub(crate) use mask::{Mask, MaskBlock, MaskConfig, MaskFlags};
 pub(crate) use spotanim::{SpotAnim, SpotAnimBuilder};
 
 use crate::world::{Direction, Position, World};
-use std::collections::VecDeque;
-use std::sync::{Arc, Weak};
 
 #[derive(Copy, Clone, Default)]
 pub enum MoveStep {
