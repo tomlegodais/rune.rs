@@ -21,7 +21,7 @@ impl IndexId {
     pub const VORBIS: Self = Self(14);
     pub const INSTRUMENTS: Self = Self(15);
     pub const LOCS: Self = Self(16);
-    pub const WORLDMAP: Self = Self(17);
+    pub const ENUMS: Self = Self(17);
     pub const NPCS: Self = Self(18);
     pub const ITEMS: Self = Self(19);
     pub const SEQUENCES: Self = Self(20);

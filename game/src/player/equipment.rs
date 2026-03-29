@@ -1,31 +1,23 @@
-use crate::player::PlayerSnapshot;
-use crate::player::system::{PlayerInitContext, PlayerSystem, SystemContext};
-use crate::world::World;
+use std::{
+    future::Future,
+    ops::{Index, IndexMut},
+    pin::Pin,
+};
+
+pub use filesystem::definition::EquipmentSlot;
 use macros::player_system;
 use net::{ItemContainerEntry, ItemContainerId, Outbox, OutboxExt, UpdateItemContainer};
-use num_enum::TryFromPrimitive;
 use persistence::player::PlayerData;
-use std::future::Future;
-use std::ops::{Index, IndexMut};
-use std::pin::Pin;
+
+use crate::{
+    player::{
+        PlayerSnapshot,
+        system::{PlayerInitContext, PlayerSystem, SystemContext},
+    },
+    world::World,
+};
 
 pub const SIZE: usize = 14;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive)]
-#[repr(usize)]
-pub enum EquipmentSlot {
-    Head = 0,
-    Cape = 1,
-    Amulet = 2,
-    Weapon = 3,
-    Body = 4,
-    Shield = 5,
-    Legs = 7,
-    Gloves = 9,
-    Boots = 10,
-    Ring = 12,
-    Ammo = 13,
-}
 
 #[derive(Clone, Copy)]
 pub struct EquipSlots(pub [Option<(u16, u32)>; SIZE]);
@@ -98,10 +90,7 @@ impl PlayerSystem for Equipment {
         }
     }
 
-    fn on_login<'a>(
-        &'a mut self,
-        _ctx: &'a mut SystemContext<'_>,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+    fn on_login<'a>(&'a mut self, _ctx: &'a mut SystemContext<'_>) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(async move {
             self.flush().await;
         })

@@ -1,11 +1,15 @@
+mod enums;
 mod item;
 mod loc;
 mod npc;
+mod structs;
 mod varbit;
 
-pub use item::{ItemDefinition, TransformKind};
+pub use enums::{EnumDefinition, EnumValue};
+pub use item::{EquipmentFlag, EquipmentSlot, ItemDefinition, TransformKind};
 pub use loc::LocDefinition;
 pub use npc::NpcDefinition;
+pub use structs::StructDefinition;
 pub use varbit::VarbitDefinition;
 
 #[derive(Debug, Clone, PartialEq)]

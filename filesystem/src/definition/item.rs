@@ -1,11 +1,43 @@
-use crate::definition::ParamValue;
 use std::collections::HashMap;
+
+use num_enum::TryFromPrimitive;
 use tokio_util::bytes::{Buf, Bytes};
 use util::BufExt;
+
+use crate::definition::ParamValue;
 
 pub enum TransformKind {
     Noted,
     Lent,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive)]
+#[repr(usize)]
+pub enum EquipmentSlot {
+    Head = 0,
+    Cape = 1,
+    Amulet = 2,
+    Weapon = 3,
+    Body = 4,
+    Shield = 5,
+    Legs = 7,
+    Gloves = 9,
+    Boots = 10,
+    Ring = 12,
+    Ammo = 13,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum EquipmentFlag {
+    #[default]
+    None,
+    TwoHanded,
+    Sleeveless,
+    Hair,
+    HairMid,
+    HairLow,
+    FullFace,
+    Mask,
 }
 
 #[derive(Debug, Clone)]
@@ -38,8 +70,8 @@ pub struct ItemDefinition {
     pub retexture_replace: Vec<u16>,
     pub team: u8,
     pub weight: i32,
-    pub equipment_slot: Option<u8>,
-    pub two_handed: bool,
+    pub equipment_slot: Option<EquipmentSlot>,
+    pub equipment_flag: EquipmentFlag,
     pub lent_id: Option<u32>,
     pub lent_template: Option<u32>,
     pub params: HashMap<u32, ParamValue>,
@@ -77,7 +109,7 @@ impl Default for ItemDefinition {
             team: 0,
             weight: 0,
             equipment_slot: None,
-            two_handed: false,
+            equipment_flag: EquipmentFlag::None,
             lent_id: None,
             lent_template: None,
             params: HashMap::new(),
@@ -151,11 +183,7 @@ impl ItemDefinition {
             30..=34 => {
                 let idx = (opcode - 30) as usize;
                 let option = buf.get_string();
-                self.ground_options[idx] = if option == "Hidden" {
-                    None
-                } else {
-                    Some(option)
-                };
+                self.ground_options[idx] = if option == "Hidden" { None } else { Some(option) };
             }
             35..=39 => {
                 let idx = (opcode - 35) as usize;
@@ -295,11 +323,8 @@ impl ItemDefinition {
                 for _ in 0..count {
                     let is_string = buf.get_u8() == 1;
                     let key = buf.get_u24();
-                    let value = if is_string {
-                        ParamValue::String(buf.get_string())
-                    } else {
-                        ParamValue::Int(buf.get_i32())
-                    };
+                    let value =
+                        if is_string { ParamValue::String(buf.get_string()) } else { ParamValue::Int(buf.get_i32()) };
                     self.params.insert(key, value);
                 }
             }

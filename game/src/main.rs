@@ -1,20 +1,23 @@
-use crate::config::AppConfig;
-use crate::provider::ProviderContext;
-use crate::service::{
-    GameLoginService, ServiceManager, WorldLoginService, WorldLoginServiceParameters, WorldService,
-};
-use crate::world::World;
+use std::sync::Arc;
+
 use ::config::{Config, Environment, File};
 use filesystem::CacheBuilder;
 use net::TcpService;
 use persistence::PersistenceModuleInterface;
 use shaku::{HasComponent, module};
-use std::sync::Arc;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
+use crate::{
+    config::AppConfig,
+    provider::ProviderContext,
+    service::{GameLoginService, ServiceManager, WorldLoginService, WorldLoginServiceParameters, WorldService},
+    world::World,
+};
+
 mod command;
 mod config;
+mod content;
 mod entity;
 mod handler;
 mod npc;
@@ -22,8 +25,6 @@ mod player;
 mod provider;
 mod service;
 mod world;
-
-mod content;
 
 module! {
     GameModule {

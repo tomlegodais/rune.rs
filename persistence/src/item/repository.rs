@@ -1,12 +1,14 @@
-use super::entity;
 use async_trait::async_trait;
+pub use entity::{EquipmentFlag, EquipmentSlot};
 use sea_orm::*;
 use shaku::{Component, Interface};
 
+use super::entity;
+
 pub struct ItemConfig {
     pub item_id: u32,
-    pub equipment_slot: Option<u8>,
-    pub two_handed: bool,
+    pub equipment_slot: Option<EquipmentSlot>,
+    pub equipment_flag: Option<EquipmentFlag>,
 }
 
 #[async_trait]
@@ -29,8 +31,8 @@ impl ItemConfigRepository for PgItemConfigRepository {
             .into_iter()
             .map(|m| ItemConfig {
                 item_id: m.item_id as u32,
-                equipment_slot: m.equipment_slot.map(|s| s as u8),
-                two_handed: m.two_handed,
+                equipment_slot: m.equipment_slot,
+                equipment_flag: m.equipment_flag,
             })
             .collect())
     }

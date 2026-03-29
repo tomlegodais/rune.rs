@@ -1,5 +1,7 @@
-use crate::player::EquipmentSlot;
+use filesystem::definition::EquipmentFlag;
 use num_enum::TryFromPrimitive;
+
+use crate::player::EquipmentSlot;
 
 #[macros::on_item_option(option = 2)]
 async fn equip_item(player: &mut Player, slot: u16) {
@@ -19,7 +21,7 @@ async fn equip_item(player: &mut Player, slot: u16) {
         return;
     };
 
-    let two_handed = def.two_handed;
+    let two_handed = def.equipment_flag == EquipmentFlag::TwoHanded;
 
     let mut returning: Vec<(u16, u32)> = Vec::new();
 
@@ -33,7 +35,8 @@ async fn equip_item(player: &mut Player, slot: u16) {
 
     if target_slot == EquipmentSlot::Shield
         && let Some((wep_id, wep_amt)) = player.equipment().slot(EquipmentSlot::Weapon)
-        && crate::provider::get_item_definition(wep_id as u32).is_some_and(|d| d.two_handed)
+        && crate::provider::get_item_definition(wep_id as u32)
+            .is_some_and(|d| d.equipment_flag == EquipmentFlag::TwoHanded)
     {
         returning.push((wep_id, wep_amt));
     }
@@ -51,14 +54,13 @@ async fn equip_item(player: &mut Player, slot: u16) {
     }
     if target_slot == EquipmentSlot::Shield
         && returning.iter().any(|&(id, _)| {
-            crate::provider::get_item_definition(id as u32).is_some_and(|d| d.two_handed)
+            crate::provider::get_item_definition(id as u32)
+                .is_some_and(|d| d.equipment_flag == EquipmentFlag::TwoHanded)
         })
     {
         player.equipment_mut().set(EquipmentSlot::Weapon, None);
     }
-    player
-        .equipment_mut()
-        .set(target_slot, Some((item_id, amount)));
+    player.equipment_mut().set(target_slot, Some((item_id, amount)));
 
     for (ret_id, ret_amt) in &returning {
         player.inventory_mut().add(*ret_id, *ret_amt).await;

@@ -1,22 +1,26 @@
 mod collision;
+mod enums;
+mod hair;
 mod huffman;
 mod item;
 mod loc;
 mod npc;
+mod structs;
 mod varbit;
 
+use std::{future::Future, pin::Pin, sync::Arc};
+
 pub use collision::get_collision;
+pub use enums::get_enum_definition;
+use filesystem::Cache;
+pub use hair::{get_hair_low, get_hair_mid};
 pub use huffman::{decode_huffman, encode_huffman};
 pub use item::get_item_definition;
 pub use loc::get_loc_definition;
 pub use npc::get_npc_definition;
-pub use varbit::get_varbit_definition;
-
-use filesystem::Cache;
 use persistence::PersistenceModule;
-use std::future::Future;
-use std::pin::Pin;
-use std::sync::Arc;
+pub use structs::get_struct_definition;
+pub use varbit::get_varbit_definition;
 
 pub(crate) struct ProviderContext {
     pub cache: Arc<Cache>,

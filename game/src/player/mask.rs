@@ -1,13 +1,15 @@
-use crate::entity::{Anim, Mask, MaskConfig, MaskFlags, SpotAnim};
-use crate::player::equipment::EquipmentSlot;
-use crate::player::{DEFAULT_RENDER_EMOTE, EquipSlots};
-use crate::provider;
-use crate::world::Direction;
-use filesystem::definition::ParamMap;
+use filesystem::definition::{EquipmentFlag, ParamMap};
 use num_enum::IntoPrimitive;
 use persistence::Rights;
 use tokio_util::bytes::{BufMut, BytesMut};
 use util::BytesMutExt;
+
+use crate::{
+    entity::{Anim, Mask, MaskConfig, MaskFlags, SpotAnim},
+    player::{DEFAULT_RENDER_EMOTE, EquipSlots, equipment::EquipmentSlot},
+    provider,
+    world::Direction,
+};
 
 pub struct PlayerMask;
 
@@ -43,10 +45,7 @@ pub static PLAYER_MASKS: MaskConfig = MaskConfig {
         PlayerMask::APPEARANCE,
         PlayerMask::HIT_2,
     ],
-    extended: &[
-        (0x80, PlayerMask::EXTENDED),
-        (0x8000, PlayerMask::EXTENDED_2),
-    ],
+    extended: &[(0x80, PlayerMask::EXTENDED), (0x8000, PlayerMask::EXTENDED_2)],
 };
 
 pub struct FaceEntityMask(pub u16);
@@ -134,32 +133,41 @@ impl AppearanceMask {
         buf.put_u8(0xFF);
         buf.put_u8(0xFF);
 
-        self.encode_slot(buf, EquipmentSlot::Head, Some(self.look[0]));
+        let head_flag = self.flag_for(EquipmentSlot::Head);
+        let hides_arms = self.equipment[EquipmentSlot::Body].is_some()
+            && !matches!(self.flag_for(EquipmentSlot::Body), Some(EquipmentFlag::Sleeveless));
+
+        self.encode_slot(buf, EquipmentSlot::Head, None);
         self.encode_slot(buf, EquipmentSlot::Cape, None);
         self.encode_slot(buf, EquipmentSlot::Amulet, None);
         self.encode_slot(buf, EquipmentSlot::Weapon, None);
         self.encode_slot(buf, EquipmentSlot::Body, Some(self.look[2]));
         self.encode_slot(buf, EquipmentSlot::Shield, None);
-        buf.put_u16(0x100 | self.look[3]);
-        self.encode_slot(buf, EquipmentSlot::Legs, Some(self.look[5]));
 
-        if self.equipment[EquipmentSlot::Head].is_some() {
+        if hides_arms {
             buf.put_u8(0);
         } else {
-            buf.put_u16(0x100 | self.look[0]);
+            buf.put_u16(0x100 | self.look[3]);
+        }
+
+        self.encode_slot(buf, EquipmentSlot::Legs, Some(self.look[5]));
+
+        match head_flag {
+            Some(EquipmentFlag::Hair | EquipmentFlag::FullFace) => buf.put_u8(0),
+            Some(EquipmentFlag::HairMid) => buf.put_u16(0x100 | provider::get_hair_mid(self.look[0], self.male)),
+            Some(EquipmentFlag::HairLow) => buf.put_u16(0x100 | provider::get_hair_low(self.look[0], self.male)),
+            _ => buf.put_u16(0x100 | self.look[0]),
         }
 
         self.encode_slot(buf, EquipmentSlot::Gloves, Some(self.look[4]));
         self.encode_slot(buf, EquipmentSlot::Boots, Some(self.look[6]));
 
-        if self.male {
-            if self.equipment[EquipmentSlot::Head].is_some() {
-                buf.put_u8(0);
-            } else {
-                buf.put_u16(0x100 | self.look[1]);
-            }
-        } else {
+        let hides_beard = matches!(head_flag, Some(EquipmentFlag::FullFace | EquipmentFlag::Mask))
+            || (!self.male && self.equipment[EquipmentSlot::Body].is_some());
+        if hides_beard {
             buf.put_u8(0);
+        } else {
+            buf.put_u16(0x100 | self.look[1]);
         }
 
         for &color in &self.colors {
@@ -172,6 +180,13 @@ impl AppearanceMask {
         buf.put_u8(0);
         buf.put_u8(0xFF);
         buf.put_u8(0);
+    }
+
+    fn flag_for(&self, slot: EquipmentSlot) -> Option<EquipmentFlag> {
+        self.equipment[slot]
+            .and_then(|(id, _)| provider::get_item_definition(id as u32))
+            .map(|def| def.equipment_flag)
+            .filter(|f| *f != EquipmentFlag::None)
     }
 
     fn encode_slot(&self, buf: &mut BytesMut, slot: EquipmentSlot, kit_fallback: Option<u16>) {
