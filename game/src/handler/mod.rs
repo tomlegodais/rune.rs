@@ -1,7 +1,6 @@
-mod button;
 mod chat;
 mod command;
-mod drop;
+mod dispatch;
 mod ifmoveslot;
 mod interaction;
 mod objclick;
@@ -9,9 +8,10 @@ mod walk;
 
 use std::{any::TypeId, collections::HashMap, future::Future, pin::Pin};
 
-pub(crate) use interaction::{ContentHandler, ContentTarget, dispatch, dispatch_item};
+pub use dispatch::{ContentHandler, ContentTarget, dispatch, run_action};
+pub use interaction::try_dispatch_item;
 use net::IncomingMessage;
-pub(crate) use objclick::pickup_ground_item;
+pub use objclick::pickup_ground_item;
 use tracing::debug;
 
 use crate::player::Player;

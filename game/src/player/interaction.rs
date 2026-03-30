@@ -4,10 +4,10 @@ use macros::player_system;
 use net::ClickOption;
 
 use crate::{
+    handler::run_action,
     npc::FaceEntityMask as NpcFaceMask,
     player::{
         Player,
-        action::{ActionShared, ActionState},
         mask::FaceEntityMask as PlayerFaceEntityMask,
         system::{PlayerInitContext, PlayerSystem},
     },
@@ -24,11 +24,31 @@ pub struct PendingInteraction {
 }
 
 pub enum InteractionTarget {
-    Object { id: u16, x: i32, y: i32 },
-    Npc { index: usize },
-    Player { index: usize },
-    Item { slot: u16 },
-    GroundItem { id: u32, position: Position },
+    Object {
+        id: u16,
+        x: i32,
+        y: i32,
+    },
+    Npc {
+        index: usize,
+    },
+    Player {
+        index: usize,
+    },
+    Item {
+        slot: u16,
+    },
+    GroundItem {
+        id: u32,
+        position: Position,
+    },
+    Button {
+        interface: u16,
+        component: u16,
+        option: ClickOption,
+        slot1: u16,
+        slot2: u16,
+    },
 }
 
 impl Interaction {
@@ -57,6 +77,7 @@ impl InteractionTarget {
             Self::Player { index } => world.players.contains(*index).then(|| world.player(*index).position),
             Self::Item { .. } => None,
             Self::GroundItem { position, .. } => Some(*position),
+            Self::Button { .. } => None,
         }
     }
 }
@@ -113,7 +134,7 @@ pub fn resolve(player: &mut Player, world: &World) {
             can_interact_rect(collision, player.position, target_pos, size, size, 0)
         }
         InteractionTarget::Player { .. } => can_interact_rect(collision, player.position, target_pos, 1, 1, 0),
-        InteractionTarget::Item { .. } => return,
+        InteractionTarget::Item { .. } | InteractionTarget::Button { .. } => return,
         InteractionTarget::GroundItem { .. } => player.position == target_pos,
     };
 
@@ -129,20 +150,8 @@ pub fn resolve(player: &mut Player, world: &World) {
     face_target(player, world, &pending.target, target_pos);
 
     if let Some(future) = crate::handler::dispatch(player, pending.target, pending.option) {
-        let shared = Arc::new(ActionShared::new());
-        crate::player::action::set_action_context(player as *mut Player, shared.clone());
-
-        let mut action_state = ActionState {
-            active: future,
-            shared: shared.clone(),
-        };
-
-        let poll_result = crate::player::action::poll_action(&mut action_state);
-        crate::player::action::clear_action_context();
-
-        if poll_result.is_pending() {
-            world.action_states.lock().insert(player_index, action_state);
-        } else {
+        run_action(player, future);
+        if !world.action_states.lock().contains_key(&player_index) {
             clear_face_if_needed(player, world);
         }
     }
@@ -178,7 +187,7 @@ fn face_target(player: &mut Player, world: &World, target: &InteractionTarget, t
                 .player_info
                 .add_mask(crate::player::FaceDirectionMask(player.entity.face_direction));
         }
-        InteractionTarget::Item { .. } | InteractionTarget::GroundItem { .. } => {}
+        InteractionTarget::Item { .. } | InteractionTarget::GroundItem { .. } | InteractionTarget::Button { .. } => {}
     }
 }
 

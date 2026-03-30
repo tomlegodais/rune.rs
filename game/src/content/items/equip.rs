@@ -1,10 +1,8 @@
 use filesystem::definition::{EquipmentFlag, EquipmentSlot};
 use num_enum::TryFromPrimitive;
 
-use crate::{player::Player, send_message};
-
 #[macros::on_item(option = Two)]
-async fn equip_item(player: &mut Player, slot: u16) {
+async fn equip_item() {
     let Some(item) = slot_item!() else { return };
     let Some(def) = item_def!(item.id) else { return };
     let Some(raw_slot) = def.equipment_slot else { return };
@@ -41,7 +39,8 @@ async fn equip_item(player: &mut Player, slot: u16) {
     player.flush_appearance();
 }
 
-pub async fn unequip_item(player: &mut Player, component: u16) {
+#[macros::on_interface(option = One, interface = 387)]
+async fn unequip_item() {
     let slot = match component {
         8 => EquipmentSlot::Head,
         11 => EquipmentSlot::Cape,
@@ -60,7 +59,7 @@ pub async fn unequip_item(player: &mut Player, component: u16) {
     let Some(item) = player.equipment().slot(slot) else { return };
 
     if player.inventory().free_slots() == 0 {
-        send_message!(player, "Not enough inventory space.");
+        send_message!("Not enough inventory space.");
         return;
     }
 

@@ -26,32 +26,32 @@ use std::{
     sync::Arc,
 };
 
-pub(crate) use action::{
-    ActionShared, ActionState, PlayerRef, SkillActionBuilder, active_player, active_shared, clear_action_context,
-    delay, is_action_locked, npc_force_talk, poll_action, send_message, set_action_context,
+pub use action::{
+    ActionShared, ActionState, PlayerRef, active_player, active_shared, clear_action_context, is_action_locked,
+    poll_action, send_message, set_action_context,
 };
-pub(crate) use appearance::{Appearance, DEFAULT_RENDER_EMOTE};
-pub(crate) use equipment::{EquipSlots, SIZE as EQUIPMENT_SIZE};
-pub(crate) use gpi::encode_player_info;
-pub(crate) use info::PlayerInfo;
-pub(crate) use interaction::{InteractionTarget, resolve as resolve_interaction};
-pub(crate) use interface::SubInterface;
-pub(crate) use inventory::SIZE as INVENTORY_SIZE;
-pub(crate) use item::Item;
-pub(crate) use mask::{
+pub use appearance::{Appearance, DEFAULT_RENDER_EMOTE};
+pub use equipment::{EquipSlots, SIZE as EQUIPMENT_SIZE};
+pub use gpi::encode_player_info;
+pub use info::PlayerInfo;
+pub use interaction::{InteractionTarget, resolve as resolve_interaction};
+pub use interface::SubInterface;
+pub use inventory::SIZE as INVENTORY_SIZE;
+pub use item::Item;
+pub use mask::{
     AnimationMask, ChatMask, FaceDirectionMask, MoveTypeMask, SpotAnim1Mask, SpotAnim2Mask, TempMoveTypeMask,
 };
-pub(crate) use movement::{Movement, MovementContext};
+pub use movement::{Movement, MovementContext};
 use net::{ChatMessage, Inbox, Logout, Outbox, OutboxExt};
 use persistence::{
     account::{Account, Rights},
     player::PlayerData,
 };
-pub(crate) use skill::Skill;
+pub use skill::Skill;
 use system::{PlayerInitContext, SystemStore};
 use tracing::info;
-pub(crate) use varp::VarpManager;
-pub(crate) use viewport::Viewport;
+pub use varp::VarpManager;
+pub use viewport::Viewport;
 
 use crate::{
     entity::{Anim, AnimBuilder, Entity, MaskBlock, MoveStep, SpotAnim, SpotAnimBuilder},
@@ -236,6 +236,11 @@ impl Player {
                 self.player_info.add_mask(SpotAnim1Mask(sa));
             }
         })
+    }
+
+    pub async fn toggle_run(&mut self) {
+        let running = !self.movement().running;
+        with_movement!(self, |m, ctx| m.set_run(&mut ctx, running).await);
     }
 
     pub fn reset(&mut self) {

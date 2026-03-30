@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
-use super::{InteractionAttr, base_macros, emit_content_handler, extract_params};
+use super::{InteractionAttr, base_macros, emit_content_handler};
 
 pub fn on_item(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as InteractionAttr);
@@ -18,10 +18,6 @@ pub fn on_item(attr: TokenStream, item: TokenStream) -> TokenStream {
         Ok(v) => v,
         Err(e) => return e.to_compile_error().into(),
     };
-
-    let params = extract_params(&func);
-    let player = params.first().cloned().unwrap_or_else(|| format_ident!("_player"));
-    let slot_p = params.get(1).cloned().unwrap_or_else(|| format_ident!("_slot"));
 
     let base = base_macros();
     let item_m = quote! {
@@ -63,8 +59,8 @@ pub fn on_item(attr: TokenStream, item: TokenStream) -> TokenStream {
         quote! { crate::handler::ContentTarget::Item(#id_expr, #option) },
         quote! { let crate::player::InteractionTarget::Item { slot: __slot } = target else { unreachable!() }; },
         quote! {
-            let mut #player = crate::player::PlayerRef;
-            let #slot_p = __slot;
+            let mut player = crate::player::PlayerRef;
+            let slot = __slot;
         },
         quote! { #base #item_m },
         &func.block,

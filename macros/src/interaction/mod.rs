@@ -1,10 +1,11 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
-    FnArg, ItemFn, Pat, Token,
+    Token,
     parse::{Parse, ParseStream},
 };
 
+pub mod interface;
 pub mod item;
 pub mod npc;
 pub mod object;
@@ -17,11 +18,7 @@ pub enum AttrValue {
 
 impl Parse for AttrValue {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        if input.peek(syn::LitInt) {
-            Ok(AttrValue::Int(input.parse()?))
-        } else {
-            Ok(AttrValue::Ident(input.parse()?))
-        }
+        if input.peek(syn::LitInt) { Ok(AttrValue::Int(input.parse()?)) } else { Ok(AttrValue::Ident(input.parse()?)) }
     }
 }
 
@@ -66,36 +63,32 @@ impl InteractionAttr {
     pub fn option_variant(&self) -> syn::Result<proc_macro2::TokenStream> {
         if let Some(ident) = self.get_ident("option") {
             return match ident.to_string().as_str() {
-                "One" | "Two" | "Three" | "Four" | "Five" | "Six" | "Seven" | "Eight" => {
+                "One" | "Two" | "Three" | "Four" | "Five" | "Six" | "Seven" | "Eight" | "Nine" | "Ten" => {
                     Ok(quote! { net::ClickOption::#ident })
                 }
-                _ => Err(syn::Error::new(ident.span(), "option must be One..Eight")),
+                _ => Err(syn::Error::new(ident.span(), "option must be One..Ten")),
             };
         }
         let opt = self.require_int("option")?;
         let n: u8 = opt.base10_parse()?;
-        let variant = format_ident!("{}", match n {
-            1 => "One", 2 => "Two", 3 => "Three", 4 => "Four",
-            5 => "Five", 6 => "Six", 7 => "Seven", 8 => "Eight",
-            _ => return Err(syn::Error::new(opt.span(), "option must be 1-8")),
-        });
+        let variant = format_ident!(
+            "{}",
+            match n {
+                1 => "One",
+                2 => "Two",
+                3 => "Three",
+                4 => "Four",
+                5 => "Five",
+                6 => "Six",
+                7 => "Seven",
+                8 => "Eight",
+                9 => "Nine",
+                10 => "Ten",
+                _ => return Err(syn::Error::new(opt.span(), "option must be 1-10")),
+            }
+        );
         Ok(quote! { net::ClickOption::#variant })
     }
-}
-
-pub fn extract_param_name(pat: &Pat) -> syn::Ident {
-    match pat {
-        Pat::Ident(pat_ident) => pat_ident.ident.clone(),
-        _ => panic!("command parameters must be simple identifiers"),
-    }
-}
-
-pub fn extract_params(func: &ItemFn) -> Vec<syn::Ident> {
-    func.sig
-        .inputs
-        .iter()
-        .filter_map(|arg| if let FnArg::Typed(pat_type) = arg { Some(extract_param_name(&pat_type.pat)) } else { None })
-        .collect()
 }
 
 pub fn emit_content_handler(
@@ -133,6 +126,21 @@ pub fn emit_content_handler(
 pub fn base_macros() -> proc_macro2::TokenStream {
     quote! {
         macro_rules! send_message { ($($a:tt)*) => { crate::player::send_message(crate::player::active_player(), &format!($($a)*)) }; }
+        macro_rules! with_movement {
+            ($player:expr, |$m:ident, $ctx:ident| $body:expr) => {{
+                let mut $m = $player.systems.guard::<crate::player::Movement>();
+                let mut varps = $player.systems.guard::<crate::player::VarpManager>();
+                let agility_level = $player.skill().level(crate::player::Skill::Agility);
+                let mut $ctx = crate::player::MovementContext {
+                    entity: &mut $player.entity,
+                    player_info: &mut $player.player_info,
+                    varps: &mut varps,
+                    agility_level,
+                    region_base: $player.viewport.region_base,
+                };
+                $body
+            }};
+        }
         macro_rules! delay { ($t:expr) => { crate::player::delay(&__shared, $t).await }; }
         macro_rules! lock { () => { crate::player::lock(&__shared) }; }
         macro_rules! unlock { () => { crate::player::unlock(&__shared) }; }

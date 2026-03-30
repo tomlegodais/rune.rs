@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
-use super::{InteractionAttr, base_macros, emit_content_handler, extract_params};
+use super::{InteractionAttr, base_macros, emit_content_handler};
 
 pub fn on_object(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as InteractionAttr);
@@ -18,15 +18,6 @@ pub fn on_object(attr: TokenStream, item: TokenStream) -> TokenStream {
         Err(e) => return e.to_compile_error().into(),
     };
 
-    let params = extract_params(&func);
-    let player = params.first().cloned().unwrap_or_else(|| format_ident!("_player"));
-
-    let id_p = params.get(1).cloned().unwrap_or_else(|| format_ident!("_id"));
-
-    let x_p = params.get(2).cloned().unwrap_or_else(|| format_ident!("_x"));
-
-    let y_p = params.get(3).cloned().unwrap_or_else(|| format_ident!("_y"));
-
     let base = base_macros();
 
     emit_content_handler(
@@ -34,10 +25,10 @@ pub fn on_object(attr: TokenStream, item: TokenStream) -> TokenStream {
         quote! { crate::handler::ContentTarget::Object(#id, #option) },
         quote! { let crate::player::InteractionTarget::Object { id: __id, x: __x, y: __y } = target else { unreachable!() }; },
         quote! {
-            let mut #player = crate::player::PlayerRef;
-            let #id_p = __id;
-            let #x_p = __x;
-            let #y_p = __y;
+            let mut player = crate::player::PlayerRef;
+            let obj_id = __id;
+            let obj_x = __x;
+            let obj_y = __y;
         },
         base,
         &func.block,
