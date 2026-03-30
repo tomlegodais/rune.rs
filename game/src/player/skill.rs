@@ -83,6 +83,13 @@ impl SkillManager {
         self.levels[i] = level_for_xp(xp);
     }
 
+    pub async fn add_xp(&mut self, skill: Skill, xp: f64) {
+        let i = skill as usize;
+        self.xp[i] = self.xp[i].saturating_add(xp as u32);
+        self.levels[i] = level_for_xp(self.xp[i]);
+        self.send_skill(skill).await;
+    }
+
     pub async fn flush(&mut self) {
         let skills: Vec<_> = (0..NUM_SKILLS).filter_map(|i| Skill::try_from(i).ok()).collect();
         for skill in skills {
