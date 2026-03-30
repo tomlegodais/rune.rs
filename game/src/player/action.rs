@@ -126,6 +126,18 @@ pub fn unlock(shared: &ActionShared) {
     shared.locked.store(false, Ordering::Relaxed);
 }
 
+pub struct AnimResetGuard(pub *mut Player);
+
+unsafe impl Send for AnimResetGuard {}
+
+impl Drop for AnimResetGuard {
+    fn drop(&mut self) {
+        let player = unsafe { &mut *self.0 };
+        player.anim(0xFFFF);
+        player.spot_anim(0xFFFF);
+    }
+}
+
 pub fn is_action_locked(player: &Player) -> bool {
     let world = player.world();
     world

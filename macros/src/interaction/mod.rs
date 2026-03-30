@@ -145,47 +145,49 @@ pub fn base_macros() -> proc_macro2::TokenStream {
         macro_rules! lock { () => { crate::player::lock(&__shared) }; }
         macro_rules! unlock { () => { crate::player::unlock(&__shared) }; }
         macro_rules! repeat {
-            (delay = $d:expr) => {
-                repeat!(delay = $d, times = 0)
+            (delay = $d:expr, anim = $a:expr, times = $t:expr, $body:block) => {
+                repeat!(@__impl $d, $t, Some($a), $body)
             };
-            (delay = $d:expr, times = $t:expr) => {
-                repeat!(@__body $d, $t, {})
+            (delay = $d:expr, anim = $a:expr, $body:block) => {
+                repeat!(@__impl $d, 0, Some($a), $body)
             };
-            (delay = $d:expr, $($body:tt)*) => {
-                repeat!(@__impl $d, 0, $($body)*)
+            (delay = $d:expr, times = $t:expr, $body:block) => {
+                repeat!(@__impl $d, $t, None::<u16>, $body)
             };
-            (delay = $d:expr, times = $t:expr, $($body:tt)*) => {
-                repeat!(@__impl $d, $t, $($body)*)
+            (delay = $d:expr, $body:block) => {
+                repeat!(@__impl $d, 0, None::<u16>, $body)
             };
-            (@__impl $d:expr, $t:expr, { $($body:tt)* }) => {{
+            (@__impl $d:expr, $t:expr, $a:expr, $body:block) => {{
                 let __max_iters: u32 = $t;
                 let mut __iter_count: u32 = 0;
+                let __anim_id: Option<u16> = $a;
+                let __anim_guard = crate::player::AnimResetGuard(crate::player::active_player() as *mut _);
                 loop {
+                    if let Some(id) = __anim_id {
+                        crate::player::active_player().anim(id);
+                    }
                     crate::player::delay(&__shared, $d).await;
                     __iter_count += 1;
-                    { $($body)* }
+                    $body
                     if __max_iters > 0 && __iter_count >= __max_iters {
                         break;
                     }
                 }
+                drop(__anim_guard);
             }};
         }
-        macro_rules! attempt {
-            ($chance:expr) => {
-                if !$chance {
-                    continue;
-                }
+        macro_rules! successful {
+            (chance = $chance:expr) => {
+                rand::random::<f64>() < $chance
             };
         }
-        macro_rules! deplete {
-            (chance = $c:expr, id = $id:expr, respawn = $r:expr) => {
-                if rand::random::<u8>() % 100 < $c {
-                    break;
-                }
+        macro_rules! depleted {
+            (chance = $chance:expr) => {
+                rand::random::<f64>() < $chance
             };
         }
         macro_rules! requires {
-            (skill::$skill:ident, level = $lvl:expr) => {
+            (skill = $skill:ident, level = $lvl:expr) => {
                 if crate::player::active_player().skill().level(crate::player::Skill::$skill) < $lvl {
                     send_message!(
                         "You need a {} level of {} to do that.",
@@ -195,23 +197,29 @@ pub fn base_macros() -> proc_macro2::TokenStream {
                     return;
                 }
             };
-            (skill::$skill:ident, level = $lvl:expr, $msg:expr) => {
+            (skill = $skill:ident, level = $lvl:expr, $msg:expr) => {
                 if crate::player::active_player().skill().level(crate::player::Skill::$skill) < $lvl {
                     send_message!($msg);
                     return;
                 }
             };
+            (inventory, slots = $n:expr) => {
+                if crate::player::active_player().inventory().free_slots() < $n {
+                    send_message!("Your inventory is too full.");
+                    return;
+                }
+            };
         }
-        macro_rules! give_item {
-            ($id:expr) => {
+        macro_rules! inv_add {
+            (id = $id:expr) => {
                 crate::player::active_player().inventory_mut().add($id, 1).await;
             };
-            ($id:expr, amount = $n:expr) => {
+            (id = $id:expr, amount = $n:expr) => {
                 crate::player::active_player().inventory_mut().add($id, $n).await;
             };
         }
         macro_rules! give_xp {
-            (skill::$skill:ident, $xp:expr) => {
+            (skill = $skill:ident, amount = $xp:expr) => {
                 crate::player::active_player().skill_mut().add_xp(crate::player::Skill::$skill, $xp).await;
             };
         }

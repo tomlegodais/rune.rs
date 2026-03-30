@@ -99,28 +99,20 @@ async fn handle_player(player: &mut Player, msg: PlayerClick) {
 
 #[message_handler]
 async fn handle_button(player: &mut Player, msg: ButtonClick) {
-    if is_action_locked(player) {
-        return;
-    }
-
-    player.world().action_states.lock().remove(&player.index);
-
     let handler = [Some(msg.option), None]
         .into_iter()
         .flat_map(|o| [Some(msg.component), None].map(|c| (o, c)))
         .find_map(|(o, c)| CONTENT_HANDLERS.get(&ContentTarget::Button(o, msg.interface, c)));
 
     let Some(handler) = handler else {
-        tracing::info!(
-            "Unhandled Button (option={:?}, interface={}, component={}, slot=1={}, slot2={})",
-            msg.option,
-            msg.interface,
-            msg.component,
-            msg.slot1,
-            msg.slot2
-        );
         return;
     };
+
+    if is_action_locked(player) {
+        return;
+    }
+
+    player.world().action_states.lock().remove(&player.index);
 
     let target = InteractionTarget::Button {
         interface: msg.interface,

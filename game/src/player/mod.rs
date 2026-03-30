@@ -27,8 +27,8 @@ use std::{
 };
 
 pub use action::{
-    ActionShared, ActionState, PlayerRef, active_player, active_shared, clear_action_context, is_action_locked,
-    poll_action, send_message, set_action_context,
+    ActionShared, ActionState, AnimResetGuard, PlayerRef, active_player, active_shared, clear_action_context, delay,
+    is_action_locked, lock, poll_action, send_message, set_action_context, unlock,
 };
 pub use appearance::{Appearance, DEFAULT_RENDER_EMOTE};
 pub use equipment::{EquipSlots, SIZE as EQUIPMENT_SIZE};

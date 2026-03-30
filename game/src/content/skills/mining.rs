@@ -1,0 +1,27 @@
+// Test handler for working out the skill action macro DSL.
+// Not representative of final content — uses placeholder IDs and hardcoded values.
+#[macros::on_object(id = 37312, option = 1)]
+async fn mine_gold_rock() {
+    requires!(skill = Mining, level = 40);
+    requires!(inventory, slots = 1);
+
+    send_message!("You swing your pickaxe at the rock.");
+
+    repeat!(delay = 3, anim = 12189, {
+        requires!(inventory, slots = 1);
+
+        if !successful!(chance = 0.20) {
+            continue;
+        }
+
+        inv_add!(id = 444);
+        give_xp!(skill = Mining, amount = 65.0);
+        send_message!("You mine some gold ore.");
+
+        if depleted!(chance = 0.25) {
+            break;
+        }
+    });
+
+    send_message!("The rock has been depleted.");
+}
