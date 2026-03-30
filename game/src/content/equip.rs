@@ -1,7 +1,7 @@
 use filesystem::definition::EquipmentFlag;
 use num_enum::TryFromPrimitive;
 
-use crate::player::EquipmentSlot;
+use crate::player::{EquipmentSlot, Item};
 
 #[macros::on_item_option(option = 2)]
 async fn equip_item(player: &mut Player, slot: u16) {
@@ -25,23 +25,7 @@ async fn equip_item(player: &mut Player, slot: u16) {
 
     let two_handed = def.equipment_flag == EquipmentFlag::TwoHanded;
 
-    let mut returning: Vec<(u16, u32)> = Vec::new();
-
-    if let Some(item) = player.equipment().slot(target_slot) {
-        returning.push(item);
-    }
-
-    if two_handed && let Some(shield) = player.equipment().slot(EquipmentSlot::Shield) {
-        returning.push(shield);
-    }
-
-    if target_slot == EquipmentSlot::Shield
-        && let Some((wep_id, wep_amt)) = player.equipment().slot(EquipmentSlot::Weapon)
-        && crate::provider::get_item_definition(wep_id as u32)
-            .is_some_and(|d| d.equipment_flag == EquipmentFlag::TwoHanded)
-    {
-        returning.push((wep_id, wep_amt));
-    }
+    let returning = player.equipment().displace(target_slot, def.equipment_flag);
 
     let needed = returning.len().saturating_sub(1);
     if player.inventory().free_slots() < needed {
@@ -55,17 +39,17 @@ async fn equip_item(player: &mut Player, slot: u16) {
         player.equipment_mut().set(EquipmentSlot::Shield, None);
     }
     if target_slot == EquipmentSlot::Shield
-        && returning.iter().any(|&(id, _)| {
-            crate::provider::get_item_definition(id as u32)
+        && returning.iter().any(|item| {
+            crate::provider::get_item_definition(item.id as u32)
                 .is_some_and(|d| d.equipment_flag == EquipmentFlag::TwoHanded)
         })
     {
         player.equipment_mut().set(EquipmentSlot::Weapon, None);
     }
-    player.equipment_mut().set(target_slot, Some((item_id, amount)));
+    player.equipment_mut().set(target_slot, Some(Item::new(item_id, amount)));
 
-    for (ret_id, ret_amt) in &returning {
-        player.inventory_mut().add(*ret_id, *ret_amt).await;
+    for item in &returning {
+        player.inventory_mut().add(item.id, item.amount).await;
     }
 
     player.equipment_mut().flush().await;

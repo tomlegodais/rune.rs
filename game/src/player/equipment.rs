@@ -5,12 +5,14 @@ use std::{
 };
 
 pub use filesystem::definition::EquipmentSlot;
+use filesystem::definition::EquipmentFlag;
 use macros::player_system;
 use net::{ItemContainerEntry, ItemContainerId, Outbox, OutboxExt, UpdateItemContainer};
 use persistence::player::PlayerData;
 
 use crate::{
     player::{
+        Item,
         PlayerSnapshot,
         system::{PlayerInitContext, PlayerSystem, SystemContext},
     },
@@ -20,10 +22,10 @@ use crate::{
 pub const SIZE: usize = 14;
 
 #[derive(Clone, Copy)]
-pub struct EquipSlots(pub [Option<(u16, u32)>; SIZE]);
+pub struct EquipSlots(pub [Option<Item>; SIZE]);
 
 impl Index<EquipmentSlot> for EquipSlots {
-    type Output = Option<(u16, u32)>;
+    type Output = Option<Item>;
     fn index(&self, slot: EquipmentSlot) -> &Self::Output {
         &self.0[slot as usize]
     }
@@ -39,7 +41,7 @@ impl<T: AsRef<[Option<(u16, u32)>]>> From<T> for EquipSlots {
     fn from(src: T) -> Self {
         let mut slots = [None; SIZE];
         for (i, slot) in src.as_ref().iter().enumerate().take(SIZE) {
-            slots[i] = *slot;
+            slots[i] = slot.map(|(id, amount)| Item::new(id, amount));
         }
         Self(slots)
     }
@@ -51,16 +53,42 @@ pub struct Equipment {
 }
 
 impl Equipment {
-    pub fn slot(&self, slot: EquipmentSlot) -> Option<(u16, u32)> {
+    pub fn slot(&self, slot: EquipmentSlot) -> Option<Item> {
         self.slots[slot]
     }
 
-    pub fn set(&mut self, slot: EquipmentSlot, item: Option<(u16, u32)>) {
+    pub fn set(&mut self, slot: EquipmentSlot, item: Option<Item>) {
         self.slots[slot] = item;
     }
 
     pub fn slots(&self) -> &EquipSlots {
         &self.slots
+    }
+
+    pub fn displace(&self, slot: EquipmentSlot, flag: EquipmentFlag) -> Vec<Item> {
+        let mut out = Vec::new();
+
+        if let Some(item) = self.slots[slot] {
+            out.push(item);
+        }
+
+        if flag == EquipmentFlag::TwoHanded {
+            if let Some(shield) = self.slots[EquipmentSlot::Shield] {
+                out.push(shield);
+            }
+        }
+
+        if slot == EquipmentSlot::Shield {
+            if let Some(wep) = self.slots[EquipmentSlot::Weapon] {
+                let wep_is_2h = crate::provider::get_item_definition(wep.id as u32)
+                    .is_some_and(|d| d.equipment_flag == EquipmentFlag::TwoHanded);
+                if wep_is_2h {
+                    out.push(wep);
+                }
+            }
+        }
+
+        out
     }
 
     pub async fn flush(&mut self) {
@@ -72,7 +100,7 @@ impl Equipment {
                     .slots
                     .0
                     .iter()
-                    .map(|s| s.map(|(item_id, amount)| ItemContainerEntry { item_id, amount }))
+                    .map(|s| s.map(|item| ItemContainerEntry { item_id: item.id, amount: item.amount }))
                     .collect(),
             })
             .await;
@@ -99,6 +127,6 @@ impl PlayerSystem for Equipment {
     fn tick_context(_: &std::sync::Arc<World>, _: &PlayerSnapshot) {}
 
     fn persist(&self, data: &mut PlayerData) {
-        data.equipment = self.slots.0.to_vec();
+        data.equipment = self.slots.0.iter().map(|s| s.map(|item| (item.id, item.amount))).collect();
     }
 }
