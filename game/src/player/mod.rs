@@ -31,7 +31,7 @@ pub(crate) use action::{
     delay, is_action_locked, npc_force_talk, poll_action, send_message, set_action_context,
 };
 pub(crate) use appearance::{Appearance, DEFAULT_RENDER_EMOTE};
-pub(crate) use equipment::{EquipSlots, EquipmentSlot, SIZE as EQUIPMENT_SIZE};
+pub(crate) use equipment::{EquipSlots, SIZE as EQUIPMENT_SIZE};
 pub(crate) use gpi::encode_player_info;
 pub(crate) use info::PlayerInfo;
 pub(crate) use interaction::{InteractionTarget, resolve as resolve_interaction};

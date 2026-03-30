@@ -1,58 +1,35 @@
-use filesystem::definition::EquipmentFlag;
+use filesystem::definition::{EquipmentFlag, EquipmentSlot};
 use num_enum::TryFromPrimitive;
-
-use crate::player::{EquipmentSlot, Item};
 
 #[macros::on_item_option(option = 2)]
 async fn equip_item(player: &mut Player, slot: u16) {
-    let Some(item) = slot_item!() else {
-        return;
-    };
-    let item_id = item.id;
-    let amount = item.amount;
+    let Some(item) = slot_item!() else { return };
+    let Some(def) = item_def!(item.id) else { return };
+    let Some(raw_slot) = def.equipment_slot else { return };
+    let Ok(target_slot) = EquipmentSlot::try_from_primitive(raw_slot as usize) else { return };
 
-    let Some(def) = crate::provider::get_item_definition(item_id as u32) else {
-        return;
-    };
-
-    let Some(raw_slot) = def.equipment_slot else {
-        return;
-    };
-
-    let Ok(target_slot) = EquipmentSlot::try_from_primitive(raw_slot as usize) else {
-        return;
-    };
-
-    let two_handed = def.equipment_flag == EquipmentFlag::TwoHanded;
-
-    let returning = player.equipment().displace(target_slot, def.equipment_flag);
-
-    let needed = returning.len().saturating_sub(1);
+    let displaced = player.equipment().displace(target_slot, def.equipment_flag);
+    let needed = displaced.len().saturating_sub(1);
     if player.inventory().free_slots() < needed {
         send_message!("Not enough inventory space.");
         return;
     }
 
     player.inventory_mut().clear_slot(slot as usize).await;
-
-    if two_handed {
-        player.equipment_mut().set(EquipmentSlot::Shield, None);
+    if def.equipment_flag == EquipmentFlag::TwoHanded {
+        unequip!(EquipmentSlot::Shield);
     }
     if target_slot == EquipmentSlot::Shield
-        && returning.iter().any(|item| {
-            crate::provider::get_item_definition(item.id as u32)
-                .is_some_and(|d| d.equipment_flag == EquipmentFlag::TwoHanded)
-        })
+        && player.equipment().slot(EquipmentSlot::Weapon).is_some_and(|wep| displaced.contains(&wep))
     {
-        player.equipment_mut().set(EquipmentSlot::Weapon, None);
+        unequip!(EquipmentSlot::Weapon);
     }
-    player.equipment_mut().set(target_slot, Some(Item::new(item_id, amount)));
+    player.equipment_mut().set(target_slot, Some(item));
 
-    for item in &returning {
-        player.inventory_mut().add(item.id, item.amount).await;
+    for d in &displaced {
+        player.inventory_mut().add(d.id, d.amount).await;
     }
 
     player.equipment_mut().flush().await;
-
     player.flush_appearance();
 }
