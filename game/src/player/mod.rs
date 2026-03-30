@@ -10,6 +10,7 @@ mod info;
 mod interaction;
 mod interface;
 mod inventory;
+mod item;
 mod mask;
 mod movement;
 mod options;
@@ -36,6 +37,7 @@ pub(crate) use info::PlayerInfo;
 pub(crate) use interaction::{InteractionTarget, resolve as resolve_interaction};
 pub(crate) use interface::SubInterface;
 pub(crate) use inventory::SIZE as INVENTORY_SIZE;
+pub(crate) use item::Item;
 pub(crate) use mask::{
     AnimationMask, ChatMask, FaceDirectionMask, MoveTypeMask, SpotAnim1Mask, SpotAnim2Mask, TempMoveTypeMask,
 };
