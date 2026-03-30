@@ -3,7 +3,7 @@ use num_enum::TryFromPrimitive;
 
 use crate::{player::Player, send_message};
 
-#[macros::on_item_option(option = 2)]
+#[macros::on_item(option = Two)]
 async fn equip_item(player: &mut Player, slot: u16) {
     let Some(item) = slot_item!() else { return };
     let Some(def) = item_def!(item.id) else { return };

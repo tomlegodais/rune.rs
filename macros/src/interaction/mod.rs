@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{
-    FnArg, ItemFn, LitInt, Pat, Token,
+    FnArg, ItemFn, Pat, Token,
     parse::{Parse, ParseStream},
 };
 
@@ -10,8 +10,23 @@ pub mod npc;
 pub mod object;
 pub mod player;
 
+pub enum AttrValue {
+    Int(syn::LitInt),
+    Ident(syn::Ident),
+}
+
+impl Parse for AttrValue {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        if input.peek(syn::LitInt) {
+            Ok(AttrValue::Int(input.parse()?))
+        } else {
+            Ok(AttrValue::Ident(input.parse()?))
+        }
+    }
+}
+
 pub struct InteractionAttr {
-    pub pairs: Vec<(String, LitInt)>,
+    pub pairs: Vec<(String, AttrValue)>,
 }
 
 impl Parse for InteractionAttr {
@@ -20,7 +35,7 @@ impl Parse for InteractionAttr {
         while !input.is_empty() {
             let ident: syn::Ident = input.parse()?;
             input.parse::<Token![=]>()?;
-            let value: LitInt = input.parse()?;
+            let value: AttrValue = input.parse()?;
             pairs.push((ident.to_string(), value));
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
@@ -31,32 +46,39 @@ impl Parse for InteractionAttr {
 }
 
 impl InteractionAttr {
-    pub fn get(&self, key: &str) -> Option<&LitInt> {
-        self.pairs.iter().find(|(k, _)| k == key).map(|(_, v)| v)
+    fn get_value<T>(&self, key: &str, f: impl Fn(&AttrValue) -> Option<&T>) -> Option<&T> {
+        self.pairs.iter().find_map(|(k, v)| (k == key).then(|| f(v)).flatten())
     }
 
-    pub fn require(&self, key: &str) -> syn::Result<&LitInt> {
-        self.get(key)
+    pub fn get_int(&self, key: &str) -> Option<&syn::LitInt> {
+        self.get_value(key, |v| if let AttrValue::Int(i) = v { Some(i) } else { None })
+    }
+
+    pub fn require_int(&self, key: &str) -> syn::Result<&syn::LitInt> {
+        self.get_int(key)
             .ok_or_else(|| syn::Error::new(proc_macro2::Span::call_site(), format!("missing `{key}`")))
     }
 
+    pub fn get_ident(&self, key: &str) -> Option<&syn::Ident> {
+        self.get_value(key, |v| if let AttrValue::Ident(i) = v { Some(i) } else { None })
+    }
+
     pub fn option_variant(&self) -> syn::Result<proc_macro2::TokenStream> {
-        let opt = self.require("option")?;
+        if let Some(ident) = self.get_ident("option") {
+            return match ident.to_string().as_str() {
+                "One" | "Two" | "Three" | "Four" | "Five" | "Six" | "Seven" | "Eight" => {
+                    Ok(quote! { net::ClickOption::#ident })
+                }
+                _ => Err(syn::Error::new(ident.span(), "option must be One..Eight")),
+            };
+        }
+        let opt = self.require_int("option")?;
         let n: u8 = opt.base10_parse()?;
-        let variant = format_ident!(
-            "{}",
-            match n {
-                1 => "One",
-                2 => "Two",
-                3 => "Three",
-                4 => "Four",
-                5 => "Five",
-                6 => "Six",
-                7 => "Seven",
-                8 => "Eight",
-                _ => return Err(syn::Error::new(opt.span(), "option must be 1-8")),
-            }
-        );
+        let variant = format_ident!("{}", match n {
+            1 => "One", 2 => "Two", 3 => "Three", 4 => "Four",
+            5 => "Five", 6 => "Six", 7 => "Seven", 8 => "Eight",
+            _ => return Err(syn::Error::new(opt.span(), "option must be 1-8")),
+        });
         Ok(quote! { net::ClickOption::#variant })
     }
 }

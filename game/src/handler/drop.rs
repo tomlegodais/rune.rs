@@ -1,4 +1,4 @@
-#[macros::on_item_option(option = 7)]
+#[macros::on_item(option = Seven)]
 async fn drop_item() {
     let Some(item) = slot_item!() else {
         return;

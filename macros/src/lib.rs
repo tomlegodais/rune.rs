@@ -32,21 +32,21 @@ pub fn data_provider(attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn on_object_click(attr: TokenStream, item: TokenStream) -> TokenStream {
-    interaction::object::on_object_click(attr, item)
+pub fn on_object(attr: TokenStream, item: TokenStream) -> TokenStream {
+    interaction::object::on_object(attr, item)
 }
 
 #[proc_macro_attribute]
-pub fn on_npc_click(attr: TokenStream, item: TokenStream) -> TokenStream {
-    interaction::npc::on_npc_click(attr, item)
+pub fn on_npc(attr: TokenStream, item: TokenStream) -> TokenStream {
+    interaction::npc::on_npc(attr, item)
 }
 
 #[proc_macro_attribute]
-pub fn on_item_option(attr: TokenStream, item: TokenStream) -> TokenStream {
-    interaction::item::on_item_option(attr, item)
+pub fn on_item(attr: TokenStream, item: TokenStream) -> TokenStream {
+    interaction::item::on_item(attr, item)
 }
 
 #[proc_macro_attribute]
-pub fn on_player_click(attr: TokenStream, item: TokenStream) -> TokenStream {
-    interaction::player::on_player_click(attr, item)
+pub fn on_player(attr: TokenStream, item: TokenStream) -> TokenStream {
+    interaction::player::on_player(attr, item)
 }

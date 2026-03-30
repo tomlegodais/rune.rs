@@ -4,7 +4,7 @@ use syn::parse_macro_input;
 
 use super::{InteractionAttr, base_macros, emit_content_handler, extract_params};
 
-pub fn on_player_click(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn on_player(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as InteractionAttr);
     let func = parse_macro_input!(item as syn::ItemFn);
     let wrapper_name = format_ident!("__{}_content_wrapper", func.sig.ident);

@@ -1,4 +1,4 @@
-#[macros::on_npc_click(npc_id = 2, option = 1)]
+#[macros::on_npc(npc_id = 2, option = One)]
 async fn talk_to_man() {
     anim!(863);
     delay!(2);

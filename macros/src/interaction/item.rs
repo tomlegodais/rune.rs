@@ -4,12 +4,12 @@ use syn::parse_macro_input;
 
 use super::{InteractionAttr, base_macros, emit_content_handler, extract_params};
 
-pub fn on_item_option(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn on_item(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as InteractionAttr);
     let func = parse_macro_input!(item as syn::ItemFn);
     let wrapper_name = format_ident!("__{}_content_wrapper", func.sig.ident);
 
-    let id_expr = match attr.get("id") {
+    let id_expr = match attr.get_int("id") {
         Some(id) => quote! { #id as i32 },
         None => quote! { -1i32 },
     };
