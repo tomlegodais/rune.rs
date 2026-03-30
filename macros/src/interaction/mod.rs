@@ -144,6 +144,82 @@ pub fn base_macros() -> proc_macro2::TokenStream {
         macro_rules! delay { ($t:expr) => { crate::player::delay(&__shared, $t).await }; }
         macro_rules! lock { () => { crate::player::lock(&__shared) }; }
         macro_rules! unlock { () => { crate::player::unlock(&__shared) }; }
+        macro_rules! repeat {
+            (delay = $d:expr) => {
+                repeat!(delay = $d, times = 0)
+            };
+            (delay = $d:expr, times = $t:expr) => {
+                repeat!(@__body $d, $t, {})
+            };
+            (delay = $d:expr, $($body:tt)*) => {
+                repeat!(@__impl $d, 0, $($body)*)
+            };
+            (delay = $d:expr, times = $t:expr, $($body:tt)*) => {
+                repeat!(@__impl $d, $t, $($body)*)
+            };
+            (@__impl $d:expr, $t:expr, { $($body:tt)* }) => {{
+                let __max_iters: u32 = $t;
+                let mut __iter_count: u32 = 0;
+                loop {
+                    crate::player::delay(&__shared, $d).await;
+                    __iter_count += 1;
+                    { $($body)* }
+                    if __max_iters > 0 && __iter_count >= __max_iters {
+                        break;
+                    }
+                }
+            }};
+        }
+        macro_rules! attempt {
+            ($chance:expr) => {
+                if !$chance {
+                    continue;
+                }
+            };
+        }
+        macro_rules! deplete {
+            (chance = $c:expr, id = $id:expr, respawn = $r:expr) => {
+                if rand::random::<u8>() % 100 < $c {
+                    break;
+                }
+            };
+        }
+        macro_rules! requires {
+            (skill::$skill:ident, level = $lvl:expr) => {
+                if crate::player::active_player().skill().level(crate::player::Skill::$skill) < $lvl {
+                    send_message!(
+                        "You need a {} level of {} to do that.",
+                        stringify!($skill),
+                        $lvl
+                    );
+                    return;
+                }
+            };
+            (skill::$skill:ident, level = $lvl:expr, $msg:expr) => {
+                if crate::player::active_player().skill().level(crate::player::Skill::$skill) < $lvl {
+                    send_message!($msg);
+                    return;
+                }
+            };
+        }
+        macro_rules! give_item {
+            ($id:expr) => {
+                crate::player::active_player().inventory_mut().add($id, 1).await;
+            };
+            ($id:expr, amount = $n:expr) => {
+                crate::player::active_player().inventory_mut().add($id, $n).await;
+            };
+        }
+        macro_rules! give_xp {
+            (skill::$skill:ident, $xp:expr) => {
+                crate::player::active_player().skill_mut().add_xp(crate::player::Skill::$skill, $xp).await;
+            };
+        }
+        macro_rules! inventory_full {
+            () => {
+                crate::player::active_player().inventory().free_slots() == 0
+            };
+        }
         macro_rules! anim {
             ($id:expr) => { crate::player::active_player().anim($id) };
             ($id:expr, $($k:ident = $v:expr),+) => { { let b = crate::player::active_player().anim($id); $(let b = b.$k($v);)+ b } };
