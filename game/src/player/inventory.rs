@@ -6,6 +6,7 @@ use persistence::player::PlayerData;
 
 use crate::{
     player::{
+        Item,
         PlayerSnapshot,
         system::{PlayerInitContext, PlayerSystem, SystemContext},
     },
@@ -18,15 +19,15 @@ pub const SIZE: usize = 28;
 
 pub struct Inventory {
     outbox: Outbox,
-    slots: [Option<(u16, u32)>; SIZE],
+    slots: [Option<Item>; SIZE],
 }
 
 impl Inventory {
-    fn from_slots(outbox: Outbox, slots: [Option<(u16, u32)>; SIZE]) -> Self {
+    fn from_slots(outbox: Outbox, slots: [Option<Item>; SIZE]) -> Self {
         Self { outbox, slots }
     }
 
-    pub fn slot(&self, index: usize) -> Option<(u16, u32)> {
+    pub fn slot(&self, index: usize) -> Option<Item> {
         self.slots[index]
     }
 
@@ -34,8 +35,8 @@ impl Inventory {
         self.slots
             .iter()
             .flatten()
-            .filter(|(id, _)| *id == item_id)
-            .map(|(_, qty)| *qty)
+            .filter(|item| item.id == item_id)
+            .map(|item| item.amount)
             .sum()
     }
 
@@ -44,21 +45,19 @@ impl Inventory {
             true => self.add_stackable(item_id, amount),
             false => self.add_unstackable(item_id, amount),
         };
-
         self.flush().await;
         remaining
     }
 
     fn add_stackable(&mut self, item_id: u16, amount: u32) -> u32 {
-        if let Some((_, qty)) = self.slots.iter_mut().flatten().find(|(id, _)| *id == item_id) {
-            let added = amount.min(STACK_MAX - *qty);
-            *qty += added;
+        if let Some(item) = self.slots.iter_mut().flatten().find(|item| item.id == item_id) {
+            let added = amount.min(STACK_MAX - item.amount);
+            item.amount += added;
             return amount - added;
         }
-
         match self.slots.iter_mut().find(|s| s.is_none()) {
             Some(slot) => {
-                *slot = Some((item_id, amount.min(STACK_MAX)));
+                *slot = Some(Item::new(item_id, amount.min(STACK_MAX)));
                 amount.saturating_sub(STACK_MAX)
             }
             None => amount,
@@ -68,41 +67,33 @@ impl Inventory {
     fn add_unstackable(&mut self, item_id: u16, amount: u32) -> u32 {
         let free = self.slots.iter().filter(|s| s.is_none()).count() as u32;
         let added = amount.min(free);
-
         self.slots
             .iter_mut()
             .filter(|s| s.is_none())
             .take(added as usize)
-            .for_each(|s| *s = Some((item_id, 1)));
-
+            .for_each(|s| *s = Some(Item::new(item_id, 1)));
         amount - added
     }
 
     pub async fn remove(&mut self, item_id: u16, amount: u32) -> u32 {
         let mut remaining = amount;
-
-        for slot in self
-            .slots
-            .iter_mut()
-            .filter(|s| s.map(|(id, _)| id == item_id).unwrap_or(false))
-        {
-            let (_, qty) = slot.as_mut().unwrap();
-            let taken = remaining.min(*qty);
-            *qty -= taken;
+        for slot in self.slots.iter_mut().filter(|s| s.map(|i| i.id == item_id).unwrap_or(false)) {
+            let item = slot.as_mut().unwrap();
+            let taken = remaining.min(item.amount);
+            item.amount -= taken;
             remaining -= taken;
-            if *qty == 0 {
+            if item.amount == 0 {
                 *slot = None;
             }
             if remaining == 0 {
                 break;
             }
         }
-
         self.flush().await;
         remaining
     }
 
-    pub async fn set(&mut self, index: usize, item: Option<(u16, u32)>) {
+    pub async fn set(&mut self, index: usize, item: Option<Item>) {
         self.slots[index] = item;
         self.flush().await;
     }
@@ -127,13 +118,11 @@ impl Inventory {
     }
 
     pub async fn remove_item(&mut self, slot: usize, amount: u32) {
-        let Some((item_id, qty)) = self.slots[slot] else {
-            return;
-        };
-        if !is_stackable(item_id) || amount >= qty {
+        let Some(item) = self.slots[slot] else { return };
+        if !is_stackable(item.id) || amount >= item.amount {
             self.slots[slot] = None;
         } else {
-            self.slots[slot] = Some((item_id, qty - amount));
+            self.slots[slot] = Some(Item::new(item.id, item.amount - amount));
         }
         self.flush().await;
     }
@@ -150,7 +139,6 @@ impl Inventory {
                 can_use_on
             ))
             .await;
-
         self.outbox
             .write(if_set_events!(
                 interface_id: 149, component_id: 0, slots: [28 => 55], can_drag_onto
@@ -166,7 +154,7 @@ impl Inventory {
                 items: self
                     .slots
                     .iter()
-                    .map(|s| s.map(|(item_id, amount)| ItemContainerEntry { item_id, amount }))
+                    .map(|s| s.map(|item| ItemContainerEntry { item_id: item.id, amount: item.amount }))
                     .collect(),
             })
             .await;
@@ -184,7 +172,7 @@ impl PlayerSystem for Inventory {
     fn create(ctx: &PlayerInitContext) -> Self {
         let mut slots = [None; SIZE];
         for (i, slot) in ctx.player_data.inventory.iter().enumerate().take(SIZE) {
-            slots[i] = *slot;
+            slots[i] = slot.map(|(id, amount)| Item::new(id, amount));
         }
         Self::from_slots(ctx.outbox.clone(), slots)
     }
@@ -199,6 +187,6 @@ impl PlayerSystem for Inventory {
     fn tick_context(_: &std::sync::Arc<World>, _: &PlayerSnapshot) {}
 
     fn persist(&self, data: &mut PlayerData) {
-        data.inventory = self.slots.to_vec();
+        data.inventory = self.slots.iter().map(|s| s.map(|item| (item.id, item.amount))).collect();
     }
 }

@@ -5,9 +5,11 @@ use crate::player::EquipmentSlot;
 
 #[macros::on_item_option(option = 2)]
 async fn equip_item(player: &mut Player, slot: u16) {
-    let Some((item_id, amount)) = slot_item!() else {
+    let Some(item) = slot_item!() else {
         return;
     };
+    let item_id = item.id;
+    let amount = item.amount;
 
     let Some(def) = crate::provider::get_item_definition(item_id as u32) else {
         return;

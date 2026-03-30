@@ -72,12 +72,12 @@ pub fn dispatch_item(player: &mut Player, slot: u16, option: ClickOption) {
 }
 
 pub fn try_dispatch_item(player: &mut Player, slot: u16, option: ClickOption) -> bool {
-    let Some((item_id, _)) = player.inventory().slot(slot as usize) else {
+    let Some(item) = player.inventory().slot(slot as usize) else {
         return false;
     };
 
     let handler = CONTENT_HANDLERS
-        .get(&ContentTarget::Item(item_id as i32, option))
+        .get(&ContentTarget::Item(item.id as i32, option))
         .or_else(|| CONTENT_HANDLERS.get(&ContentTarget::Item(-1, option)));
 
     let Some(handler) = handler else {
