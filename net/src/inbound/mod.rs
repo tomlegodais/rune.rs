@@ -36,6 +36,8 @@ pub enum ClickOption {
     Six,
     Seven,
     Eight,
+    Nine,
+    Ten,
 }
 
 pub type IncomingMessage = Box<dyn Any + Send>;

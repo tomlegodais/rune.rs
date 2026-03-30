@@ -4,9 +4,9 @@ mod mask;
 
 use std::ops::{Deref, DerefMut};
 
-pub(crate) use gni::encode_npc_info;
-pub(crate) use info::NpcInfo;
-pub(crate) use mask::{AnimationMask, FaceEntityMask, SpotAnim1Mask, SpotAnim2Mask};
+pub use gni::encode_npc_info;
+pub use info::NpcInfo;
+pub use mask::{AnimationMask, FaceEntityMask, SpotAnim1Mask, SpotAnim2Mask};
 use rand::Rng;
 use strum::IntoEnumIterator;
 

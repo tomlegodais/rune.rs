@@ -1,15 +1,15 @@
 [package]
-name = "filesystem"
-version = "0.1.0"
 authors.workspace = true
 edition.workspace = true
+name = "filesystem"
+version = "0.1.0"
 
 [dependencies]
 anyhow = { workspace = true }
-num_enum = { workspace = true }
 bzip2 = "0.6"
 flate2 = "1.1"
 memmap2 = "0.9"
+num_enum = { workspace = true }
 thiserror = { workspace = true }
 tokio-util = { workspace = true }
 util = { path = "../util" }

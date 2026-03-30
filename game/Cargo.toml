@@ -1,16 +1,16 @@
 [package]
-name = "game"
-version = "0.1.0"
 authors.workspace = true
 edition.workspace = true
+name = "game"
+version = "0.1.0"
 
 [dependencies]
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 config = { workspace = true }
+filesystem = { path = "../filesystem" }
 inventory = "0.3"
 macros = { path = "../macros" }
-filesystem = { path = "../filesystem" }
 net = { path = "../net" }
 num_enum = { workspace = true }
 once_cell = { workspace = true }

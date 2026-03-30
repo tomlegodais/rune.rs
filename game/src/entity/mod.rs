@@ -8,9 +8,9 @@ use std::{
     sync::{Arc, Weak},
 };
 
-pub(crate) use anim::{Anim, AnimBuilder};
-pub(crate) use mask::{Mask, MaskBlock, MaskConfig, MaskFlags};
-pub(crate) use spotanim::{SpotAnim, SpotAnimBuilder};
+pub use anim::{Anim, AnimBuilder};
+pub use mask::{Mask, MaskBlock, MaskConfig, MaskFlags};
+pub use spotanim::{SpotAnim, SpotAnimBuilder};
 
 use crate::world::{Direction, Position, World};
 
@@ -48,7 +48,7 @@ impl Entity {
         self.world.upgrade().expect("world has been dropped")
     }
 
-    pub(crate) fn set_world(&mut self, world: &Arc<World>) {
+    pub fn set_world(&mut self, world: &Arc<World>) {
         self.world = Arc::downgrade(world);
     }
 }

@@ -1,8 +1,8 @@
 [package]
-name = "persistence"
-version = "0.1.0"
 authors.workspace = true
 edition.workspace = true
+name = "persistence"
+version = "0.1.0"
 
 [dependencies]
 anyhow = { workspace = true }

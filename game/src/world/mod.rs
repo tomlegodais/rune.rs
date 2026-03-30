@@ -10,14 +10,14 @@ use std::{
     sync::{Arc, OnceLock, Weak},
 };
 
-pub(crate) use collision::CollisionMap;
-pub(crate) use grounditem::GroundItemStore;
+pub use collision::CollisionMap;
+pub use grounditem::GroundItemStore;
 use net::{Frame, IncomingMessage};
 use parking_lot::Mutex;
-pub(crate) use pathfinding::{can_interact_rect, find_path, find_path_adjacent_rect};
+pub use pathfinding::{can_interact_rect, find_path, find_path_adjacent_rect};
 use persistence::{account::Account, player::PlayerData};
-pub(crate) use position::{Direction, Position, RegionId, Teleport, running_direction};
-pub(crate) use slab::WorldSlab;
+pub use position::{Direction, Position, RegionId, Teleport, running_direction};
+pub use slab::WorldSlab;
 use tokio::sync::mpsc;
 use tracing::info;
 
@@ -32,7 +32,7 @@ pub struct World {
     pub players: WorldSlab<Player>,
     pub npcs: WorldSlab<Npc>,
     pub ground_items: GroundItemStore,
-    pub(crate) action_states: Mutex<HashMap<usize, ActionState>>,
+    pub action_states: Mutex<HashMap<usize, ActionState>>,
 }
 
 impl Default for World {
@@ -142,7 +142,7 @@ impl World {
         self.npcs.map(|n| n.snapshot())
     }
 
-    pub(crate) fn arc(&self) -> Arc<World> {
+    pub fn arc(&self) -> Arc<World> {
         self.self_ref
             .get()
             .expect("world not initialized")

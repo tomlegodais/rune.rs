@@ -1,10 +1,10 @@
 use macros::message_decoder;
 use tokio_util::bytes::{Buf, Bytes};
 
-use super::{InboundDecoder, IncomingMessage};
+use super::{ClickOption, InboundDecoder, IncomingMessage};
 
 pub struct ButtonClick {
-    pub opcode: u8,
+    pub option: ClickOption,
     pub interface: u16,
     pub component: u16,
     pub slot1: u16,
@@ -12,7 +12,7 @@ pub struct ButtonClick {
 }
 
 macro_rules! button_decoder {
-    ($opcode:literal, $fn_name:ident) => {
+    ($opcode:literal, $fn_name:ident, $option:expr) => {
         const _: () = {
             const OPCODE: u8 = $opcode;
 
@@ -24,7 +24,7 @@ macro_rules! button_decoder {
                 let interface = (hash >> 16) as u16;
                 let component = (hash & 0xffff) as u16;
                 Box::new(ButtonClick {
-                    opcode: $opcode,
+                    option: $option,
                     interface,
                     component,
                     slot1,
@@ -35,13 +35,13 @@ macro_rules! button_decoder {
     };
 }
 
-button_decoder!(6, decode_6);
-button_decoder!(38, decode_38);
-button_decoder!(62, decode_62);
-button_decoder!(46, decode_46);
-button_decoder!(64, decode_64);
-button_decoder!(8, decode_8);
-button_decoder!(28, decode_28);
-button_decoder!(70, decode_70);
-button_decoder!(66, decode_66);
-button_decoder!(20, decode_20);
+button_decoder!(6, decode_6, ClickOption::One);
+button_decoder!(38, decode_38, ClickOption::Two);
+button_decoder!(62, decode_62, ClickOption::Three);
+button_decoder!(46, decode_46, ClickOption::Four);
+button_decoder!(64, decode_64, ClickOption::Five);
+button_decoder!(8, decode_8, ClickOption::Six);
+button_decoder!(28, decode_28, ClickOption::Seven);
+button_decoder!(70, decode_70, ClickOption::Eight);
+button_decoder!(66, decode_66, ClickOption::Nine);
+button_decoder!(20, decode_20, ClickOption::Ten);

@@ -1,8 +1,8 @@
 [package]
-name = "net"
-version = "0.1.0"
 authors.workspace = true
 edition.workspace = true
+name = "net"
+version = "0.1.0"
 
 [dependencies]
 anyhow = { workspace = true }
@@ -10,13 +10,13 @@ async-trait = { workspace = true }
 bitflags = "2"
 filesystem = { path = "../filesystem" }
 futures-util = { version = "0.3", features = ["sink"] }
+inventory = "0.3"
+macros = { path = "../macros" }
 num_enum = { workspace = true }
 rand = "0.10"
 serde = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
-inventory = "0.3"
-macros = { path = "../macros" }
 tracing = { workspace = true }
 util = { path = "../util" }

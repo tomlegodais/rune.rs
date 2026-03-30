@@ -22,21 +22,21 @@ use persistence::PersistenceModule;
 pub use structs::get_struct_definition;
 pub use varbit::get_varbit_definition;
 
-pub(crate) struct ProviderContext {
+pub struct ProviderContext {
     pub cache: Arc<Cache>,
     pub persistence: Arc<PersistenceModule>,
 }
 
 type LoadFn = fn(&ProviderContext) -> Pin<Box<dyn Future<Output = anyhow::Result<()>> + Send + '_>>;
 
-pub(crate) struct DataProvider {
+pub struct DataProvider {
     pub priority: u8,
     pub load: LoadFn,
 }
 
 inventory::collect!(DataProvider);
 
-pub(crate) async fn load_all(ctx: &ProviderContext) -> anyhow::Result<()> {
+pub async fn load_all(ctx: &ProviderContext) -> anyhow::Result<()> {
     let mut providers: Vec<&DataProvider> = inventory::iter::<DataProvider>().collect();
     providers.sort_by_key(|p| p.priority);
 

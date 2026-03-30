@@ -14,8 +14,8 @@ use net::{ChatMessage, Encodable};
 use crate::player::Player;
 
 pub struct ActionShared {
-    pub(crate) delay_remaining: AtomicU16,
-    pub(crate) locked: AtomicBool,
+    pub delay_remaining: AtomicU16,
+    pub locked: AtomicBool,
 }
 
 impl ActionShared {

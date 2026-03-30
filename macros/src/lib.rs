@@ -50,3 +50,8 @@ pub fn on_item(attr: TokenStream, item: TokenStream) -> TokenStream {
 pub fn on_player(attr: TokenStream, item: TokenStream) -> TokenStream {
     interaction::player::on_player(attr, item)
 }
+
+#[proc_macro_attribute]
+pub fn on_interface(attr: TokenStream, item: TokenStream) -> TokenStream {
+    interaction::interface::on_interface(attr, item)
+}

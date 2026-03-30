@@ -159,7 +159,7 @@ impl SystemStore {
         self.entry_mut::<T>().slot.get_mut().downcast_mut::<T>().unwrap()
     }
 
-    pub(crate) fn guard<T: PlayerSystem>(&self) -> SystemGuard<'_, T> {
+    pub fn guard<T: PlayerSystem>(&self) -> SystemGuard<'_, T> {
         let entry = self
             .systems
             .get(&TypeId::of::<T>())
