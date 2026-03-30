@@ -4,16 +4,15 @@ use std::{
     pin::Pin,
 };
 
-pub use filesystem::definition::EquipmentSlot;
 use filesystem::definition::EquipmentFlag;
+pub use filesystem::definition::EquipmentSlot;
 use macros::player_system;
 use net::{ItemContainerEntry, ItemContainerId, Outbox, OutboxExt, UpdateItemContainer};
 use persistence::player::PlayerData;
 
 use crate::{
     player::{
-        Item,
-        PlayerSnapshot,
+        Item, PlayerSnapshot,
         system::{PlayerInitContext, PlayerSystem, SystemContext},
     },
     world::World,
@@ -66,29 +65,23 @@ impl Equipment {
     }
 
     pub fn displace(&self, slot: EquipmentSlot, flag: EquipmentFlag) -> Vec<Item> {
-        let mut out = Vec::new();
+        let occupant = self.slots[slot];
+        let shield_conflict = (flag == EquipmentFlag::TwoHanded)
+            .then(|| self.slots[EquipmentSlot::Shield])
+            .flatten();
 
-        if let Some(item) = self.slots[slot] {
-            out.push(item);
-        }
+        let weapon_conflict = (slot == EquipmentSlot::Shield)
+            .then(|| self.slots[EquipmentSlot::Weapon])
+            .flatten()
+            .filter(|wep| {
+                crate::provider::get_item_definition(wep.id as u32)
+                    .is_some_and(|d| d.equipment_flag == EquipmentFlag::TwoHanded)
+            });
 
-        if flag == EquipmentFlag::TwoHanded {
-            if let Some(shield) = self.slots[EquipmentSlot::Shield] {
-                out.push(shield);
-            }
-        }
-
-        if slot == EquipmentSlot::Shield {
-            if let Some(wep) = self.slots[EquipmentSlot::Weapon] {
-                let wep_is_2h = crate::provider::get_item_definition(wep.id as u32)
-                    .is_some_and(|d| d.equipment_flag == EquipmentFlag::TwoHanded);
-                if wep_is_2h {
-                    out.push(wep);
-                }
-            }
-        }
-
-        out
+        [occupant, shield_conflict, weapon_conflict]
+            .into_iter()
+            .flatten()
+            .collect()
     }
 
     pub async fn flush(&mut self) {
@@ -100,7 +93,12 @@ impl Equipment {
                     .slots
                     .0
                     .iter()
-                    .map(|s| s.map(|item| ItemContainerEntry { item_id: item.id, amount: item.amount }))
+                    .map(|s| {
+                        s.map(|item| ItemContainerEntry {
+                            item_id: item.id,
+                            amount: item.amount,
+                        })
+                    })
                     .collect(),
             })
             .await;
@@ -127,6 +125,11 @@ impl PlayerSystem for Equipment {
     fn tick_context(_: &std::sync::Arc<World>, _: &PlayerSnapshot) {}
 
     fn persist(&self, data: &mut PlayerData) {
-        data.equipment = self.slots.0.iter().map(|s| s.map(|item| (item.id, item.amount))).collect();
+        data.equipment = self
+            .slots
+            .0
+            .iter()
+            .map(|s| s.map(|item| (item.id, item.amount)))
+            .collect();
     }
 }

@@ -19,11 +19,16 @@ async fn equip_item(player: &mut Player, slot: u16) {
     if def.equipment_flag == EquipmentFlag::TwoHanded {
         unequip!(EquipmentSlot::Shield);
     }
+
     if target_slot == EquipmentSlot::Shield
-        && player.equipment().slot(EquipmentSlot::Weapon).is_some_and(|wep| displaced.contains(&wep))
+        && player
+            .equipment()
+            .slot(EquipmentSlot::Weapon)
+            .is_some_and(|wep| displaced.contains(&wep))
     {
         unequip!(EquipmentSlot::Weapon);
     }
+
     player.equipment_mut().set(target_slot, Some(item));
 
     for d in &displaced {

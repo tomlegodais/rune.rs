@@ -6,8 +6,7 @@ use persistence::player::PlayerData;
 
 use crate::{
     player::{
-        Item,
-        PlayerSnapshot,
+        Item, PlayerSnapshot,
         system::{PlayerInitContext, PlayerSystem, SystemContext},
     },
     provider,
@@ -45,6 +44,7 @@ impl Inventory {
             true => self.add_stackable(item_id, amount),
             false => self.add_unstackable(item_id, amount),
         };
+
         self.flush().await;
         remaining
     }
@@ -55,6 +55,7 @@ impl Inventory {
             item.amount += added;
             return amount - added;
         }
+
         match self.slots.iter_mut().find(|s| s.is_none()) {
             Some(slot) => {
                 *slot = Some(Item::new(item_id, amount.min(STACK_MAX)));
@@ -72,19 +73,27 @@ impl Inventory {
             .filter(|s| s.is_none())
             .take(added as usize)
             .for_each(|s| *s = Some(Item::new(item_id, 1)));
+
         amount - added
     }
 
     pub async fn remove(&mut self, item_id: u16, amount: u32) -> u32 {
         let mut remaining = amount;
-        for slot in self.slots.iter_mut().filter(|s| s.map(|i| i.id == item_id).unwrap_or(false)) {
-            let item = slot.as_mut().unwrap();
+        for slot in self
+            .slots
+            .iter_mut()
+            .filter(|s| s.map(|i| i.id == item_id).unwrap_or(false))
+        {
+            let item = slot.as_mut().expect("filtered to Some above");
             let taken = remaining.min(item.amount);
+
             item.amount -= taken;
             remaining -= taken;
+
             if item.amount == 0 {
                 *slot = None;
             }
+
             if remaining == 0 {
                 break;
             }
@@ -139,6 +148,7 @@ impl Inventory {
                 can_use_on
             ))
             .await;
+
         self.outbox
             .write(if_set_events!(
                 interface_id: 149, component_id: 0, slots: [28 => 55], can_drag_onto
@@ -154,7 +164,12 @@ impl Inventory {
                 items: self
                     .slots
                     .iter()
-                    .map(|s| s.map(|item| ItemContainerEntry { item_id: item.id, amount: item.amount }))
+                    .map(|s| {
+                        s.map(|item| ItemContainerEntry {
+                            item_id: item.id,
+                            amount: item.amount,
+                        })
+                    })
                     .collect(),
             })
             .await;
@@ -187,6 +202,10 @@ impl PlayerSystem for Inventory {
     fn tick_context(_: &std::sync::Arc<World>, _: &PlayerSnapshot) {}
 
     fn persist(&self, data: &mut PlayerData) {
-        data.inventory = self.slots.iter().map(|s| s.map(|item| (item.id, item.amount))).collect();
+        data.inventory = self
+            .slots
+            .iter()
+            .map(|s| s.map(|item| (item.id, item.amount)))
+            .collect();
     }
 }

@@ -17,7 +17,7 @@ impl From<(u16, u32)> for Item {
 }
 
 impl From<Item> for (u16, u32) {
-    fn from(item: Item) -> Self {
-        (item.id, item.amount)
+    fn from(Item { id, amount }: Item) -> Self {
+        (id, amount)
     }
 }

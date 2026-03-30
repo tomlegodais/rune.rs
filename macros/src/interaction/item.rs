@@ -21,7 +21,6 @@ pub fn on_item_option(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let params = extract_params(&func);
     let player = params.first().cloned().unwrap_or_else(|| format_ident!("_player"));
-
     let slot_p = params.get(1).cloned().unwrap_or_else(|| format_ident!("_slot"));
 
     let base = base_macros();
