@@ -48,6 +48,15 @@ pub fn on_item_option(attr: TokenStream, item: TokenStream) -> TokenStream {
                 __player.ground_item_mut().drop($item_id, $amount, __pos, &__world);
             }};
         }
+        macro_rules! item_def {
+            ($id:expr) => { crate::provider::get_item_definition($id as u32) };
+        }
+        macro_rules! equipped {
+            ($slot:expr) => { crate::player::active_player().equipment().slot($slot) };
+        }
+        macro_rules! unequip {
+            ($slot:expr) => { crate::player::active_player().equipment_mut().set($slot, None) };
+        }
     };
 
     emit_content_handler(
