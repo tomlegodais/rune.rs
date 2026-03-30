@@ -144,7 +144,6 @@ pub fn base_macros() -> proc_macro2::TokenStream {
         macro_rules! delay { ($t:expr) => { crate::player::delay(&__shared, $t).await }; }
         macro_rules! lock { () => { crate::player::lock(&__shared) }; }
         macro_rules! unlock { () => { crate::player::unlock(&__shared) }; }
-        macro_rules! skill_action { () => { crate::player::SkillActionBuilder::new(__shared.clone()) }; }
         macro_rules! anim {
             ($id:expr) => { crate::player::active_player().anim($id) };
             ($id:expr, $($k:ident = $v:expr),+) => { { let b = crate::player::active_player().anim($id); $(let b = b.$k($v);)+ b } };
