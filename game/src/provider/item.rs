@@ -6,38 +6,38 @@ use filesystem::{
 };
 use macros::data_provider;
 use once_cell::sync::OnceCell;
-use persistence::item::{self, ItemConfigRepository};
+use persistence::obj::{self, ObjConfigRepository};
 use shaku::HasComponent;
 
 use crate::provider::ProviderContext;
 
 static INSTANCE: OnceCell<ItemLoader> = OnceCell::new();
 
-fn map_slot(slot: item::EquipmentSlot) -> EquipmentSlot {
+fn map_slot(slot: obj::EquipmentSlot) -> EquipmentSlot {
     match slot {
-        item::EquipmentSlot::Head => EquipmentSlot::Head,
-        item::EquipmentSlot::Cape => EquipmentSlot::Cape,
-        item::EquipmentSlot::Amulet => EquipmentSlot::Amulet,
-        item::EquipmentSlot::Weapon => EquipmentSlot::Weapon,
-        item::EquipmentSlot::Body => EquipmentSlot::Body,
-        item::EquipmentSlot::Shield => EquipmentSlot::Shield,
-        item::EquipmentSlot::Legs => EquipmentSlot::Legs,
-        item::EquipmentSlot::Gloves => EquipmentSlot::Gloves,
-        item::EquipmentSlot::Boots => EquipmentSlot::Boots,
-        item::EquipmentSlot::Ring => EquipmentSlot::Ring,
-        item::EquipmentSlot::Ammo => EquipmentSlot::Ammo,
+        obj::EquipmentSlot::Head => EquipmentSlot::Head,
+        obj::EquipmentSlot::Cape => EquipmentSlot::Cape,
+        obj::EquipmentSlot::Amulet => EquipmentSlot::Amulet,
+        obj::EquipmentSlot::Weapon => EquipmentSlot::Weapon,
+        obj::EquipmentSlot::Body => EquipmentSlot::Body,
+        obj::EquipmentSlot::Shield => EquipmentSlot::Shield,
+        obj::EquipmentSlot::Legs => EquipmentSlot::Legs,
+        obj::EquipmentSlot::Gloves => EquipmentSlot::Gloves,
+        obj::EquipmentSlot::Boots => EquipmentSlot::Boots,
+        obj::EquipmentSlot::Ring => EquipmentSlot::Ring,
+        obj::EquipmentSlot::Ammo => EquipmentSlot::Ammo,
     }
 }
 
-fn map_flag(flag: item::EquipmentFlag) -> EquipmentFlag {
+fn map_flag(flag: obj::EquipmentFlag) -> EquipmentFlag {
     match flag {
-        item::EquipmentFlag::TwoHanded => EquipmentFlag::TwoHanded,
-        item::EquipmentFlag::Sleeveless => EquipmentFlag::Sleeveless,
-        item::EquipmentFlag::Hair => EquipmentFlag::Hair,
-        item::EquipmentFlag::HairMid => EquipmentFlag::HairMid,
-        item::EquipmentFlag::HairLow => EquipmentFlag::HairLow,
-        item::EquipmentFlag::FullFace => EquipmentFlag::FullFace,
-        item::EquipmentFlag::Mask => EquipmentFlag::Mask,
+        obj::EquipmentFlag::TwoHanded => EquipmentFlag::TwoHanded,
+        obj::EquipmentFlag::Sleeveless => EquipmentFlag::Sleeveless,
+        obj::EquipmentFlag::Hair => EquipmentFlag::Hair,
+        obj::EquipmentFlag::HairMid => EquipmentFlag::HairMid,
+        obj::EquipmentFlag::HairLow => EquipmentFlag::HairLow,
+        obj::EquipmentFlag::FullFace => EquipmentFlag::FullFace,
+        obj::EquipmentFlag::Mask => EquipmentFlag::Mask,
     }
 }
 
@@ -45,11 +45,11 @@ fn map_flag(flag: item::EquipmentFlag) -> EquipmentFlag {
 async fn load_item_definitions(ctx: &ProviderContext) -> anyhow::Result<()> {
     let mut loader = ItemLoader::load(&ctx.cache)?;
 
-    let repo: Arc<dyn ItemConfigRepository> = ctx.persistence.resolve();
+    let repo: Arc<dyn ObjConfigRepository> = ctx.persistence.resolve();
     let configs = repo.find_all().await?;
 
     for config in configs {
-        if let Some(def) = loader.get_mut(config.item_id) {
+        if let Some(def) = loader.get_mut(config.obj_id) {
             def.equipment_slot = config.equipment_slot.map(map_slot);
             def.equipment_flag = config.equipment_flag.map(map_flag).unwrap_or_default();
         }

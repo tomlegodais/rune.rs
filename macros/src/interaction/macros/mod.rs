@@ -3,7 +3,7 @@ use quote::quote;
 mod seq;
 mod control_flow;
 mod inventory;
-pub mod item;
+pub mod obj;
 mod messaging;
 pub mod npc;
 mod skill;

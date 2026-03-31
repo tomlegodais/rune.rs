@@ -6,7 +6,7 @@ use persistence::player::PlayerData;
 
 use crate::{
     player::{
-        Item, PlayerSnapshot,
+        Obj, PlayerSnapshot,
         system::{PlayerInitContext, PlayerSystem, SystemContext},
     },
     provider,
@@ -18,79 +18,79 @@ pub const SIZE: usize = 28;
 
 pub struct Inventory {
     outbox: Outbox,
-    slots: [Option<Item>; SIZE],
+    slots: [Option<Obj>; SIZE],
 }
 
 impl Inventory {
-    fn from_slots(outbox: Outbox, slots: [Option<Item>; SIZE]) -> Self {
+    fn from_slots(outbox: Outbox, slots: [Option<Obj>; SIZE]) -> Self {
         Self { outbox, slots }
     }
 
-    pub fn slot(&self, index: usize) -> Option<Item> {
+    pub fn slot(&self, index: usize) -> Option<Obj> {
         self.slots[index]
     }
 
-    pub fn count(&self, item_id: u16) -> u32 {
+    pub fn count(&self, obj_id: u16) -> u32 {
         self.slots
             .iter()
             .flatten()
-            .filter(|item| item.id == item_id)
-            .map(|item| item.amount)
+            .filter(|obj| obj.id == obj_id)
+            .map(|obj| obj.amount)
             .sum()
     }
 
-    pub async fn add(&mut self, item_id: u16, amount: u32) -> u32 {
-        let remaining = match is_stackable(item_id) {
-            true => self.add_stackable(item_id, amount),
-            false => self.add_unstackable(item_id, amount),
+    pub async fn add(&mut self, obj_id: u16, amount: u32) -> u32 {
+        let remaining = match is_stackable(obj_id) {
+            true => self.add_stackable(obj_id, amount),
+            false => self.add_unstackable(obj_id, amount),
         };
 
         self.flush().await;
         remaining
     }
 
-    fn add_stackable(&mut self, item_id: u16, amount: u32) -> u32 {
-        if let Some(item) = self.slots.iter_mut().flatten().find(|item| item.id == item_id) {
-            let added = amount.min(STACK_MAX - item.amount);
-            item.amount += added;
+    fn add_stackable(&mut self, obj_id: u16, amount: u32) -> u32 {
+        if let Some(obj) = self.slots.iter_mut().flatten().find(|obj| obj.id == obj_id) {
+            let added = amount.min(STACK_MAX - obj.amount);
+            obj.amount += added;
             return amount - added;
         }
 
         match self.slots.iter_mut().find(|s| s.is_none()) {
             Some(slot) => {
-                *slot = Some(Item::new(item_id, amount.min(STACK_MAX)));
+                *slot = Some(Obj::new(obj_id, amount.min(STACK_MAX)));
                 amount.saturating_sub(STACK_MAX)
             }
             None => amount,
         }
     }
 
-    fn add_unstackable(&mut self, item_id: u16, amount: u32) -> u32 {
+    fn add_unstackable(&mut self, obj_id: u16, amount: u32) -> u32 {
         let free = self.slots.iter().filter(|s| s.is_none()).count() as u32;
         let added = amount.min(free);
         self.slots
             .iter_mut()
             .filter(|s| s.is_none())
             .take(added as usize)
-            .for_each(|s| *s = Some(Item::new(item_id, 1)));
+            .for_each(|s| *s = Some(Obj::new(obj_id, 1)));
 
         amount - added
     }
 
-    pub async fn remove(&mut self, item_id: u16, amount: u32) -> u32 {
+    pub async fn remove(&mut self, obj_id: u16, amount: u32) -> u32 {
         let mut remaining = amount;
         for slot in self
             .slots
             .iter_mut()
-            .filter(|s| s.map(|i| i.id == item_id).unwrap_or(false))
+            .filter(|s| s.map(|o| o.id == obj_id).unwrap_or(false))
         {
-            let item = slot.as_mut().expect("filtered to Some above");
-            let taken = remaining.min(item.amount);
+            let obj = slot.as_mut().expect("filtered to Some above");
+            let taken = remaining.min(obj.amount);
 
-            item.amount -= taken;
+            obj.amount -= taken;
             remaining -= taken;
 
-            if item.amount == 0 {
+            if obj.amount == 0 {
                 *slot = None;
             }
 
@@ -102,8 +102,8 @@ impl Inventory {
         remaining
     }
 
-    pub async fn set(&mut self, index: usize, item: Option<Item>) {
-        self.slots[index] = item;
+    pub async fn set(&mut self, index: usize, obj: Option<Obj>) {
+        self.slots[index] = obj;
         self.flush().await;
     }
 
@@ -126,12 +126,12 @@ impl Inventory {
         self.flush().await;
     }
 
-    pub async fn remove_item(&mut self, slot: usize, amount: u32) {
-        let Some(item) = self.slots[slot] else { return };
-        if !is_stackable(item.id) || amount >= item.amount {
+    pub async fn remove_obj(&mut self, slot: usize, amount: u32) {
+        let Some(obj) = self.slots[slot] else { return };
+        if !is_stackable(obj.id) || amount >= obj.amount {
             self.slots[slot] = None;
         } else {
-            self.slots[slot] = Some(Item::new(item.id, item.amount - amount));
+            self.slots[slot] = Some(Obj::new(obj.id, obj.amount - amount));
         }
         self.flush().await;
     }
@@ -165,9 +165,9 @@ impl Inventory {
                     .slots
                     .iter()
                     .map(|s| {
-                        s.map(|item| ItemContainerEntry {
-                            item_id: item.id,
-                            amount: item.amount,
+                        s.map(|obj| ItemContainerEntry {
+                            item_id: obj.id,
+                            amount: obj.amount,
                         })
                     })
                     .collect(),
@@ -176,8 +176,8 @@ impl Inventory {
     }
 }
 
-fn is_stackable(item_id: u16) -> bool {
-    provider::get_item_definition(item_id as u32).is_some_and(|def| def.stackable)
+fn is_stackable(obj_id: u16) -> bool {
+    provider::get_item_definition(obj_id as u32).is_some_and(|def| def.stackable)
 }
 
 #[player_system]
@@ -187,7 +187,7 @@ impl PlayerSystem for Inventory {
     fn create(ctx: &PlayerInitContext) -> Self {
         let mut slots = [None; SIZE];
         for (i, slot) in ctx.player_data.inventory.iter().enumerate().take(SIZE) {
-            slots[i] = slot.map(|(id, amount)| Item::new(id, amount));
+            slots[i] = slot.map(|(id, amount)| Obj::new(id, amount));
         }
         Self::from_slots(ctx.outbox.clone(), slots)
     }
@@ -205,7 +205,7 @@ impl PlayerSystem for Inventory {
         data.inventory = self
             .slots
             .iter()
-            .map(|s| s.map(|item| (item.id, item.amount)))
+            .map(|s| s.map(|obj| (obj.id, obj.amount)))
             .collect();
     }
 }

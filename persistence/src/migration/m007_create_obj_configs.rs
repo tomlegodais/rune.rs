@@ -47,16 +47,16 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(ItemConfigs::Table)
+                    .table(ObjConfigs::Table)
                     .if_not_exists()
-                    .col(integer(ItemConfigs::ItemId).primary_key().not_null())
+                    .col(integer(ObjConfigs::ObjId).primary_key().not_null())
                     .col(
-                        ColumnDef::new(ItemConfigs::EquipmentSlot)
+                        ColumnDef::new(ObjConfigs::EquipmentSlot)
                             .custom(EquipmentSlot::Type)
                             .null(),
                     )
                     .col(
-                        ColumnDef::new(ItemConfigs::EquipmentFlag)
+                        ColumnDef::new(ObjConfigs::EquipmentFlag)
                             .custom(EquipmentFlag::Type)
                             .null(),
                     )
@@ -67,7 +67,7 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(ItemConfigs::Table).to_owned())
+            .drop_table(Table::drop().table(ObjConfigs::Table).to_owned())
             .await?;
 
         manager
@@ -81,9 +81,9 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum ItemConfigs {
+enum ObjConfigs {
     Table,
-    ItemId,
+    ObjId,
     EquipmentSlot,
     EquipmentFlag,
 }

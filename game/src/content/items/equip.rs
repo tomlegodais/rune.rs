@@ -1,10 +1,10 @@
 use filesystem::definition::{EquipmentFlag, EquipmentSlot};
 use num_enum::TryFromPrimitive;
 
-#[macros::on_item(option = Two)]
+#[macros::on_obj(option = Two)]
 async fn equip_item() {
-    let Some(item) = slot_item!() else { return };
-    let Some(def) = item_def!(item.id) else { return };
+    let Some(obj) = slot_obj!() else { return };
+    let Some(def) = obj_def!(obj.id) else { return };
     let Some(raw_slot) = def.equipment_slot else { return };
     let Ok(target_slot) = EquipmentSlot::try_from_primitive(raw_slot as usize) else { return };
 
@@ -29,7 +29,7 @@ async fn equip_item() {
         unequip!(EquipmentSlot::Weapon);
     }
 
-    player.equipment_mut().set(target_slot, Some(item));
+    player.equipment_mut().set(target_slot, Some(obj));
 
     for d in &displaced {
         player.inventory_mut().add(d.id, d.amount).await;
@@ -56,7 +56,7 @@ async fn unequip_item() {
         _ => return,
     };
 
-    let Some(item) = player.equipment().slot(slot) else { return };
+    let Some(obj) = player.equipment().slot(slot) else { return };
 
     if player.inventory().free_slots() == 0 {
         send_message!("Not enough inventory space.");
@@ -64,7 +64,7 @@ async fn unequip_item() {
     }
 
     player.equipment_mut().set(slot, None);
-    player.inventory_mut().add(item.id, item.amount).await;
+    player.inventory_mut().add(obj.id, obj.amount).await;
     player.equipment_mut().flush().await;
     player.flush_appearance();
 }

@@ -42,8 +42,8 @@ pub fn on_npc(attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn on_item(attr: TokenStream, item: TokenStream) -> TokenStream {
-    interaction::item::on_item(attr, item)
+pub fn on_obj(attr: TokenStream, item: TokenStream) -> TokenStream {
+    interaction::obj::on_obj(attr, item)
 }
 
 #[proc_macro_attribute]

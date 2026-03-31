@@ -10,7 +10,7 @@ mod info;
 mod interaction;
 mod interface;
 mod inventory;
-mod item;
+mod obj;
 mod mask;
 mod movement;
 mod options;
@@ -37,7 +37,7 @@ pub use info::PlayerInfo;
 pub use interaction::{InteractionTarget, resolve as resolve_interaction};
 pub use interface::SubInterface;
 pub use inventory::SIZE as INVENTORY_SIZE;
-pub use item::Item;
+pub use obj::Obj;
 pub use mask::{
     ChatMask, FaceDirectionMask, MoveTypeMask, SeqMask, SpotAnim1Mask, SpotAnim2Mask, TempMoveTypeMask,
 };

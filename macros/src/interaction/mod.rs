@@ -6,7 +6,7 @@ use syn::{
 };
 
 pub mod interface;
-pub mod item;
+pub mod obj;
 pub mod npc;
 pub mod loc;
 pub mod player;

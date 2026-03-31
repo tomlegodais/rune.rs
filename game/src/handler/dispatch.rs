@@ -14,7 +14,7 @@ pub enum ContentTarget {
     Loc(u16, ClickOption),
     Npc(u16, ClickOption),
     Player(ClickOption),
-    Item(i32, ClickOption),
+    Obj(i32, ClickOption),
     Button(Option<ClickOption>, u16, Option<u16>),
 }
 
@@ -50,7 +50,7 @@ pub fn dispatch(
             ContentTarget::Npc(npc_id, option)
         }
         InteractionTarget::Player { .. } => ContentTarget::Player(option),
-        InteractionTarget::Item { .. } | InteractionTarget::Button { .. } => return None,
+        InteractionTarget::Obj { .. } | InteractionTarget::Button { .. } => return None,
         InteractionTarget::GroundItem { .. } => {
             return Some(Box::pin(crate::handler::pickup_ground_item(target)));
         }

@@ -9,7 +9,7 @@ mod walk;
 use std::{any::TypeId, collections::HashMap, future::Future, pin::Pin};
 
 pub use dispatch::{ContentHandler, ContentTarget, dispatch, run_action};
-pub use interaction::try_dispatch_item;
+pub use interaction::try_dispatch_obj;
 use net::IncomingMessage;
 pub use objclick::pickup_ground_item;
 use tracing::debug;

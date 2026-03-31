@@ -47,10 +47,10 @@ pub enum EquipmentFlag {
 }
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "item_configs")]
+#[sea_orm(table_name = "obj_configs")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub item_id: i32,
+    pub obj_id: i32,
     pub equipment_slot: Option<EquipmentSlot>,
     pub equipment_flag: Option<EquipmentFlag>,
 }

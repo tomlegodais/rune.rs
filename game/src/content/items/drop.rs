@@ -1,9 +1,9 @@
-#[macros::on_item(option = Seven)]
+#[macros::on_obj(option = Seven)]
 async fn drop_item() {
-    let Some(item) = slot_item!() else {
+    let Some(obj) = slot_obj!() else {
         return;
     };
 
     clear_slot!();
-    drop_to_ground!(item.id, item.amount);
+    drop_to_ground!(obj.id, obj.amount);
 }

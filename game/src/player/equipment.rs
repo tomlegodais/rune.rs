@@ -12,7 +12,7 @@ use persistence::player::PlayerData;
 
 use crate::{
     player::{
-        Item, PlayerSnapshot,
+        Obj, PlayerSnapshot,
         system::{PlayerInitContext, PlayerSystem, SystemContext},
     },
     world::World,
@@ -21,10 +21,10 @@ use crate::{
 pub const SIZE: usize = 14;
 
 #[derive(Clone, Copy)]
-pub struct EquipSlots(pub [Option<Item>; SIZE]);
+pub struct EquipSlots(pub [Option<Obj>; SIZE]);
 
 impl Index<EquipmentSlot> for EquipSlots {
-    type Output = Option<Item>;
+    type Output = Option<Obj>;
     fn index(&self, slot: EquipmentSlot) -> &Self::Output {
         &self.0[slot as usize]
     }
@@ -40,7 +40,7 @@ impl<T: AsRef<[Option<(u16, u32)>]>> From<T> for EquipSlots {
     fn from(src: T) -> Self {
         let mut slots = [None; SIZE];
         for (i, slot) in src.as_ref().iter().enumerate().take(SIZE) {
-            slots[i] = slot.map(|(id, amount)| Item::new(id, amount));
+            slots[i] = slot.map(|(id, amount)| Obj::new(id, amount));
         }
         Self(slots)
     }
@@ -52,19 +52,19 @@ pub struct Equipment {
 }
 
 impl Equipment {
-    pub fn slot(&self, slot: EquipmentSlot) -> Option<Item> {
+    pub fn slot(&self, slot: EquipmentSlot) -> Option<Obj> {
         self.slots[slot]
     }
 
-    pub fn set(&mut self, slot: EquipmentSlot, item: Option<Item>) {
-        self.slots[slot] = item;
+    pub fn set(&mut self, slot: EquipmentSlot, obj: Option<Obj>) {
+        self.slots[slot] = obj;
     }
 
     pub fn slots(&self) -> &EquipSlots {
         &self.slots
     }
 
-    pub fn displace(&self, slot: EquipmentSlot, flag: EquipmentFlag) -> Vec<Item> {
+    pub fn displace(&self, slot: EquipmentSlot, flag: EquipmentFlag) -> Vec<Obj> {
         let occupant = self.slots[slot];
         let shield_conflict = (flag == EquipmentFlag::TwoHanded)
             .then(|| self.slots[EquipmentSlot::Shield])
@@ -94,9 +94,9 @@ impl Equipment {
                     .0
                     .iter()
                     .map(|s| {
-                        s.map(|item| ItemContainerEntry {
-                            item_id: item.id,
-                            amount: item.amount,
+                        s.map(|obj| ItemContainerEntry {
+                            item_id: obj.id,
+                            amount: obj.amount,
                         })
                     })
                     .collect(),
@@ -129,7 +129,7 @@ impl PlayerSystem for Equipment {
             .slots
             .0
             .iter()
-            .map(|s| s.map(|item| (item.id, item.amount)))
+            .map(|s| s.map(|obj| (obj.id, obj.amount)))
             .collect();
     }
 }

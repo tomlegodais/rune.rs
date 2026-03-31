@@ -5,21 +5,21 @@ use shaku::module;
 use crate::{
     account::{AccountRepository, PgAccountRepository, PgAccountRepositoryParameters},
     config::DatabaseConfig,
-    item::{ItemConfigRepository, PgItemConfigRepository, PgItemConfigRepositoryParameters},
     migration::Migrator,
+    obj::{ObjConfigRepository, PgObjConfigRepository, PgObjConfigRepositoryParameters},
     player::{PgPlayerRepository, PgPlayerRepositoryParameters, PlayerRepository},
 };
 
 pub trait PersistenceModuleInterface:
     shaku::HasComponent<dyn AccountRepository>
     + shaku::HasComponent<dyn PlayerRepository>
-    + shaku::HasComponent<dyn ItemConfigRepository>
+    + shaku::HasComponent<dyn ObjConfigRepository>
 {
 }
 
 module! {
     pub PersistenceModule: PersistenceModuleInterface {
-        components = [PgAccountRepository, PgPlayerRepository, PgItemConfigRepository],
+        components = [PgAccountRepository, PgPlayerRepository, PgObjConfigRepository],
         providers = []
     }
 }
@@ -34,7 +34,7 @@ pub async fn connect(config: &DatabaseConfig) -> anyhow::Result<PersistenceModul
     let module = PersistenceModule::builder()
         .with_component_parameters::<PgAccountRepository>(PgAccountRepositoryParameters { db: db.clone() })
         .with_component_parameters::<PgPlayerRepository>(PgPlayerRepositoryParameters { db: db.clone() })
-        .with_component_parameters::<PgItemConfigRepository>(PgItemConfigRepositoryParameters { db })
+        .with_component_parameters::<PgObjConfigRepository>(PgObjConfigRepositoryParameters { db })
         .build();
 
     Ok(module)

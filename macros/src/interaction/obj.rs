@@ -4,7 +4,7 @@ use syn::parse_macro_input;
 
 use super::{InteractionAttr, emit_content_handler};
 
-pub fn on_item(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn on_obj(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as InteractionAttr);
     let func = parse_macro_input!(item as syn::ItemFn);
     let wrapper_name = format_ident!("__{}_content_wrapper", func.sig.ident);
@@ -20,17 +20,17 @@ pub fn on_item(attr: TokenStream, item: TokenStream) -> TokenStream {
     };
 
     let base = super::macros::base();
-    let item = super::macros::item::macros();
+    let obj = super::macros::obj::macros();
 
     emit_content_handler(
         &wrapper_name,
-        quote! { crate::handler::ContentTarget::Item(#id_expr, #option) },
-        quote! { let crate::player::InteractionTarget::Item { slot: __slot } = target else { unreachable!() }; },
+        quote! { crate::handler::ContentTarget::Obj(#id_expr, #option) },
+        quote! { let crate::player::InteractionTarget::Obj { slot: __slot } = target else { unreachable!() }; },
         quote! {
             let mut player = crate::player::PlayerRef;
             let slot = __slot;
         },
-        quote! { #base #item },
+        quote! { #base #obj },
         &func.block,
     )
 }

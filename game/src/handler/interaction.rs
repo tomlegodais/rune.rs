@@ -125,19 +125,19 @@ async fn handle_button(player: &mut Player, msg: ButtonClick) {
     run_action(player, handler(target));
 }
 
-pub fn try_dispatch_item(player: &mut Player, option: ClickOption, slot: u16) -> bool {
-    let Some(item) = player.inventory().slot(slot as usize) else {
+pub fn try_dispatch_obj(player: &mut Player, option: ClickOption, slot: u16) -> bool {
+    let Some(obj) = player.inventory().slot(slot as usize) else {
         return false;
     };
 
     let handler = CONTENT_HANDLERS
-        .get(&ContentTarget::Item(item.id as i32, option))
-        .or_else(|| CONTENT_HANDLERS.get(&ContentTarget::Item(-1, option)));
+        .get(&ContentTarget::Obj(obj.id as i32, option))
+        .or_else(|| CONTENT_HANDLERS.get(&ContentTarget::Obj(-1, option)));
 
     let Some(handler) = handler else {
         return false;
     };
 
-    run_action(player, handler(InteractionTarget::Item { slot }));
+    run_action(player, handler(InteractionTarget::Obj { slot }));
     true
 }

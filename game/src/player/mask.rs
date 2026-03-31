@@ -184,14 +184,14 @@ impl AppearanceMask {
 
     fn flag_for(&self, slot: EquipmentSlot) -> Option<EquipmentFlag> {
         self.equipment[slot]
-            .and_then(|item| provider::get_item_definition(item.id as u32))
+            .and_then(|obj| provider::get_item_definition(obj.id as u32))
             .map(|def| def.equipment_flag)
             .filter(|f| *f != EquipmentFlag::None)
     }
 
     fn encode_slot(&self, buf: &mut BytesMut, slot: EquipmentSlot, kit_fallback: Option<u16>) {
         match self.equipment[slot] {
-            Some(item) => buf.put_u16(0x4000 + item.id),
+            Some(obj) => buf.put_u16(0x4000 + obj.id),
             None => match kit_fallback {
                 Some(kit) => buf.put_u16(0x100 | kit),
                 None => buf.put_u8(0),
