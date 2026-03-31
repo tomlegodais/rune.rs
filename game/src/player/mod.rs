@@ -167,7 +167,7 @@ impl Player {
 
     pub async fn on_login(&mut self) {
         self.viewport
-            .send_game_scene(true, self.index, &self.player_info, self.position)
+            .send_rebuild_normal(true, self.index, &self.player_info, self.position)
             .await;
 
         self.systems.on_login(&mut self.player_info).await;

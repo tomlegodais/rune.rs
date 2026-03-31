@@ -136,7 +136,7 @@ impl Inv {
         self.flush().await;
     }
 
-    async fn send_ifevents(&mut self) {
+    async fn send_if_set_events(&mut self) {
         self.outbox
             .write(if_set_events!(
                 interface_id: 149,
@@ -195,7 +195,7 @@ impl PlayerSystem for Inv {
     fn on_login<'a>(&'a mut self, _ctx: &'a mut SystemContext<'_>) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(async move {
             self.flush().await;
-            self.send_ifevents().await;
+            self.send_if_set_events().await;
         })
     }
 

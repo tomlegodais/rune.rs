@@ -31,7 +31,7 @@ impl ObjStackManager {
 
     pub async fn forget(&mut self, id: u32, obj_id: u16, pos: Position) {
         if self.known.remove(&id) {
-            self.send_objdel(obj_id, pos).await;
+            self.send_obj_del(obj_id, pos).await;
         }
     }
 
@@ -39,12 +39,12 @@ impl ObjStackManager {
         let ids: Vec<u32> = self.known.drain().collect();
         for id in ids {
             if let Some(item) = obj_stacks.get(id) {
-                self.send_objdel(item.obj_id, item.position).await;
+                self.send_obj_del(item.obj_id, item.position).await;
             }
         }
     }
 
-    async fn send_objadd(&mut self, obj_id: u16, amount: u32, pos: Position) {
+    async fn send_obj_add(&mut self, obj_id: u16, amount: u32, pos: Position) {
         let (zone_x, zone_y, packed_offset) = pos.zone_coords(self.region_base);
         let zone_frame = ZoneFrame::new(zone_x, zone_y, pos.plane as u8);
         self.outbox
@@ -57,7 +57,7 @@ impl ObjStackManager {
             .await;
     }
 
-    pub async fn send_objdel(&mut self, obj_id: u16, pos: Position) {
+    pub async fn send_obj_del(&mut self, obj_id: u16, pos: Position) {
         let (zone_x, zone_y, packed_offset) = pos.zone_coords(self.region_base);
         let zone_frame = ZoneFrame::new(zone_x, zone_y, pos.plane as u8);
         self.outbox
@@ -105,7 +105,7 @@ impl PlayerSystem for ObjStackManager {
             let visible = ctx.world.obj_stacks.visible_to(player_index, in_range);
             for (id, obj_id, amount, pos) in visible {
                 if self.known.insert(id) {
-                    self.send_objadd(obj_id, amount, pos).await;
+                    self.send_obj_add(obj_id, amount, pos).await;
                 }
             }
 
@@ -125,7 +125,7 @@ impl PlayerSystem for ObjStackManager {
             for id in invisible {
                 self.known.remove(&id);
                 if let Some(item) = ctx.world.obj_stacks.get(id) {
-                    self.send_objdel(item.obj_id, item.position).await;
+                    self.send_obj_del(item.obj_id, item.position).await;
                 }
             }
         })

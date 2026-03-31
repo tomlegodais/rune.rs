@@ -39,13 +39,13 @@ impl Viewport {
             self.region_base =
                 Position::from_chunks(position.chunk_x() - half_chunks, position.chunk_y() - half_chunks);
 
-            self.send_game_scene(false, player_index, player_info, position).await;
+            self.send_rebuild_normal(false, player_index, player_info, position).await;
         }
 
         needs
     }
 
-    pub async fn send_game_scene(&mut self, init: bool, player_index: usize, player_info: &PlayerInfo, pos: Position) {
+    pub async fn send_rebuild_normal(&mut self, init: bool, player_index: usize, player_info: &PlayerInfo, pos: Position) {
         self.outbox
             .write(RebuildNormal {
                 init,

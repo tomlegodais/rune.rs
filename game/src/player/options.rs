@@ -30,7 +30,7 @@ impl SetPlayerOps {
     pub async fn set(&mut self, slot: u8, option: impl Into<String>, top: bool) {
         let idx = slot as usize;
         self.options[idx] = Some((option.into(), top));
-        self.send_slot(slot).await;
+        self.send_player_op(slot).await;
     }
 
     pub async fn clear(&mut self, slot: u8) {
@@ -47,11 +47,11 @@ impl SetPlayerOps {
 
     async fn flush(&mut self) {
         for slot in 0..NUM_OPTIONS as u8 {
-            self.send_slot(slot).await;
+            self.send_player_op(slot).await;
         }
     }
 
-    async fn send_slot(&mut self, slot: u8) {
+    async fn send_player_op(&mut self, slot: u8) {
         let Some((ref text, top)) = self.options[slot as usize] else {
             return;
         };
