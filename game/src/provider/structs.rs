@@ -1,4 +1,4 @@
-use filesystem::{definition::StructType, loader::StructLoader};
+use filesystem::{config::StructType, loader::StructLoader};
 use macros::data_provider;
 use once_cell::sync::OnceCell;
 

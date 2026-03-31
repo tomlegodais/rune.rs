@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use tokio_util::bytes::{Buf, Bytes};
 use util::BufExt;
 
-use crate::definition::ParamValue;
+use crate::config::ParamValue;
 
 #[derive(Debug, Clone)]
 pub struct StructType {

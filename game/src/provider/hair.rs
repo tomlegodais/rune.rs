@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use filesystem::definition::ParamMap;
+use filesystem::config::ParamMap;
 use macros::data_provider;
 use once_cell::sync::OnceCell;
 

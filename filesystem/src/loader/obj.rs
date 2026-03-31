@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     Cache, CacheResult, IndexId,
-    definition::{ObjType, TransformKind},
+    config::{ObjType, TransformKind},
 };
 
 pub struct ObjLoader {

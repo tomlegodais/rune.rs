@@ -1,4 +1,4 @@
-use filesystem::{definition::NpcType, loader::NpcLoader};
+use filesystem::{config::NpcType, loader::NpcLoader};
 use macros::data_provider;
 use once_cell::sync::OnceCell;
 

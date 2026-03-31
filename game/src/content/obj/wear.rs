@@ -1,4 +1,4 @@
-use filesystem::definition::{WearFlag, WearPos};
+use filesystem::config::{WearFlag, WearPos};
 use num_enum::TryFromPrimitive;
 
 #[macros::on_obj(op = Op2)]

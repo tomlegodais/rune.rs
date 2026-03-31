@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{Cache, CacheResult, IndexId, definition::NpcType};
+use crate::{Cache, CacheResult, IndexId, config::NpcType};
 
 pub struct NpcLoader {
     types: HashMap<u32, NpcType>,

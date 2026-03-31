@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{ArchiveId, Cache, CacheResult, IndexId, definition::StructType};
+use crate::{ArchiveId, Cache, CacheResult, IndexId, config::StructType};
 
 pub struct StructLoader {
     types: HashMap<u32, StructType>,

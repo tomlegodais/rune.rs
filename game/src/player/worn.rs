@@ -4,8 +4,8 @@ use std::{
     pin::Pin,
 };
 
-use filesystem::definition::WearFlag;
-pub use filesystem::definition::WearPos;
+use filesystem::config::WearFlag;
+pub use filesystem::config::WearPos;
 use macros::player_system;
 use net::{InvEntry, InvType, Outbox, OutboxExt, UpdateInvFull};
 use persistence::player::PlayerData;

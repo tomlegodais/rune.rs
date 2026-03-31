@@ -2,7 +2,7 @@ mod archive;
 mod cache;
 mod checksum_table;
 mod codec;
-pub mod definition;
+pub mod config;
 mod error;
 mod id;
 pub mod loader;

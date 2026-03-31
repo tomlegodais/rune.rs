@@ -1,4 +1,4 @@
-use filesystem::{definition::VarbitType, loader::VarbitLoader};
+use filesystem::{config::VarbitType, loader::VarbitLoader};
 use macros::data_provider;
 use once_cell::sync::OnceCell;
 

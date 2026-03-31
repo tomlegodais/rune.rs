@@ -4,7 +4,7 @@ use num_enum::TryFromPrimitive;
 use tokio_util::bytes::{Buf, Bytes};
 use util::BufExt;
 
-use crate::definition::ParamValue;
+use crate::config::ParamValue;
 
 pub enum TransformKind {
     Noted,

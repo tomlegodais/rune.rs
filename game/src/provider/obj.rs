@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use filesystem::{
-    definition::{ObjType, WearFlag, WearPos},
+    config::{ObjType, WearFlag, WearPos},
     loader::ObjLoader,
 };
 use macros::data_provider;

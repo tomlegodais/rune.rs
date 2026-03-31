@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{Cache, CacheResult, IndexId, definition::LocType};
+use crate::{Cache, CacheResult, IndexId, config::LocType};
 
 pub struct LocLoader {
     types: HashMap<u32, LocType>,

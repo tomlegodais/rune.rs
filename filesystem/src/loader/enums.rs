@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{Cache, CacheResult, IndexId, definition::EnumType};
+use crate::{Cache, CacheResult, IndexId, config::EnumType};
 
 pub struct EnumLoader {
     types: HashMap<u32, EnumType>,
