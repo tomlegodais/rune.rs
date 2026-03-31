@@ -19,7 +19,7 @@ pub fn macros() -> proc_macro2::TokenStream {
                     return;
                 }
             };
-            (inventory, slots = $n:expr) => {
+            (inv, slots = $n:expr) => {
                 if crate::player::active_player().inv().free_slots() < $n {
                     send_message!("Your inventory is too full.");
                     return;

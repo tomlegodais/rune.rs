@@ -31,7 +31,7 @@ pub struct InvEntry {
 pub struct UpdateInvFull {
     pub inv_type: InvType,
     pub negative_key: bool,
-    pub items: Vec<Option<InvEntry>>,
+    pub objs: Vec<Option<InvEntry>>,
 }
 
 impl Encodable for UpdateInvFull {
@@ -40,9 +40,9 @@ impl Encodable for UpdateInvFull {
 
         buf.put_u16(self.inv_type.key());
         buf.put_u8(self.negative_key as u8);
-        buf.put_u16(self.items.len() as u16);
+        buf.put_u16(self.objs.len() as u16);
 
-        for slot in self.items {
+        for slot in self.objs {
             match slot {
                 Some(entry) => {
                     if entry.amount < 255 {

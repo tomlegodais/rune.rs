@@ -3,12 +3,12 @@
 #[macros::on_loc(id = 37312, op = Op1)]
 async fn mine_gold_rock() {
     requires!(stat = Mining, level = 40);
-    requires!(inventory, slots = 1);
+    requires!(inv, slots = 1);
 
     send_message!("You swing your pickaxe at the rock.");
 
     repeat!(delay = 3, seq = 12189, {
-        requires!(inventory, slots = 1);
+        requires!(inv, slots = 1);
 
         if !successful!(chance = 0.20) {
             continue;

@@ -161,7 +161,7 @@ impl Inv {
             .write(UpdateInvFull {
                 inv_type: InvType::Inv,
                 negative_key: false,
-                items: self
+                objs: self
                     .slots
                     .iter()
                     .map(|s| {

@@ -57,8 +57,8 @@ pub struct ObjType {
     pub stock_market: bool,
     pub ground_options: [Option<String>; 5],
     pub inventory_options: [Option<String>; 5],
-    pub male_equip_models: [Option<u32>; 3],
-    pub female_equip_models: [Option<u32>; 3],
+    pub male_worn_models: [Option<u32>; 3],
+    pub female_worn_models: [Option<u32>; 3],
     pub male_head_model: Option<u32>,
     pub female_head_model: Option<u32>,
     pub noted_id: Option<u32>,
@@ -95,8 +95,8 @@ impl Default for ObjType {
             stock_market: false,
             ground_options: [None, None, Some("Take".to_string()), None, None],
             inventory_options: [None, None, None, None, Some("Drop".to_string())],
-            male_equip_models: [None, None, None],
-            female_equip_models: [None, None, None],
+            male_worn_models: [None, None, None],
+            female_worn_models: [None, None, None],
             male_head_model: None,
             female_head_model: None,
             noted_id: None,
@@ -169,16 +169,16 @@ impl ObjType {
                 self.members = true;
             }
             23 => {
-                self.male_equip_models[0] = Some(buf.get_u16() as u32);
+                self.male_worn_models[0] = Some(buf.get_u16() as u32);
             }
             24 => {
-                self.male_equip_models[1] = Some(buf.get_u16() as u32);
+                self.male_worn_models[1] = Some(buf.get_u16() as u32);
             }
             25 => {
-                self.female_equip_models[0] = Some(buf.get_u16() as u32);
+                self.female_worn_models[0] = Some(buf.get_u16() as u32);
             }
             26 => {
-                self.female_equip_models[1] = Some(buf.get_u16() as u32);
+                self.female_worn_models[1] = Some(buf.get_u16() as u32);
             }
             30..=34 => {
                 let idx = (opcode - 30) as usize;
@@ -218,10 +218,10 @@ impl ObjType {
                 self.stock_market = true;
             }
             78 => {
-                self.male_equip_models[2] = Some(buf.get_u16() as u32);
+                self.male_worn_models[2] = Some(buf.get_u16() as u32);
             }
             79 => {
-                self.female_equip_models[2] = Some(buf.get_u16() as u32);
+                self.female_worn_models[2] = Some(buf.get_u16() as u32);
             }
             90 => {
                 self.male_head_model = Some(buf.get_u16() as u32);
@@ -367,8 +367,8 @@ impl ObjType {
 
     fn transform_lent(&mut self, lent: &ObjType) {
         self.recolor_find = lent.recolor_find.clone();
-        self.male_equip_models = lent.male_equip_models;
-        self.female_equip_models = lent.female_equip_models;
+        self.male_worn_models = lent.male_worn_models;
+        self.female_worn_models = lent.female_worn_models;
         self.team = lent.team;
         self.value = 0;
         self.members = lent.members;

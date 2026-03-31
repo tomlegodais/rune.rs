@@ -88,7 +88,7 @@ impl Worn {
             .write(UpdateInvFull {
                 inv_type: InvType::Worn,
                 negative_key: false,
-                items: self
+                objs: self
                     .slots
                     .0
                     .iter()
