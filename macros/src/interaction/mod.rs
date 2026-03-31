@@ -8,7 +8,7 @@ use syn::{
 pub mod interface;
 pub mod item;
 pub mod npc;
-pub mod object;
+pub mod loc;
 pub mod player;
 pub mod macros;
 

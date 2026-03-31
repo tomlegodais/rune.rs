@@ -1,6 +1,6 @@
 // Test handler for working out the skill action macro DSL.
 // Not representative of final content — uses placeholder IDs and hardcoded values.
-#[macros::on_object(id = 37312, option = 1)]
+#[macros::on_loc(id = 37312, option = 1)]
 async fn mine_gold_rock() {
     requires!(skill = Mining, level = 40);
     requires!(inventory, slots = 1);

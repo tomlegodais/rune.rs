@@ -14,8 +14,8 @@ use crate::{
 
 const FLOOR_BLOCKED: u32 = 0x200000;
 const FLOOR_DECO_BLOCKED: u32 = 0x40000;
-const OBJ: u32 = 0x100;
-const BLOCKED: u32 = FLOOR_BLOCKED | FLOOR_DECO_BLOCKED | OBJ;
+const LOC: u32 = 0x100;
+const BLOCKED: u32 = FLOOR_BLOCKED | FLOOR_DECO_BLOCKED | LOC;
 
 const WALL_N: u32 = 0x2;
 const WALL_E: u32 = 0x8;
@@ -81,20 +81,20 @@ const DIAGONAL_SIDES: [[SideCheck; 2]; 8] = [
     [(1, 0, BLOCKED | WALL_W), (0, 1, BLOCKED | WALL_S)],
 ];
 
-const OBJECT_SLOTS: [u8; 23] = [0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3];
+const LOC_SLOTS: [u8; 23] = [0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3];
 
 #[derive(Clone, Copy)]
-pub struct GameObject {
+pub struct Loc {
     pub id: u32,
     pub loc_type: u8,
     pub rotation: u8,
 }
 
-type ObjectStore = [[[[Option<GameObject>; 4]; REGION_SIZE]; REGION_SIZE]; PLANES];
+type LocStore = [[[[Option<Loc>; 4]; REGION_SIZE]; REGION_SIZE]; PLANES];
 
 struct RegionData {
     flags: TileFlags,
-    objects: Box<ObjectStore>,
+    locs: Box<LocStore>,
 }
 
 pub struct CollisionMap {
@@ -149,7 +149,7 @@ impl CollisionMap {
         if plane < PLANES && lx < REGION_SIZE && ly < REGION_SIZE { region.flags[plane][lx][ly] } else { 0 }
     }
 
-    pub fn get_object(&self, pos: Position, id: u32) -> Option<GameObject> {
+    pub fn get_loc(&self, pos: Position, id: u32) -> Option<Loc> {
         let region = self.region_data(pos);
         let plane = pos.plane as usize;
         let lx = (pos.x & 63) as usize;
@@ -159,20 +159,20 @@ impl CollisionMap {
             return None;
         }
 
-        region.objects[plane][lx][ly]
+        region.locs[plane][lx][ly]
             .iter()
             .flatten()
             .find(|obj| obj.id == id)
             .cloned()
     }
 
-    pub fn resolve_object_params(&self, pos: Position, id: u32) -> (i32, i32, u8) {
+    pub fn resolve_loc_params(&self, pos: Position, id: u32) -> (i32, i32, u8) {
         let def = provider::get_loc_definition(id);
         let (base_w, base_h, base_access) = def
             .map(|d| (d.size_x as i32, d.size_y as i32, d.access_block_flag))
             .unwrap_or((1, 1, 0));
 
-        let rotation = self.get_object(pos, id).map(|obj| obj.rotation).unwrap_or(0);
+        let rotation = self.get_loc(pos, id).map(|obj| obj.rotation).unwrap_or(0);
 
         let (w, h) = if rotation & 1 == 1 { (base_h, base_w) } else { (base_w, base_h) };
 
@@ -203,8 +203,8 @@ impl CollisionMap {
         let mut flags = [[[0u32; REGION_SIZE]; REGION_SIZE]; PLANES];
         let mut settings = [[[0u8; REGION_SIZE]; REGION_SIZE]; PLANES];
 
-        const NONE: Option<GameObject> = None;
-        let mut objects = Box::new([[[[NONE; 4]; REGION_SIZE]; REGION_SIZE]; PLANES]);
+        const NONE: Option<Loc> = None;
+        let mut locs = Box::new([[[[NONE; 4]; REGION_SIZE]; REGION_SIZE]; PLANES]);
 
         let map_hash = filesystem::name_hash(&format!("m{}_{}", rx, ry));
         let loc_hash = filesystem::name_hash(&format!("l{}_{}", rx, ry));
@@ -218,10 +218,10 @@ impl CollisionMap {
         if let Some(&archive_id) = self.archive_index.get(&loc_hash)
             && let Ok(data) = self.cache.read_archive(IndexId::MAPS, archive_id)
         {
-            parse_loc_placements(&data, &mut flags, &settings, &mut objects);
+            parse_loc_placements(&data, &mut flags, &settings, &mut locs);
         }
 
-        RegionData { flags, objects }
+        RegionData { flags, locs }
     }
 }
 
@@ -269,7 +269,7 @@ fn parse_tile_settings(data: &[u8], flags: &mut TileFlags, settings: &mut TileSe
     }
 }
 
-fn parse_loc_placements(data: &[u8], flags: &mut TileFlags, settings: &TileSettings, objects: &mut ObjectStore) {
+fn parse_loc_placements(data: &[u8], flags: &mut TileFlags, settings: &TileSettings, locs: &mut LocStore) {
     let mut buf = Bytes::copy_from_slice(data);
     let mut loc_id: i32 = -1;
 
@@ -313,9 +313,9 @@ fn parse_loc_placements(data: &[u8], flags: &mut TileFlags, settings: &TileSetti
                 continue;
             }
 
-            if (loc_type as usize) < OBJECT_SLOTS.len() {
-                let slot = OBJECT_SLOTS[loc_type as usize] as usize;
-                objects[plane][local_x][local_y][slot] = Some(GameObject {
+            if (loc_type as usize) < LOC_SLOTS.len() {
+                let slot = LOC_SLOTS[loc_type as usize] as usize;
+                locs[plane][local_x][local_y][slot] = Some(Loc {
                     id: loc_id as u32,
                     loc_type,
                     rotation,
@@ -336,7 +336,7 @@ fn parse_loc_placements(data: &[u8], flags: &mut TileFlags, settings: &TileSetti
                     } else {
                         (def.size_x as usize, def.size_y as usize)
                     };
-                    add_object(flags, plane, local_x, local_y, sx, sy);
+                    add_loc(flags, plane, local_x, local_y, sx, sy);
                 }
                 22 if def.solid == 1 => {
                     add_floor_deco(flags, plane, local_x, local_y);
@@ -382,12 +382,12 @@ fn add_wall(flags: &mut TileFlags, plane: usize, x: usize, y: usize, loc_type: u
     }
 }
 
-fn add_object(flags: &mut TileFlags, plane: usize, lx: usize, ly: usize, sx: usize, sy: usize) {
+fn add_loc(flags: &mut TileFlags, plane: usize, lx: usize, ly: usize, sx: usize, sy: usize) {
     for dx in 0..sx {
         for dy in 0..sy {
             let (x, y) = (lx + dx, ly + dy);
             if x < REGION_SIZE && y < REGION_SIZE {
-                flags[plane][x][y] |= OBJ;
+                flags[plane][x][y] |= LOC;
             }
         }
     }

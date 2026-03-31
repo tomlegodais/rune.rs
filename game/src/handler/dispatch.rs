@@ -11,7 +11,7 @@ use crate::{
 
 #[derive(Hash, Eq, PartialEq, Clone, Copy)]
 pub enum ContentTarget {
-    Object(u16, ClickOption),
+    Loc(u16, ClickOption),
     Npc(u16, ClickOption),
     Player(ClickOption),
     Item(i32, ClickOption),
@@ -40,7 +40,7 @@ pub fn dispatch(
     option: ClickOption,
 ) -> Option<Pin<Box<dyn Future<Output = ()> + Send + 'static>>> {
     let content_target = match &target {
-        InteractionTarget::Object { id, .. } => ContentTarget::Object(*id, option),
+        InteractionTarget::Loc { id, .. } => ContentTarget::Loc(*id, option),
         InteractionTarget::Npc { index } => {
             let world = player.world();
             if !world.npcs.contains(*index) {

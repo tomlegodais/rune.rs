@@ -1,5 +1,5 @@
 use macros::message_handler;
-use net::{ButtonClick, ClickOption, NpcClick, ObjectClick, PlayerClick};
+use net::{ButtonClick, ClickOption, LocClick, NpcClick, PlayerClick};
 
 use super::{
     MessageHandler,
@@ -12,7 +12,7 @@ use crate::{
 };
 
 #[message_handler]
-async fn handle_object(player: &mut Player, msg: ObjectClick) {
+async fn handle_loc(player: &mut Player, msg: LocClick) {
     if is_action_locked(player) {
         return;
     }
@@ -21,7 +21,7 @@ async fn handle_object(player: &mut Player, msg: ObjectClick) {
 
     let dest = Position::new(msg.x as i32, msg.y as i32, player.position.plane);
     player.interaction_mut().set(
-        InteractionTarget::Object {
+        InteractionTarget::Loc {
             id: msg.id,
             x: dest.x,
             y: dest.y,
@@ -29,7 +29,7 @@ async fn handle_object(player: &mut Player, msg: ObjectClick) {
         msg.option,
     );
 
-    let params = crate::provider::get_collision().resolve_object_params(dest, msg.id as u32);
+    let params = crate::provider::get_collision().resolve_loc_params(dest, msg.id as u32);
 
     with_movement!(player, |m, ctx| m
         .walk_to(&mut ctx, dest, msg.ctrl_run, Some(params))

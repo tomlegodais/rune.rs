@@ -5,7 +5,7 @@ mod ifmoveslot;
 mod minimap_walk;
 mod npc;
 mod objclick;
-mod object;
+mod loc;
 mod player;
 mod walk;
 
@@ -17,7 +17,7 @@ pub use command::ClientCommand;
 pub use ifmoveslot::IfMoveSlot;
 pub use npc::NpcClick;
 pub use objclick::ObjClick;
-pub use object::ObjectClick;
+pub use loc::LocClick;
 pub use player::PlayerClick;
 use tokio::sync::mpsc;
 use tokio_util::bytes::Bytes;

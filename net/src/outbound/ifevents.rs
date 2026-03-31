@@ -28,7 +28,7 @@ impl IfEvents {
         self
     }
 
-    pub fn use_on_objects(mut self, allow: bool) -> Self {
+    pub fn use_on_locs(mut self, allow: bool) -> Self {
         self.0 = (self.0 & !(1 << 13)) | ((allow as u32) << 13);
         self
     }
@@ -126,7 +126,7 @@ macro_rules! if_events {
 
     (@use_on $e:ident, ground)      => { $e.use_on_ground_items(true) };
     (@use_on $e:ident, npcs)        => { $e.use_on_npcs(true) };
-    (@use_on $e:ident, objects)     => { $e.use_on_objects(true) };
+    (@use_on $e:ident, locs)        => { $e.use_on_locs(true) };
     (@use_on $e:ident, players)     => { $e.use_on_players(true) };
     (@use_on $e:ident, self_player) => { $e.use_on_self(true) };
     (@use_on $e:ident, components)  => { $e.use_on_components(true) };

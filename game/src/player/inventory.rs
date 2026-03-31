@@ -143,7 +143,7 @@ impl Inventory {
                 component_id: 0,
                 slots: [0 => 27],
                 right_click[0,1,2,6,7,8],
-                use_on[ground, npcs, objects, components],
+                use_on[ground, npcs, locs, components],
                 depth[1],
                 can_use_on
             ))

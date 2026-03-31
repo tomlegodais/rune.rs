@@ -5,7 +5,7 @@ use util::BufExt;
 use super::{InboundDecoder, IncomingMessage};
 use crate::inbound::ClickOption;
 
-pub struct ObjectClick {
+pub struct LocClick {
     pub option: ClickOption,
     pub id: u16,
     pub x: u16,
@@ -22,7 +22,7 @@ const _: () = {
         let ctrl_run = payload.get_u8() == 1;
         let id = payload.get_u16();
         let y = payload.get_u16();
-        Box::new(ObjectClick {
+        Box::new(LocClick {
             option: ClickOption::One,
             id,
             x,
@@ -41,7 +41,7 @@ const _: () = {
         let y = payload.get_u16_add();
         let id = payload.get_u16_le_add();
         let ctrl_run = payload.get_u8() == 1;
-        Box::new(ObjectClick {
+        Box::new(LocClick {
             option: ClickOption::Two,
             id,
             x,
@@ -60,7 +60,7 @@ const _: () = {
         let ctrl_run = payload.get_u8() == 1;
         let y = payload.get_u16();
         let id = payload.get_u16_le_add();
-        Box::new(ObjectClick {
+        Box::new(LocClick {
             option: ClickOption::Three,
             id,
             x,

@@ -24,7 +24,7 @@ pub struct PendingInteraction {
 }
 
 pub enum InteractionTarget {
-    Object {
+    Loc {
         id: u16,
         x: i32,
         y: i32,
@@ -72,7 +72,7 @@ impl Interaction {
 impl InteractionTarget {
     fn target_position(&self, world: &World, plane: i32) -> Option<Position> {
         match self {
-            Self::Object { x, y, .. } => Some(Position::new(*x, *y, plane)),
+            Self::Loc { x, y, .. } => Some(Position::new(*x, *y, plane)),
             Self::Npc { index } => world.npcs.contains(*index).then(|| world.npc(*index).position),
             Self::Player { index } => world.players.contains(*index).then(|| world.player(*index).position),
             Self::Item { .. } => None,
@@ -122,8 +122,8 @@ pub fn resolve(player: &mut Player, world: &World) {
 
     let collision = crate::provider::get_collision();
     let is_adjacent = match &pending.target {
-        InteractionTarget::Object { id, .. } => {
-            let (w, h, access) = collision.resolve_object_params(target_pos, *id as u32);
+        InteractionTarget::Loc { id, .. } => {
+            let (w, h, access) = collision.resolve_loc_params(target_pos, *id as u32);
             can_interact_rect(collision, player.position, target_pos, w, h, access)
         }
         InteractionTarget::Npc { index } => {
@@ -182,7 +182,7 @@ fn face_target(player: &mut Player, world: &World, target: &InteractionTarget, t
             player.entity.face_target = Some(client_index);
             player.player_info.add_mask(PlayerFaceEntityMask(client_index));
         }
-        InteractionTarget::Object { .. } => {
+        InteractionTarget::Loc { .. } => {
             player
                 .player_info
                 .add_mask(crate::player::FaceDirectionMask(player.entity.face_direction));

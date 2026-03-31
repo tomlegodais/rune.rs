@@ -32,8 +32,8 @@ pub fn data_provider(attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn on_object(attr: TokenStream, item: TokenStream) -> TokenStream {
-    interaction::object::on_object(attr, item)
+pub fn on_loc(attr: TokenStream, item: TokenStream) -> TokenStream {
+    interaction::loc::on_loc(attr, item)
 }
 
 #[proc_macro_attribute]
