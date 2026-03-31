@@ -1,10 +1,10 @@
-mod chat;
-mod command;
+mod client_cheat;
 mod dispatch;
 mod ifmoveslot;
 mod interaction;
+mod message_public;
+mod moveclick;
 mod objstack;
-mod walk;
 
 use std::{any::TypeId, collections::HashMap, future::Future, pin::Pin};
 
