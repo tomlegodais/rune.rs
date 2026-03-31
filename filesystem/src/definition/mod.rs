@@ -1,14 +1,14 @@
 mod enums;
-mod obj;
 mod loc;
 mod npc;
+mod obj;
 mod structs;
 mod varbit;
 
 pub use enums::{EnumType, EnumValue};
-pub use obj::{EquipmentFlag, EquipmentSlot, ObjType, TransformKind};
 pub use loc::LocType;
 pub use npc::NpcType;
+pub use obj::{ObjType, TransformKind, WearFlag, WearPos};
 pub use structs::StructType;
 pub use varbit::VarbitType;
 

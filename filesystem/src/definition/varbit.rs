@@ -13,7 +13,7 @@ pub struct VarbitType {
 impl VarbitType {
     pub fn decode(id: u32, data: &[u8]) -> io::Result<Self> {
         let mut buf = Bytes::copy_from_slice(data);
-        let mut def = Self {
+        let mut t = Self {
             id,
             varp: 0,
             low_bit: 0,
@@ -24,15 +24,15 @@ impl VarbitType {
             match buf.get_u8() {
                 0 => break,
                 1 => {
-                    def.varp = buf.get_u16();
-                    def.low_bit = buf.get_u8();
-                    def.high_bit = buf.get_u8();
+                    t.varp = buf.get_u16();
+                    t.low_bit = buf.get_u8();
+                    t.high_bit = buf.get_u8();
                 }
                 _ => {}
             }
         }
 
-        Ok(def)
+        Ok(t)
     }
 
     pub fn mask(&self) -> u32 {

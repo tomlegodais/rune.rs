@@ -34,7 +34,7 @@ impl Default for EnumType {
 
 impl EnumType {
     pub fn decode(id: u32, data: &[u8]) -> anyhow::Result<Self> {
-        let mut def = Self {
+        let mut t = Self {
             id,
             ..Default::default()
         };
@@ -44,9 +44,9 @@ impl EnumType {
             if opcode == 0 {
                 break;
             }
-            def.decode_opcode(&mut buf, opcode)?;
+            t.decode_opcode(&mut buf, opcode)?;
         }
-        Ok(def)
+        Ok(t)
     }
 
     fn decode_opcode(&mut self, buf: &mut Bytes, opcode: u8) -> anyhow::Result<()> {

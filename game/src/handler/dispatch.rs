@@ -51,8 +51,8 @@ pub fn dispatch(
         }
         InteractionTarget::Player { .. } => ContentTarget::Player(option),
         InteractionTarget::Obj { .. } | InteractionTarget::Button { .. } => return None,
-        InteractionTarget::GroundItem { .. } => {
-            return Some(Box::pin(crate::handler::pickup_ground_item(target)));
+        InteractionTarget::ObjStack { .. } => {
+            return Some(Box::pin(crate::handler::pickup_obj_stack(target)));
         }
     };
 

@@ -3,16 +3,15 @@ mod macros;
 
 mod action;
 mod appearance;
-mod equipment;
 mod gpi;
-mod grounditem;
 mod info;
 mod interaction;
 mod interface;
-mod inventory;
-mod obj;
+mod inv;
 mod mask;
 mod movement;
+mod obj;
+mod objstack;
 mod options;
 mod skill;
 mod state;
@@ -20,6 +19,7 @@ mod system;
 mod ui;
 mod varp;
 mod viewport;
+mod worn;
 
 use std::{
     ops::{Deref, DerefMut},
@@ -31,18 +31,15 @@ pub use action::{
     is_action_locked, lock, poll_action, send_message, set_action_context, unlock,
 };
 pub use appearance::{Appearance, DEFAULT_READYANIM};
-pub use equipment::{EquipSlots, SIZE as EQUIPMENT_SIZE};
 pub use gpi::encode_player_info;
 pub use info::PlayerInfo;
 pub use interaction::{InteractionTarget, resolve as resolve_interaction};
 pub use interface::SubInterface;
-pub use inventory::SIZE as INVENTORY_SIZE;
-pub use obj::Obj;
-pub use mask::{
-    ChatMask, FaceDirectionMask, MoveTypeMask, SeqMask, SpotAnim1Mask, SpotAnim2Mask, TempMoveTypeMask,
-};
+pub use inv::SIZE as INV_SIZE;
+pub use mask::{ChatMask, FaceDirectionMask, MoveTypeMask, SeqMask, SpotAnim1Mask, SpotAnim2Mask, TempMoveTypeMask};
 pub use movement::{Movement, MovementContext};
 use net::{ChatMessage, Inbox, Logout, Outbox, OutboxExt};
+pub use obj::Obj;
 use persistence::{
     account::{Account, Rights},
     player::PlayerData,
@@ -52,6 +49,7 @@ use system::{PlayerInitContext, SystemStore};
 use tracing::info;
 pub use varp::VarpManager;
 pub use viewport::Viewport;
+pub use worn::{SIZE as WORN_SIZE, WornSlots};
 
 use crate::{
     entity::{Entity, MaskBlock, MoveStep, Seq, SeqBuilder, SpotAnim, SpotAnimBuilder},
@@ -66,7 +64,7 @@ pub struct PlayerSnapshot {
     pub region_base: Position,
     pub face_direction: Direction,
     pub appearance: Appearance,
-    pub equipment: EquipSlots,
+    pub worn: WornSlots,
     pub masks: MaskBlock,
     pub teleport: Option<Teleport>,
     pub move_step: MoveStep,
@@ -138,7 +136,7 @@ impl Player {
             region_base: self.viewport.region_base,
             face_direction: self.face_direction,
             appearance: self.appearance().clone(),
-            equipment: *self.equipment().slots(),
+            worn: *self.worn().slots(),
             masks: state.masks.clone(),
             teleport: state.teleport,
             move_step: state.move_step,
@@ -159,8 +157,8 @@ impl Player {
             colors: [0; 5],
             levels: [1; 24],
             xp: [0; 24],
-            inventory: vec![None; INVENTORY_SIZE],
-            equipment: vec![None; EQUIPMENT_SIZE],
+            inv: vec![None; INV_SIZE],
+            worn: vec![None; WORN_SIZE],
         };
 
         self.systems.for_each_persist(&mut data);
@@ -193,7 +191,7 @@ impl Player {
             .try_rebuild(self.position, self.index, &self.player_info)
             .await
         {
-            self.ground_item_mut().on_viewport_rebuild(&world.ground_items).await;
+            self.obj_stack_mut().on_viewport_rebuild(&world.obj_stacks).await;
         }
 
         let player_pos = self.position;
@@ -220,7 +218,7 @@ impl Player {
     }
 
     pub fn flush_appearance(&mut self) {
-        let mask = self.appearance().to_mask(self.equipment().slots());
+        let mask = self.appearance().to_mask(self.worn().slots());
         self.player_info.add_mask(mask);
     }
 

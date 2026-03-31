@@ -6,11 +6,11 @@ use syn::{
 };
 
 pub mod interface;
-pub mod obj;
-pub mod npc;
 pub mod loc;
-pub mod player;
 pub mod macros;
+pub mod npc;
+pub mod obj;
+pub mod player;
 
 pub enum AttrValue {
     Int(syn::LitInt),
@@ -123,4 +123,3 @@ pub fn emit_content_handler(
     }
     .into()
 }
-

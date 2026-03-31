@@ -13,7 +13,7 @@ pub enum TransformKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive)]
 #[repr(usize)]
-pub enum EquipmentSlot {
+pub enum WearPos {
     Head = 0,
     Cape = 1,
     Amulet = 2,
@@ -28,7 +28,7 @@ pub enum EquipmentSlot {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum EquipmentFlag {
+pub enum WearFlag {
     #[default]
     None,
     TwoHanded,
@@ -70,8 +70,8 @@ pub struct ObjType {
     pub retexture_replace: Vec<u16>,
     pub team: u8,
     pub weight: i32,
-    pub equipment_slot: Option<EquipmentSlot>,
-    pub equipment_flag: EquipmentFlag,
+    pub wearpos: Option<WearPos>,
+    pub wearflag: WearFlag,
     pub lent_id: Option<u32>,
     pub lent_template: Option<u32>,
     pub params: HashMap<u32, ParamValue>,
@@ -108,8 +108,8 @@ impl Default for ObjType {
             retexture_replace: Vec::new(),
             team: 0,
             weight: 0,
-            equipment_slot: None,
-            equipment_flag: EquipmentFlag::None,
+            wearpos: None,
+            wearflag: WearFlag::None,
             lent_id: None,
             lent_template: None,
             params: HashMap::new(),
@@ -119,7 +119,7 @@ impl Default for ObjType {
 
 impl ObjType {
     pub fn decode(id: u32, data: &[u8]) -> anyhow::Result<Self> {
-        let mut def = Self {
+        let mut t = Self {
             id,
             ..Default::default()
         };
@@ -130,10 +130,10 @@ impl ObjType {
             if opcode == 0 {
                 break;
             }
-            def.decode_opcode(&mut buf, opcode)?;
+            t.decode_opcode(&mut buf, opcode)?;
         }
 
-        Ok(def)
+        Ok(t)
     }
 
     fn decode_opcode(&mut self, buf: &mut Bytes, opcode: u8) -> anyhow::Result<()> {
@@ -357,24 +357,24 @@ impl ObjType {
         }
     }
 
-    fn transform_noted(&mut self, noted_def: &ObjType) {
-        self.members = noted_def.members;
-        self.value = noted_def.value;
-        self.name = noted_def.name.clone();
+    fn transform_noted(&mut self, noted: &ObjType) {
+        self.members = noted.members;
+        self.value = noted.value;
+        self.name = noted.name.clone();
         self.stackable = true;
-        self.params = noted_def.params.clone();
+        self.params = noted.params.clone();
     }
 
-    fn transform_lent(&mut self, lent_def: &ObjType) {
-        self.recolor_find = lent_def.recolor_find.clone();
-        self.male_equip_models = lent_def.male_equip_models;
-        self.female_equip_models = lent_def.female_equip_models;
-        self.team = lent_def.team;
+    fn transform_lent(&mut self, lent: &ObjType) {
+        self.recolor_find = lent.recolor_find.clone();
+        self.male_equip_models = lent.male_equip_models;
+        self.female_equip_models = lent.female_equip_models;
+        self.team = lent.team;
         self.value = 0;
-        self.members = lent_def.members;
-        self.name = lent_def.name.clone();
-        self.inventory_options = lent_def.inventory_options.clone();
+        self.members = lent.members;
+        self.name = lent.name.clone();
+        self.inventory_options = lent.inventory_options.clone();
         self.inventory_options[4] = Some("Discard".to_string());
-        self.params = lent_def.params.clone();
+        self.params = lent.params.clone();
     }
 }

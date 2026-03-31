@@ -1,8 +1,8 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "equipment_slot")]
-pub enum EquipmentSlot {
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "wearpos")]
+pub enum WearPos {
     #[sea_orm(string_value = "head")]
     Head,
     #[sea_orm(string_value = "cape")]
@@ -28,8 +28,8 @@ pub enum EquipmentSlot {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "equipment_flag")]
-pub enum EquipmentFlag {
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "wearflag")]
+pub enum WearFlag {
     #[sea_orm(string_value = "two_handed")]
     TwoHanded,
     #[sea_orm(string_value = "sleeveless")]
@@ -51,8 +51,8 @@ pub enum EquipmentFlag {
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub obj_id: i32,
-    pub equipment_slot: Option<EquipmentSlot>,
-    pub equipment_flag: Option<EquipmentFlag>,
+    pub wearpos: Option<WearPos>,
+    pub wearflag: Option<WearFlag>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

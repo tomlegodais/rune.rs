@@ -3,12 +3,11 @@ use sea_orm::{prelude::Expr, *};
 use shaku::{Component, Interface};
 
 use super::entity::{
-    appearance,
-    equipment::{self, EquipmentEntry},
-    inventory,
-    inventory::InventoryEntry,
+    appearance, inv,
+    inv::InvEntry,
     player, skills,
     skills::SkillEntry,
+    worn::{self, WornEntry},
 };
 
 #[derive(Clone)]
@@ -24,8 +23,8 @@ pub struct PlayerData {
     pub colors: [u8; 5],
     pub levels: [u8; 24],
     pub xp: [u32; 24],
-    pub inventory: Vec<Option<(u16, u32)>>,
-    pub equipment: Vec<Option<(u16, u32)>>,
+    pub inv: Vec<Option<(u16, u32)>>,
+    pub worn: Vec<Option<(u16, u32)>>,
 }
 
 #[async_trait]
@@ -47,8 +46,8 @@ impl PlayerData {
         player: player::Model,
         appearance: appearance::Model,
         skill_model: skills::Model,
-        inventory_model: inventory::Model,
-        equipment_model: equipment::Model,
+        inv_model: inv::Model,
+        worn_model: worn::Model,
     ) -> Result<Self, DbErr> {
         let skill_entries: Vec<SkillEntry> =
             serde_json::from_value(skill_model.skills).map_err(|e| DbErr::Type(e.to_string()))?;
@@ -76,16 +75,16 @@ impl PlayerData {
             .try_into()
             .map_err(|_| DbErr::Type("invalid colors array length".to_string()))?;
 
-        let inv_entries: Vec<Option<InventoryEntry>> =
-            serde_json::from_value(inventory_model.items).map_err(|e| DbErr::Type(e.to_string()))?;
-        let inventory = inv_entries
+        let inv_entries: Vec<Option<InvEntry>> =
+            serde_json::from_value(inv_model.items).map_err(|e| DbErr::Type(e.to_string()))?;
+        let inv = inv_entries
             .into_iter()
             .map(|e| e.map(|e| (e.item_id, e.amount)))
             .collect();
 
-        let equip_entries: Vec<Option<EquipmentEntry>> =
-            serde_json::from_value(equipment_model.items).map_err(|e| DbErr::Type(e.to_string()))?;
-        let equipment = equip_entries
+        let worn_entries: Vec<Option<WornEntry>> =
+            serde_json::from_value(worn_model.items).map_err(|e| DbErr::Type(e.to_string()))?;
+        let worn = worn_entries
             .into_iter()
             .map(|e| e.map(|e| (e.item_id, e.amount)))
             .collect();
@@ -102,8 +101,8 @@ impl PlayerData {
             colors,
             levels,
             xp,
-            inventory,
-            equipment,
+            inv,
+            worn,
         })
     }
 }
@@ -129,17 +128,17 @@ impl PlayerRepository for PgPlayerRepository {
             .await?
             .ok_or_else(|| DbErr::RecordNotFound("player_skills".to_string()))?;
 
-        let inv = inventory::Entity::find_by_id(player.id)
+        let inv = inv::Entity::find_by_id(player.id)
             .one(&self.db)
             .await?
-            .ok_or_else(|| DbErr::RecordNotFound("player_inventory".to_string()))?;
+            .ok_or_else(|| DbErr::RecordNotFound("player_inv".to_string()))?;
 
-        let equip = equipment::Entity::find_by_id(player.id)
+        let worn = worn::Entity::find_by_id(player.id)
             .one(&self.db)
             .await?
-            .ok_or_else(|| DbErr::RecordNotFound("player_equipment".to_string()))?;
+            .ok_or_else(|| DbErr::RecordNotFound("player_worn".to_string()))?;
 
-        PlayerData::from_models(player, appearance, skills, inv, equip).map(Some)
+        PlayerData::from_models(player, appearance, skills, inv, worn).map(Some)
     }
 
     async fn create_default(&self, account_id: i64) -> Result<PlayerData, DbErr> {
@@ -164,21 +163,21 @@ impl PlayerRepository for PgPlayerRepository {
         .insert(&self.db)
         .await?;
 
-        let inv = inventory::ActiveModel {
+        let inv = inv::ActiveModel {
             player_id: Set(player.id),
             ..Default::default()
         }
         .insert(&self.db)
         .await?;
 
-        let equip = equipment::ActiveModel {
+        let worn = worn::ActiveModel {
             player_id: Set(player.id),
             ..Default::default()
         }
         .insert(&self.db)
         .await?;
 
-        PlayerData::from_models(player, appearance, skills, inv, equip)
+        PlayerData::from_models(player, appearance, skills, inv, worn)
     }
 
     async fn save(&self, data: &PlayerData) -> Result<(), DbErr> {
@@ -221,29 +220,29 @@ impl PlayerRepository for PgPlayerRepository {
             .exec(&self.db)
             .await?;
 
-        let inv_entries: Vec<Option<InventoryEntry>> = data
-            .inventory
+        let inv_entries: Vec<Option<InvEntry>> = data
+            .inv
             .iter()
-            .map(|slot| slot.map(|(item_id, amount)| InventoryEntry { item_id, amount }))
+            .map(|slot| slot.map(|(item_id, amount)| InvEntry { item_id, amount }))
             .collect();
         let inv_json = serde_json::to_value(&inv_entries).map_err(|e| DbErr::Type(e.to_string()))?;
 
-        inventory::Entity::update_many()
-            .filter(inventory::Column::PlayerId.eq(data.player_id))
-            .col_expr(inventory::Column::Items, Expr::value(inv_json))
+        inv::Entity::update_many()
+            .filter(inv::Column::PlayerId.eq(data.player_id))
+            .col_expr(inv::Column::Items, Expr::value(inv_json))
             .exec(&self.db)
             .await?;
 
-        let equip_entries: Vec<Option<EquipmentEntry>> = data
-            .equipment
+        let worn_entries: Vec<Option<WornEntry>> = data
+            .worn
             .iter()
-            .map(|slot| slot.map(|(item_id, amount)| EquipmentEntry { item_id, amount }))
+            .map(|slot| slot.map(|(item_id, amount)| WornEntry { item_id, amount }))
             .collect();
-        let equip_json = serde_json::to_value(&equip_entries).map_err(|e| DbErr::Type(e.to_string()))?;
+        let worn_json = serde_json::to_value(&worn_entries).map_err(|e| DbErr::Type(e.to_string()))?;
 
-        equipment::Entity::update_many()
-            .filter(equipment::Column::PlayerId.eq(data.player_id))
-            .col_expr(equipment::Column::Items, Expr::value(equip_json))
+        worn::Entity::update_many()
+            .filter(worn::Column::PlayerId.eq(data.player_id))
+            .col_expr(worn::Column::Items, Expr::value(worn_json))
             .exec(&self.db)
             .await?;
 

@@ -167,8 +167,8 @@ impl CollisionMap {
     }
 
     pub fn resolve_loc_params(&self, pos: Position, id: u32) -> (i32, i32, u8) {
-        let def = provider::get_loc_type(id);
-        let (base_w, base_h, base_access) = def
+        let loc = provider::get_loc_type(id);
+        let (base_w, base_h, base_access) = loc
             .map(|d| (d.size_x as i32, d.size_y as i32, d.access_block_flag))
             .unwrap_or((1, 1, 0));
 
@@ -283,7 +283,7 @@ fn parse_loc_placements(data: &[u8], flags: &mut TileFlags, settings: &TileSetti
         }
         loc_id = loc_id.wrapping_add(delta as i32);
 
-        let def = provider::get_loc_type(loc_id as u32);
+        let loc = provider::get_loc_type(loc_id as u32);
 
         let mut packed_pos: u32 = 0;
         loop {
@@ -322,23 +322,23 @@ fn parse_loc_placements(data: &[u8], flags: &mut TileFlags, settings: &TileSetti
                 });
             }
 
-            let Some(def) = def else {
+            let Some(loc) = loc else {
                 continue;
             };
 
             match loc_type {
-                0..=3 if def.block_walk => {
+                0..=3 if loc.block_walk => {
                     add_wall(flags, plane, local_x, local_y, loc_type, rotation);
                 }
-                9..=21 if def.block_walk => {
+                9..=21 if loc.block_walk => {
                     let (sx, sy) = if rotation & 1 == 1 {
-                        (def.size_y as usize, def.size_x as usize)
+                        (loc.size_y as usize, loc.size_x as usize)
                     } else {
-                        (def.size_x as usize, def.size_y as usize)
+                        (loc.size_x as usize, loc.size_y as usize)
                     };
                     add_loc(flags, plane, local_x, local_y, sx, sy);
                 }
-                22 if def.solid == 1 => {
+                22 if loc.solid == 1 => {
                     add_floor_deco(flags, plane, local_x, local_y);
                 }
                 _ => {}

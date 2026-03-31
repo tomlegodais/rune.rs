@@ -1,8 +1,8 @@
 pub mod account;
 mod config;
 mod database;
-pub mod obj;
 mod migration;
+pub mod obj;
 pub mod player;
 
 pub use account::Rights;

@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-pub use entity::{EquipmentFlag, EquipmentSlot};
+pub use entity::{WearFlag, WearPos};
 use sea_orm::*;
 use shaku::{Component, Interface};
 
@@ -7,8 +7,8 @@ use super::entity;
 
 pub struct ObjConfig {
     pub obj_id: u32,
-    pub equipment_slot: Option<EquipmentSlot>,
-    pub equipment_flag: Option<EquipmentFlag>,
+    pub wearpos: Option<WearPos>,
+    pub wearflag: Option<WearFlag>,
 }
 
 #[async_trait]
@@ -31,8 +31,8 @@ impl ObjConfigRepository for PgObjConfigRepository {
             .into_iter()
             .map(|m| ObjConfig {
                 obj_id: m.obj_id as u32,
-                equipment_slot: m.equipment_slot,
-                equipment_flag: m.equipment_flag,
+                wearpos: m.wearpos,
+                wearflag: m.wearflag,
             })
             .collect())
     }

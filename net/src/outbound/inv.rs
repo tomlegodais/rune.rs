@@ -4,54 +4,54 @@ use util::BytesMutExt;
 use crate::{Encodable, Frame, Prefix};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ItemContainerId {
-    Inventory,
-    Equipment,
+pub enum InvType {
+    Inv,
+    Worn,
     Bank,
     Custom(u16),
 }
 
-impl ItemContainerId {
+impl InvType {
     pub const fn key(self) -> u16 {
         match self {
-            ItemContainerId::Inventory => 93,
-            ItemContainerId::Equipment => 94,
-            ItemContainerId::Bank => 95,
-            ItemContainerId::Custom(key) => key,
+            InvType::Inv => 93,
+            InvType::Worn => 94,
+            InvType::Bank => 95,
+            InvType::Custom(key) => key,
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ItemContainerEntry {
+pub struct InvEntry {
     pub item_id: u16,
     pub amount: u32,
 }
 
-pub struct UpdateItemContainer {
-    pub container: ItemContainerId,
+pub struct UpdateInvFull {
+    pub inv_type: InvType,
     pub negative_key: bool,
-    pub items: Vec<Option<ItemContainerEntry>>,
+    pub items: Vec<Option<InvEntry>>,
 }
 
-impl Encodable for UpdateItemContainer {
+impl Encodable for UpdateInvFull {
     fn encode(self) -> Frame {
         let mut buf = BytesMut::new();
 
-        buf.put_u16(self.container.key());
+        buf.put_u16(self.inv_type.key());
         buf.put_u8(self.negative_key as u8);
         buf.put_u16(self.items.len() as u16);
 
         for slot in self.items {
             match slot {
-                Some(item) => {
-                    if item.amount < 255 {
-                        buf.put_u8_sub(item.amount as u8);
+                Some(entry) => {
+                    if entry.amount < 255 {
+                        buf.put_u8_sub(entry.amount as u8);
                     } else {
                         buf.put_u8_sub(255);
-                        buf.put_u32_le(item.amount);
+                        buf.put_u32_le(entry.amount);
                     }
-                    buf.put_u16(item.item_id.saturating_add(1));
+                    buf.put_u16(entry.item_id.saturating_add(1));
                 }
                 None => {
                     buf.put_u8_sub(0);

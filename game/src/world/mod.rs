@@ -1,5 +1,5 @@
 mod collision;
-mod grounditem;
+mod objstack;
 mod pathfinding;
 mod position;
 mod slab;
@@ -11,8 +11,8 @@ use std::{
 };
 
 pub use collision::CollisionMap;
-pub use grounditem::GroundItemStore;
 use net::{Frame, IncomingMessage};
+pub use objstack::ObjStackStore;
 use parking_lot::Mutex;
 pub use pathfinding::{can_interact_rect, find_path, find_path_adjacent_rect};
 use persistence::{account::Account, player::PlayerData};
@@ -31,7 +31,7 @@ pub struct World {
     self_ref: OnceLock<Weak<World>>,
     pub players: WorldSlab<Player>,
     pub npcs: WorldSlab<Npc>,
-    pub ground_items: GroundItemStore,
+    pub obj_stacks: ObjStackStore,
     pub action_states: Mutex<HashMap<usize, ActionState>>,
 }
 
@@ -41,7 +41,7 @@ impl Default for World {
             self_ref: OnceLock::new(),
             players: WorldSlab::new(),
             npcs: WorldSlab::new(),
-            ground_items: GroundItemStore::default(),
+            obj_stacks: ObjStackStore::default(),
             action_states: Mutex::new(HashMap::new()),
         }
     }
@@ -92,12 +92,12 @@ impl World {
         Some(player.to_player_data())
     }
 
-    pub(super) async fn decay_ground_items(&self) {
-        for item in self.ground_items.decay() {
+    pub(super) async fn decay_obj_stacks(&self) {
+        for item in self.obj_stacks.decay() {
             for index in self.players.keys() {
                 self.players
                     .get_mut(index)
-                    .ground_item_mut()
+                    .obj_stack_mut()
                     .forget(item.id, item.item_id, item.position)
                     .await;
             }

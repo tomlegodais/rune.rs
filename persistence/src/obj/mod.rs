@@ -1,5 +1,5 @@
 pub(crate) mod entity;
 mod repository;
 
-pub use repository::{EquipmentFlag, EquipmentSlot, ObjConfig, ObjConfigRepository};
+pub use repository::{ObjConfig, ObjConfigRepository, WearFlag, WearPos};
 pub(crate) use repository::{PgObjConfigRepository, PgObjConfigRepositoryParameters};

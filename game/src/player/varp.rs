@@ -40,15 +40,15 @@ impl VarpManager {
     }
 
     pub async fn send_varbit(&mut self, id: u32, value: i32) {
-        let Some(def) = provider::get_varbit_type(id) else {
+        let Some(varbit) = provider::get_varbit_type(id) else {
             return;
         };
 
-        let mask = def.mask() as i32;
-        let current = self.get(def.varp);
-        let updated = (current & !(mask << def.low_bit)) | ((value & mask) << def.low_bit);
+        let mask = varbit.mask() as i32;
+        let current = self.get(varbit.varp);
+        let updated = (current & !(mask << varbit.low_bit)) | ((value & mask) << varbit.low_bit);
 
-        self.send_varp(def.varp, updated).await;
+        self.send_varp(varbit.varp, updated).await;
 
         if value <= u8::MAX as i32 {
             self.outbox

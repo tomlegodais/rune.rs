@@ -1,6 +1,6 @@
-mod seq;
 mod inv;
 mod pos;
+mod seq;
 mod setlevel;
 mod tele;
 

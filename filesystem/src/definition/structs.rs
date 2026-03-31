@@ -13,7 +13,7 @@ pub struct StructType {
 
 impl StructType {
     pub fn decode(id: u32, data: &[u8]) -> anyhow::Result<Self> {
-        let mut def = Self {
+        let mut t = Self {
             id,
             params: HashMap::new(),
         };
@@ -31,12 +31,12 @@ impl StructType {
                         } else {
                             ParamValue::Int(buf.get_i32())
                         };
-                        def.params.insert(key, value);
+                        t.params.insert(key, value);
                     }
                 }
                 _ => {}
             }
         }
-        Ok(def)
+        Ok(t)
     }
 }

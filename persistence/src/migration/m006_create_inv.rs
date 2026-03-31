@@ -3,7 +3,7 @@ use sea_orm_migration::{prelude::*, schema::*};
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
-const DEFAULT_INVENTORY: &str = r#"[
+const DEFAULT_INV: &str = r#"[
     {"item_id":1205,"amount":1},
     {"item_id":1171,"amount":1},
     {"item_id":2309,"amount":1},
@@ -22,18 +22,18 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(PlayerInventory::Table)
+                    .table(PlayerInv::Table)
                     .if_not_exists()
-                    .col(big_integer(PlayerInventory::PlayerId).primary_key().not_null())
+                    .col(big_integer(PlayerInv::PlayerId).primary_key().not_null())
                     .col(
-                        ColumnDef::new(PlayerInventory::Items)
+                        ColumnDef::new(PlayerInv::Items)
                             .json_binary()
                             .not_null()
-                            .default(Expr::cust(format!("'{DEFAULT_INVENTORY}'::jsonb"))),
+                            .default(Expr::cust(format!("'{DEFAULT_INV}'::jsonb"))),
                     )
                     .foreign_key(
                         ForeignKey::create()
-                            .from(PlayerInventory::Table, PlayerInventory::PlayerId)
+                            .from(PlayerInv::Table, PlayerInv::PlayerId)
                             .to(Players::Table, Players::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
@@ -44,8 +44,8 @@ impl MigrationTrait for Migration {
         manager
             .get_connection()
             .execute_unprepared(&format!(
-                "INSERT INTO player_inventory (player_id, items) \
-                 SELECT id, '{DEFAULT_INVENTORY}'::jsonb FROM players \
+                "INSERT INTO player_inv (player_id, items) \
+                 SELECT id, '{DEFAULT_INV}'::jsonb FROM players \
                  ON CONFLICT (player_id) DO NOTHING"
             ))
             .await
@@ -56,13 +56,13 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(PlayerInventory::Table).to_owned())
+            .drop_table(Table::drop().table(PlayerInv::Table).to_owned())
             .await
     }
 }
 
 #[derive(DeriveIden)]
-enum PlayerInventory {
+enum PlayerInv {
     Table,
     PlayerId,
     Items,

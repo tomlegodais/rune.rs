@@ -3,12 +3,12 @@ use std::collections::HashMap;
 use crate::{Cache, CacheResult, IndexId, definition::NpcType};
 
 pub struct NpcLoader {
-    definitions: HashMap<u32, NpcType>,
+    types: HashMap<u32, NpcType>,
 }
 
 impl NpcLoader {
     pub fn load(cache: &Cache) -> CacheResult<Self> {
-        let mut definitions = HashMap::new();
+        let mut types = HashMap::new();
         let ref_table = cache.reference_table(IndexId::NPCS)?;
 
         for archive_id in ref_table.iter_archive_ids() {
@@ -17,26 +17,26 @@ impl NpcLoader {
                 let npc_id = archive_id.as_u32() * 128 + file_id.as_u32();
 
                 match NpcType::decode(npc_id, &data) {
-                    Ok(def) => {
-                        definitions.insert(npc_id, def);
+                    Ok(t) => {
+                        types.insert(npc_id, t);
                     }
                     Err(e) => eprintln!("Warning: Failed to decode npc {}: {}", npc_id, e),
                 }
             }
         }
 
-        Ok(Self { definitions })
+        Ok(Self { types })
     }
 
     pub fn get(&self, id: u32) -> Option<&NpcType> {
-        self.definitions.get(&id)
+        self.types.get(&id)
     }
 
     pub fn len(&self) -> usize {
-        self.definitions.len()
+        self.types.len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.definitions.is_empty()
+        self.types.is_empty()
     }
 }

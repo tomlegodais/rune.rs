@@ -1,6 +1,6 @@
-mod seq;
 mod mask;
 mod movement;
+mod seq;
 mod spotanim;
 
 use std::{
@@ -8,8 +8,8 @@ use std::{
     sync::{Arc, Weak},
 };
 
-pub use seq::{Seq, SeqBuilder};
 pub use mask::{Mask, MaskBlock, MaskConfig, MaskFlags};
+pub use seq::{Seq, SeqBuilder};
 pub use spotanim::{SpotAnim, SpotAnimBuilder};
 
 use crate::world::{Direction, Position, World};

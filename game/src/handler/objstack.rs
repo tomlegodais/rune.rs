@@ -20,13 +20,13 @@ async fn handle_obj_click(player: &mut Player, msg: ObjClick) {
     let (id, position) = {
         let world = player.world();
         let Some(id) = world
-            .ground_items
+            .obj_stacks
             .find(msg.item_id, msg.x as i32, msg.y as i32, player.index)
         else {
             return;
         };
 
-        let Some(snap) = world.ground_items.get(id) else {
+        let Some(snap) = world.obj_stacks.get(id) else {
             return;
         };
         (id, snap.position)
@@ -34,21 +34,21 @@ async fn handle_obj_click(player: &mut Player, msg: ObjClick) {
 
     player
         .interaction_mut()
-        .set(InteractionTarget::GroundItem { id, position }, ClickOption::One);
+        .set(InteractionTarget::ObjStack { id, position }, ClickOption::One);
 
     with_movement!(player, |m, ctx| m
         .walk_to(&mut ctx, position, msg.force_run, None)
         .await);
 }
 
-pub fn pickup_ground_item(target: InteractionTarget) -> Pin<Box<dyn Future<Output = ()> + Send + 'static>> {
-    let InteractionTarget::GroundItem { id, position } = target else { unreachable!() };
+pub fn pickup_obj_stack(target: InteractionTarget) -> Pin<Box<dyn Future<Output = ()> + Send + 'static>> {
+    let InteractionTarget::ObjStack { id, position } = target else { unreachable!() };
 
     Box::pin(async move {
         let player = crate::player::active_player();
         let (item_id, amount, owner, private_ticks_remaining, public_ticks_remaining, other_indices) = {
             let world = player.world();
-            let Some(snap) = world.ground_items.get(id) else {
+            let Some(snap) = world.obj_stacks.get(id) else {
                 return;
             };
 
@@ -58,7 +58,7 @@ pub fn pickup_ground_item(target: InteractionTarget) -> Pin<Box<dyn Future<Outpu
                 .into_iter()
                 .filter(|&i| i != player.index)
                 .collect();
-            world.ground_items.remove(id);
+            world.obj_stacks.remove(id);
             (
                 snap.item_id,
                 snap.amount,
@@ -69,18 +69,18 @@ pub fn pickup_ground_item(target: InteractionTarget) -> Pin<Box<dyn Future<Outpu
             )
         };
 
-        player.ground_item_mut().forget(id, item_id, position).await;
+        player.obj_stack_mut().forget(id, item_id, position).await;
 
         for index in other_indices {
             let world = player.world();
             let mut p = world.players.get_mut(index);
-            p.ground_item_mut().forget(id, item_id, position).await;
+            p.obj_stack_mut().forget(id, item_id, position).await;
         }
 
-        let remainder = player.inventory_mut().add(item_id, amount).await;
+        let remainder = player.inv_mut().add(item_id, amount).await;
 
         if remainder > 0 {
-            player.world().ground_items.add_with_state(
+            player.world().obj_stacks.add_with_state(
                 item_id,
                 remainder,
                 position,

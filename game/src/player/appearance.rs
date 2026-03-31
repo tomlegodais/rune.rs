@@ -8,9 +8,9 @@ use persistence::player::PlayerData;
 use crate::{
     player::{
         PlayerSnapshot,
-        equipment::{EquipSlots, Equipment},
         mask::AppearanceMask,
         system::{PlayerInitContext, PlayerSystem, SystemContext},
+        worn::{Worn, WornSlots},
     },
     world::World,
 };
@@ -25,14 +25,14 @@ pub struct Appearance {
 }
 
 impl Appearance {
-    pub fn to_mask(&self, equipment: &EquipSlots) -> AppearanceMask {
+    pub fn to_mask(&self, worn: &WornSlots) -> AppearanceMask {
         AppearanceMask {
             male: self.male,
             look: self.look,
             colors: self.colors,
             display_name: self.display_name.clone(),
             combat_level: self.combat_level,
-            equipment: *equipment,
+            worn: *worn,
         }
     }
 }
@@ -52,14 +52,14 @@ impl PlayerSystem for Appearance {
     }
 
     fn dependencies() -> Vec<std::any::TypeId> {
-        vec![std::any::TypeId::of::<Equipment>()]
+        vec![std::any::TypeId::of::<Worn>()]
     }
 
     fn on_login<'a>(&'a mut self, ctx: &'a mut SystemContext<'_>) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(async move {
-            let equipment = ctx.take::<Equipment>();
-            ctx.player_info.add_mask(self.to_mask(equipment.slots()));
-            ctx.put_back(equipment);
+            let worn = ctx.take::<Worn>();
+            ctx.player_info.add_mask(self.to_mask(worn.slots()));
+            ctx.put_back(worn);
         })
     }
 

@@ -3,7 +3,7 @@ use sea_orm_migration::{prelude::*, schema::*};
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
-const DEFAULT_EQUIPMENT: &str = "[null,null,null,null,null,null,null,null,null,null,null,null,null,null]";
+const DEFAULT_WORN: &str = "[null,null,null,null,null,null,null,null,null,null,null,null,null,null]";
 
 #[async_trait::async_trait]
 impl MigrationTrait for Migration {
@@ -11,18 +11,18 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(PlayerEquipment::Table)
+                    .table(PlayerWorn::Table)
                     .if_not_exists()
-                    .col(big_integer(PlayerEquipment::PlayerId).primary_key().not_null())
+                    .col(big_integer(PlayerWorn::PlayerId).primary_key().not_null())
                     .col(
-                        ColumnDef::new(PlayerEquipment::Items)
+                        ColumnDef::new(PlayerWorn::Items)
                             .json_binary()
                             .not_null()
-                            .default(Expr::cust(format!("'{DEFAULT_EQUIPMENT}'::jsonb"))),
+                            .default(Expr::cust(format!("'{DEFAULT_WORN}'::jsonb"))),
                     )
                     .foreign_key(
                         ForeignKey::create()
-                            .from(PlayerEquipment::Table, PlayerEquipment::PlayerId)
+                            .from(PlayerWorn::Table, PlayerWorn::PlayerId)
                             .to(Players::Table, Players::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
@@ -33,8 +33,8 @@ impl MigrationTrait for Migration {
         manager
             .get_connection()
             .execute_unprepared(&format!(
-                "INSERT INTO player_equipment (player_id, items) \
-                 SELECT id, '{DEFAULT_EQUIPMENT}'::jsonb FROM players \
+                "INSERT INTO player_worn (player_id, items) \
+                 SELECT id, '{DEFAULT_WORN}'::jsonb FROM players \
                  ON CONFLICT (player_id) DO NOTHING"
             ))
             .await
@@ -45,13 +45,13 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(PlayerEquipment::Table).to_owned())
+            .drop_table(Table::drop().table(PlayerWorn::Table).to_owned())
             .await
     }
 }
 
 #[derive(DeriveIden)]
-enum PlayerEquipment {
+enum PlayerWorn {
     Table,
     PlayerId,
     Items,

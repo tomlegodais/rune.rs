@@ -3,7 +3,7 @@ mod command;
 mod dispatch;
 mod ifmoveslot;
 mod interaction;
-mod objclick;
+mod objstack;
 mod walk;
 
 use std::{any::TypeId, collections::HashMap, future::Future, pin::Pin};
@@ -11,7 +11,7 @@ use std::{any::TypeId, collections::HashMap, future::Future, pin::Pin};
 pub use dispatch::{ContentHandler, ContentTarget, dispatch, run_action};
 pub use interaction::try_dispatch_obj;
 use net::IncomingMessage;
-pub use objclick::pickup_ground_item;
+pub use objstack::pickup_obj_stack;
 use tracing::debug;
 
 use crate::player::Player;

@@ -38,7 +38,7 @@ pub enum InteractionTarget {
     Obj {
         slot: u16,
     },
-    GroundItem {
+    ObjStack {
         id: u32,
         position: Position,
     },
@@ -76,7 +76,7 @@ impl InteractionTarget {
             Self::Npc { index } => world.npcs.contains(*index).then(|| world.npc(*index).position),
             Self::Player { index } => world.players.contains(*index).then(|| world.player(*index).position),
             Self::Obj { .. } => None,
-            Self::GroundItem { position, .. } => Some(*position),
+            Self::ObjStack { position, .. } => Some(*position),
             Self::Button { .. } => None,
         }
     }
@@ -135,7 +135,7 @@ pub fn resolve(player: &mut Player, world: &World) {
         }
         InteractionTarget::Player { .. } => can_interact_rect(collision, player.position, target_pos, 1, 1, 0),
         InteractionTarget::Obj { .. } | InteractionTarget::Button { .. } => return,
-        InteractionTarget::GroundItem { .. } => player.position == target_pos,
+        InteractionTarget::ObjStack { .. } => player.position == target_pos,
     };
 
     if !is_adjacent {
@@ -187,7 +187,7 @@ fn face_target(player: &mut Player, world: &World, target: &InteractionTarget, t
                 .player_info
                 .add_mask(crate::player::FaceDirectionMask(player.entity.face_direction));
         }
-        InteractionTarget::Obj { .. } | InteractionTarget::GroundItem { .. } | InteractionTarget::Button { .. } => {}
+        InteractionTarget::Obj { .. } | InteractionTarget::ObjStack { .. } | InteractionTarget::Button { .. } => {}
     }
 }
 

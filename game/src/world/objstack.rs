@@ -4,7 +4,7 @@ use parking_lot::Mutex;
 
 use crate::world::Position;
 
-pub struct GroundItem {
+pub struct ObjStack {
     pub id: u32,
     pub item_id: u16,
     pub amount: u32,
@@ -14,7 +14,7 @@ pub struct GroundItem {
     pub public_ticks_remaining: u16,
 }
 
-pub struct GroundItemSnapshot {
+pub struct ObjStackSnapshot {
     pub item_id: u16,
     pub amount: u32,
     pub position: Position,
@@ -24,24 +24,24 @@ pub struct GroundItemSnapshot {
 }
 
 #[derive(Default)]
-pub struct GroundItemStore {
+pub struct ObjStackStore {
     inner: Mutex<StoreInner>,
 }
 
 #[derive(Default)]
 struct StoreInner {
-    items: HashMap<u32, GroundItem>,
+    items: HashMap<u32, ObjStack>,
     next_id: u32,
 }
 
-impl GroundItemStore {
+impl ObjStackStore {
     pub fn add(&self, item_id: u16, amount: u32, position: Position, owner: Option<usize>) -> u32 {
         let mut inner = self.inner.lock();
         let id = inner.next_id;
         inner.next_id = inner.next_id.wrapping_add(1);
         inner.items.insert(
             id,
-            GroundItem {
+            ObjStack {
                 id,
                 item_id,
                 amount,
@@ -54,7 +54,7 @@ impl GroundItemStore {
         id
     }
 
-    pub fn remove(&self, id: u32) -> Option<GroundItem> {
+    pub fn remove(&self, id: u32) -> Option<ObjStack> {
         self.inner.lock().items.remove(&id)
     }
 
@@ -74,7 +74,7 @@ impl GroundItemStore {
 
     pub fn with_items<F>(&self, mut f: F)
     where
-        F: FnMut(&mut GroundItem),
+        F: FnMut(&mut ObjStack),
     {
         let mut inner = self.inner.lock();
         for item in inner.items.values_mut() {
@@ -82,7 +82,7 @@ impl GroundItemStore {
         }
     }
 
-    pub fn decay(&self) -> Vec<GroundItem> {
+    pub fn decay(&self) -> Vec<ObjStack> {
         let mut expired_ids = Vec::new();
 
         self.with_items(|item| {
@@ -116,9 +116,9 @@ impl GroundItemStore {
             .collect()
     }
 
-    pub fn get(&self, id: u32) -> Option<GroundItemSnapshot> {
+    pub fn get(&self, id: u32) -> Option<ObjStackSnapshot> {
         let inner = self.inner.lock();
-        inner.items.get(&id).map(|g| GroundItemSnapshot {
+        inner.items.get(&id).map(|g| ObjStackSnapshot {
             item_id: g.item_id,
             amount: g.amount,
             position: g.position,
@@ -142,7 +142,7 @@ impl GroundItemStore {
         inner.next_id = inner.next_id.wrapping_add(1);
         inner.items.insert(
             id,
-            GroundItem {
+            ObjStack {
                 id,
                 item_id,
                 amount,

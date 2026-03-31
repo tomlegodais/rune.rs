@@ -9,19 +9,19 @@ impl MigrationTrait for Migration {
         manager
             .create_type(
                 Type::create()
-                    .as_enum(EquipmentSlot::Type)
+                    .as_enum(WearPos::Type)
                     .values([
-                        EquipmentSlot::Head,
-                        EquipmentSlot::Cape,
-                        EquipmentSlot::Amulet,
-                        EquipmentSlot::Weapon,
-                        EquipmentSlot::Body,
-                        EquipmentSlot::Shield,
-                        EquipmentSlot::Legs,
-                        EquipmentSlot::Gloves,
-                        EquipmentSlot::Boots,
-                        EquipmentSlot::Ring,
-                        EquipmentSlot::Ammo,
+                        WearPos::Head,
+                        WearPos::Cape,
+                        WearPos::Amulet,
+                        WearPos::Weapon,
+                        WearPos::Body,
+                        WearPos::Shield,
+                        WearPos::Legs,
+                        WearPos::Gloves,
+                        WearPos::Boots,
+                        WearPos::Ring,
+                        WearPos::Ammo,
                     ])
                     .to_owned(),
             )
@@ -30,15 +30,15 @@ impl MigrationTrait for Migration {
         manager
             .create_type(
                 Type::create()
-                    .as_enum(EquipmentFlag::Type)
+                    .as_enum(WearFlag::Type)
                     .values([
-                        EquipmentFlag::TwoHanded,
-                        EquipmentFlag::Sleeveless,
-                        EquipmentFlag::Hair,
-                        EquipmentFlag::HairMid,
-                        EquipmentFlag::HairLow,
-                        EquipmentFlag::FullFace,
-                        EquipmentFlag::Mask,
+                        WearFlag::TwoHanded,
+                        WearFlag::Sleeveless,
+                        WearFlag::Hair,
+                        WearFlag::HairMid,
+                        WearFlag::HairLow,
+                        WearFlag::FullFace,
+                        WearFlag::Mask,
                     ])
                     .to_owned(),
             )
@@ -50,16 +50,8 @@ impl MigrationTrait for Migration {
                     .table(ObjConfigs::Table)
                     .if_not_exists()
                     .col(integer(ObjConfigs::ObjId).primary_key().not_null())
-                    .col(
-                        ColumnDef::new(ObjConfigs::EquipmentSlot)
-                            .custom(EquipmentSlot::Type)
-                            .null(),
-                    )
-                    .col(
-                        ColumnDef::new(ObjConfigs::EquipmentFlag)
-                            .custom(EquipmentFlag::Type)
-                            .null(),
-                    )
+                    .col(ColumnDef::new(ObjConfigs::WearPos).custom(WearPos::Type).null())
+                    .col(ColumnDef::new(ObjConfigs::WearFlag).custom(WearFlag::Type).null())
                     .to_owned(),
             )
             .await
@@ -70,13 +62,9 @@ impl MigrationTrait for Migration {
             .drop_table(Table::drop().table(ObjConfigs::Table).to_owned())
             .await?;
 
-        manager
-            .drop_type(Type::drop().name(EquipmentFlag::Type).to_owned())
-            .await?;
+        manager.drop_type(Type::drop().name(WearFlag::Type).to_owned()).await?;
 
-        manager
-            .drop_type(Type::drop().name(EquipmentSlot::Type).to_owned())
-            .await
+        manager.drop_type(Type::drop().name(WearPos::Type).to_owned()).await
     }
 }
 
@@ -84,13 +72,13 @@ impl MigrationTrait for Migration {
 enum ObjConfigs {
     Table,
     ObjId,
-    EquipmentSlot,
-    EquipmentFlag,
+    WearPos,
+    WearFlag,
 }
 
 #[derive(DeriveIden)]
-enum EquipmentSlot {
-    #[sea_orm(iden = "equipment_slot")]
+enum WearPos {
+    #[sea_orm(iden = "wearpos")]
     Type,
     Head,
     Cape,
@@ -106,8 +94,8 @@ enum EquipmentSlot {
 }
 
 #[derive(DeriveIden)]
-enum EquipmentFlag {
-    #[sea_orm(iden = "equipment_flag")]
+enum WearFlag {
+    #[sea_orm(iden = "wearflag")]
     Type,
     TwoHanded,
     Sleeveless,

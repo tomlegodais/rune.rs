@@ -4,7 +4,7 @@ use util::BitsMut;
 
 use crate::{
     entity::{MaskBlock, MoveStep},
-    player::{Appearance, EquipSlots, FaceDirectionMask, MoveTypeMask, PlayerInfo, state::MAX_PLAYERS},
+    player::{Appearance, FaceDirectionMask, MoveTypeMask, PlayerInfo, WornSlots, state::MAX_PLAYERS},
     world::{Direction, Position},
 };
 
@@ -152,7 +152,7 @@ struct PlayerAdd<'a> {
     position: Position,
     face_direction: Direction,
     appearance: &'a Appearance,
-    equipment: &'a EquipSlots,
+    worn: &'a WornSlots,
     masks: &'a MaskBlock,
     cached_hash: u32,
     running: bool,
@@ -179,7 +179,7 @@ impl BitEncoder for PlayerAdd<'_> {
         bits.put_bits(bp, 6, self.position.y as u32 & 0x3F);
         bits.put_bits(bp, 1, 1);
 
-        let appearance_mask = self.appearance.to_mask(self.equipment);
+        let appearance_mask = self.appearance.to_mask(self.worn);
         let mut add_masks = self.masks.clone();
         add_masks.extend(&[
             &FaceDirectionMask(self.face_direction),
@@ -292,7 +292,7 @@ fn write_outside(info: &mut PlayerInfo, bits: &mut BytesMut, masks: &mut BytesMu
             let position = snapshot.position;
             let face_direction = snapshot.face_direction;
             let appearance = snapshot.appearance.clone();
-            let equipment = snapshot.equipment;
+            let worn = snapshot.worn;
             let snap_masks = snapshot.masks.clone();
             let cached_hash = info[idx].region_hash;
             let running = snapshot.running;
@@ -301,7 +301,7 @@ fn write_outside(info: &mut PlayerInfo, bits: &mut BytesMut, masks: &mut BytesMu
                 position,
                 face_direction,
                 appearance: &appearance,
-                equipment: &equipment,
+                worn: &worn,
                 masks: &snap_masks,
                 cached_hash,
                 running,

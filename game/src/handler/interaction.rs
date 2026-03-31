@@ -126,7 +126,7 @@ async fn handle_button(player: &mut Player, msg: ButtonClick) {
 }
 
 pub fn try_dispatch_obj(player: &mut Player, option: ClickOption, slot: u16) -> bool {
-    let Some(obj) = player.inventory().slot(slot as usize) else {
+    let Some(obj) = player.inv().slot(slot as usize) else {
         return false;
     };
 

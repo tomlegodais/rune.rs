@@ -3,12 +3,12 @@ use std::collections::HashMap;
 use crate::{Cache, CacheResult, IndexId, definition::LocType};
 
 pub struct LocLoader {
-    definitions: HashMap<u32, LocType>,
+    types: HashMap<u32, LocType>,
 }
 
 impl LocLoader {
     pub fn load(cache: &Cache) -> CacheResult<Self> {
-        let mut definitions = HashMap::new();
+        let mut types = HashMap::new();
         let ref_table = cache.reference_table(IndexId::LOCS)?;
 
         for archive_id in ref_table.iter_archive_ids() {
@@ -17,26 +17,26 @@ impl LocLoader {
                 let loc_id = archive_id.as_u32() * 256 + file_id.as_u32();
 
                 match LocType::decode(loc_id, &data) {
-                    Ok(def) => {
-                        definitions.insert(loc_id, def);
+                    Ok(t) => {
+                        types.insert(loc_id, t);
                     }
                     Err(e) => eprintln!("Warning: Failed to decode loc {}: {}", loc_id, e),
                 }
             }
         }
 
-        Ok(Self { definitions })
+        Ok(Self { types })
     }
 
     pub fn get(&self, id: u32) -> Option<&LocType> {
-        self.definitions.get(&id)
+        self.types.get(&id)
     }
 
     pub fn len(&self) -> usize {
-        self.definitions.len()
+        self.types.len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.definitions.is_empty()
+        self.types.is_empty()
     }
 }

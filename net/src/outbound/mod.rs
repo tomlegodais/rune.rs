@@ -1,10 +1,10 @@
 mod chat;
-mod container;
 mod energy;
 mod ifclosesub;
 mod ifevents;
 mod ifopensub;
 mod ifopentop;
+mod inv;
 mod logout;
 mod minimap;
 mod obj;
@@ -15,12 +15,12 @@ mod varp;
 mod zone;
 
 pub use chat::ChatMessage;
-pub use container::{ItemContainerEntry, ItemContainerId, UpdateItemContainer};
 pub use energy::RunEnergy;
 pub use ifclosesub::IfCloseSub;
 pub use ifevents::{IfEvents, IfSetEvents};
 pub use ifopensub::IfOpenSub;
 pub use ifopentop::IfOpenTop;
+pub use inv::{InvEntry, InvType, UpdateInvFull};
 pub use logout::Logout;
 pub use minimap::MinimapFlag;
 pub use obj::{ObjAdd, ObjDel};

@@ -1,7 +1,7 @@
 use std::{future::Future, pin::Pin};
 
 use macros::player_system;
-use net::{ItemContainerEntry, ItemContainerId, Outbox, OutboxExt, UpdateItemContainer, if_events, if_set_events};
+use net::{InvEntry, InvType, Outbox, OutboxExt, UpdateInvFull, if_events, if_set_events};
 use persistence::player::PlayerData;
 
 use crate::{
@@ -16,12 +16,12 @@ use crate::{
 pub const STACK_MAX: u32 = i32::MAX as u32;
 pub const SIZE: usize = 28;
 
-pub struct Inventory {
+pub struct Inv {
     outbox: Outbox,
     slots: [Option<Obj>; SIZE],
 }
 
-impl Inventory {
+impl Inv {
     fn from_slots(outbox: Outbox, slots: [Option<Obj>; SIZE]) -> Self {
         Self { outbox, slots }
     }
@@ -158,14 +158,14 @@ impl Inventory {
 
     pub async fn flush(&mut self) {
         self.outbox
-            .write(UpdateItemContainer {
-                container: ItemContainerId::Inventory,
+            .write(UpdateInvFull {
+                inv_type: InvType::Inv,
                 negative_key: false,
                 items: self
                     .slots
                     .iter()
                     .map(|s| {
-                        s.map(|obj| ItemContainerEntry {
+                        s.map(|obj| InvEntry {
                             item_id: obj.id,
                             amount: obj.amount,
                         })
@@ -177,16 +177,16 @@ impl Inventory {
 }
 
 fn is_stackable(obj_id: u16) -> bool {
-    provider::get_obj_type(obj_id as u32).is_some_and(|def| def.stackable)
+    provider::get_obj_type(obj_id as u32).is_some_and(|t| t.stackable)
 }
 
 #[player_system]
-impl PlayerSystem for Inventory {
+impl PlayerSystem for Inv {
     type TickContext = ();
 
     fn create(ctx: &PlayerInitContext) -> Self {
         let mut slots = [None; SIZE];
-        for (i, slot) in ctx.player_data.inventory.iter().enumerate().take(SIZE) {
+        for (i, slot) in ctx.player_data.inv.iter().enumerate().take(SIZE) {
             slots[i] = slot.map(|(id, amount)| Obj::new(id, amount));
         }
         Self::from_slots(ctx.outbox.clone(), slots)
@@ -202,10 +202,6 @@ impl PlayerSystem for Inventory {
     fn tick_context(_: &std::sync::Arc<World>, _: &PlayerSnapshot) {}
 
     fn persist(&self, data: &mut PlayerData) {
-        data.inventory = self
-            .slots
-            .iter()
-            .map(|s| s.map(|obj| (obj.id, obj.amount)))
-            .collect();
+        data.inv = self.slots.iter().map(|s| s.map(|obj| (obj.id, obj.amount))).collect();
     }
 }
