@@ -1,7 +1,7 @@
 use std::{future::Future, pin::Pin};
 
 use macros::message_handler;
-use net::{ChatMessage, Op, OpObj, OutboxExt};
+use net::{MessageGame, Op, OpObj, OutboxExt};
 
 use super::MessageHandler;
 use crate::{
@@ -36,9 +36,7 @@ async fn handle_op_obj(player: &mut Player, msg: OpObj) {
         .interaction_mut()
         .set(InteractionTarget::ObjStack { id, position }, Op::Op1);
 
-    with_movement!(player, |m, ctx| m
-        .walk_to(&mut ctx, position, msg.ctrl_run, None)
-        .await);
+    with_movement!(player, |m, ctx| m.walk_to(&mut ctx, position, msg.ctrl_run, None).await);
 }
 
 pub fn pickup_obj_stack(target: InteractionTarget) -> Pin<Box<dyn Future<Output = ()> + Send + 'static>> {
@@ -46,7 +44,7 @@ pub fn pickup_obj_stack(target: InteractionTarget) -> Pin<Box<dyn Future<Output 
 
     Box::pin(async move {
         let player = crate::player::active_player();
-        let (item_id, amount, owner, private_ticks_remaining, public_ticks_remaining, other_indices) = {
+        let (obj_id, amount, owner, private_ticks_remaining, public_ticks_remaining, other_indices) = {
             let world = player.world();
             let Some(snap) = world.obj_stacks.get(id) else {
                 return;
@@ -60,7 +58,7 @@ pub fn pickup_obj_stack(target: InteractionTarget) -> Pin<Box<dyn Future<Output 
                 .collect();
             world.obj_stacks.remove(id);
             (
-                snap.item_id,
+                snap.obj_id,
                 snap.amount,
                 snap.owner,
                 snap.private_ticks_remaining,
@@ -69,19 +67,19 @@ pub fn pickup_obj_stack(target: InteractionTarget) -> Pin<Box<dyn Future<Output 
             )
         };
 
-        player.obj_stack_mut().forget(id, item_id, position).await;
+        player.obj_stack_mut().forget(id, obj_id, position).await;
 
         for index in other_indices {
             let world = player.world();
             let mut p = world.players.get_mut(index);
-            p.obj_stack_mut().forget(id, item_id, position).await;
+            p.obj_stack_mut().forget(id, obj_id, position).await;
         }
 
-        let remainder = player.inv_mut().add(item_id, amount).await;
+        let remainder = player.inv_mut().add(obj_id, amount).await;
 
         if remainder > 0 {
             player.world().obj_stacks.add_with_state(
-                item_id,
+                obj_id,
                 remainder,
                 position,
                 owner,
@@ -91,7 +89,7 @@ pub fn pickup_obj_stack(target: InteractionTarget) -> Pin<Box<dyn Future<Output 
 
             player
                 .outbox
-                .write(ChatMessage {
+                .write(MessageGame {
                     msg_type: 0,
                     text: "You can't carry any more of that.".to_string(),
                 })

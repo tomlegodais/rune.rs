@@ -1,7 +1,7 @@
 use std::{collections::HashMap, future::Future, pin::Pin};
 
 use macros::player_system;
-use net::{LargeVarbit, LargeVarp, Outbox, OutboxExt, SmallVarbit, SmallVarp};
+use net::{Outbox, OutboxExt, VarbitLarge, VarbitSmall, VarpLarge, VarpSmall};
 
 use crate::{
     player::system::{PlayerInitContext, PlayerSystem, SystemContext},
@@ -28,10 +28,10 @@ impl VarpManager {
     pub async fn send_varp(&mut self, id: u16, value: i32) {
         self.varps.insert(id, value);
         if value >= i8::MIN as i32 && value <= i8::MAX as i32 {
-            self.outbox.write(SmallVarp { id, value: value as u8 }).await;
+            self.outbox.write(VarpSmall { id, value: value as u8 }).await;
         } else {
             self.outbox
-                .write(LargeVarp {
+                .write(VarpLarge {
                     id,
                     value: value as u32,
                 })
@@ -52,14 +52,14 @@ impl VarpManager {
 
         if value <= u8::MAX as i32 {
             self.outbox
-                .write(SmallVarbit {
+                .write(VarbitSmall {
                     id: id as u16,
                     value: value as u8,
                 })
                 .await;
         } else {
             self.outbox
-                .write(LargeVarbit {
+                .write(VarbitLarge {
                     id: id as u16,
                     value: value as u32,
                 })

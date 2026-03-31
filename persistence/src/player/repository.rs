@@ -79,14 +79,14 @@ impl PlayerData {
             serde_json::from_value(inv_model.items).map_err(|e| DbErr::Type(e.to_string()))?;
         let inv = inv_entries
             .into_iter()
-            .map(|e| e.map(|e| (e.item_id, e.amount)))
+            .map(|e| e.map(|e| (e.obj_id, e.amount)))
             .collect();
 
         let worn_entries: Vec<Option<WornEntry>> =
             serde_json::from_value(worn_model.items).map_err(|e| DbErr::Type(e.to_string()))?;
         let worn = worn_entries
             .into_iter()
-            .map(|e| e.map(|e| (e.item_id, e.amount)))
+            .map(|e| e.map(|e| (e.obj_id, e.amount)))
             .collect();
 
         Ok(PlayerData {
@@ -223,7 +223,7 @@ impl PlayerRepository for PgPlayerRepository {
         let inv_entries: Vec<Option<InvEntry>> = data
             .inv
             .iter()
-            .map(|slot| slot.map(|(item_id, amount)| InvEntry { item_id, amount }))
+            .map(|slot| slot.map(|(obj_id, amount)| InvEntry { obj_id, amount }))
             .collect();
         let inv_json = serde_json::to_value(&inv_entries).map_err(|e| DbErr::Type(e.to_string()))?;
 
@@ -236,7 +236,7 @@ impl PlayerRepository for PgPlayerRepository {
         let worn_entries: Vec<Option<WornEntry>> = data
             .worn
             .iter()
-            .map(|slot| slot.map(|(item_id, amount)| WornEntry { item_id, amount }))
+            .map(|slot| slot.map(|(obj_id, amount)| WornEntry { obj_id, amount }))
             .collect();
         let worn_json = serde_json::to_value(&worn_entries).map_err(|e| DbErr::Type(e.to_string()))?;
 

@@ -12,13 +12,13 @@ mod session;
 pub use config::TcpConfig;
 pub use error::SessionError;
 pub use inbound::{
-    ClientCheat, IfButton, IfMoveSlot, Inbox, InboxExt, IncomingMessage, MessagePublic, MoveClick, Op,
-    OpLoc, OpNpc, OpObj, OpPlayer,
+    ClientCheat, IfButton, IfMoveSlot, Inbox, InboxExt, IncomingMessage, MessagePublic, MoveClick, Op, OpLoc, OpNpc,
+    OpObj, OpPlayer,
 };
 pub use message::{Encodable, Frame, LoginOutcome, LoginRequest, LoginSuccess, Prefix, StatusCode};
 pub use outbound::{
-    ChatMessage, GameScene, IfCloseSub, IfEvents, IfOpenSub, IfOpenTop, IfSetEvents, InvEntry, InvType, LargeVarbit,
-    LargeVarp, Logout, MinimapFlag, ObjAdd, ObjDel, Outbox, OutboxExt, PlayerOption, RunEnergy, SmallVarbit, SmallVarp,
-    UpdateInvFull, UpdateSkill, ZoneFrame,
+    IfCloseSub, IfEvents, IfOpenSub, IfOpenTop, IfSetEvents, InvEntry, InvType, Logout, MessageGame, MinimapToggle,
+    ObjAdd, ObjDel, Outbox, OutboxExt, RebuildNormal, SetPlayerOp, UpdateInvFull, UpdateRunEnergy, UpdateStat,
+    VarbitLarge, VarbitSmall, VarpLarge, VarpSmall, ZoneFrame,
 };
 pub use service::{LoginService, TcpService};

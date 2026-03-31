@@ -1,7 +1,7 @@
 use std::{any::TypeId, future::Future, pin::Pin};
 
 use macros::player_system;
-use net::{MinimapFlag, Outbox, OutboxExt, RunEnergy};
+use net::{MinimapToggle, Outbox, OutboxExt, UpdateRunEnergy};
 use persistence::player::PlayerData;
 
 use crate::{
@@ -156,17 +156,17 @@ impl Movement {
     }
 
     async fn send_run_energy(&mut self) {
-        self.outbox.write(RunEnergy((self.run_energy / 100) as u8)).await;
+        self.outbox.write(UpdateRunEnergy((self.run_energy / 100) as u8)).await;
     }
 
     async fn set_minimap_flag(&mut self, dest: Position, region_base: Position) {
         let x = (dest.x - region_base.x) as u8;
         let y = (dest.y - region_base.y) as u8;
-        self.outbox.write(MinimapFlag { x, y }).await;
+        self.outbox.write(MinimapToggle { x, y }).await;
     }
 
     async fn reset_minimap_flag(&mut self) {
-        self.outbox.write(MinimapFlag::reset()).await;
+        self.outbox.write(MinimapToggle::reset()).await;
     }
 }
 

@@ -3,7 +3,7 @@ use util::{BitsMut, BytesMutExt};
 
 use crate::{Encodable, Frame, Prefix};
 
-pub struct GameScene {
+pub struct RebuildNormal {
     pub init: bool,
     pub position_bits: u32,
     pub player_index: usize,
@@ -14,7 +14,7 @@ pub struct GameScene {
     pub region_hashes: [u32; 2048],
 }
 
-impl Encodable for GameScene {
+impl Encodable for RebuildNormal {
     fn encode(self) -> Frame {
         let mut buf = BytesMut::new();
 

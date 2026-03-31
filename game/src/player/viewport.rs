@@ -1,6 +1,6 @@
 use std::array;
 
-use net::{GameScene, Outbox, OutboxExt};
+use net::{Outbox, OutboxExt, RebuildNormal};
 
 use crate::{
     player::PlayerInfo,
@@ -47,7 +47,7 @@ impl Viewport {
 
     pub async fn send_game_scene(&mut self, init: bool, player_index: usize, player_info: &PlayerInfo, pos: Position) {
         self.outbox
-            .write(GameScene {
+            .write(RebuildNormal {
                 init,
                 position_bits: pos.to_bits(),
                 player_index,

@@ -26,7 +26,7 @@ fn decode_ifbutton(payload: &mut Bytes, op: Op) -> IfButton {
 
 const _: () = {
     const OPCODE: u8 = 6;
-    
+
     #[message_decoder]
     fn decode(mut p: Bytes) -> IncomingMessage {
         Box::new(decode_ifbutton(&mut p, Op::Op1))
@@ -71,7 +71,7 @@ const _: () = {
 
 const _: () = {
     const OPCODE: u8 = 8;
-    
+
     #[message_decoder]
     fn decode(mut p: Bytes) -> IncomingMessage {
         Box::new(decode_ifbutton(&mut p, Op::Op6))

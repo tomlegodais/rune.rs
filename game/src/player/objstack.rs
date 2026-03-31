@@ -25,13 +25,13 @@ pub struct ObjStackTickContext {
 }
 
 impl ObjStackManager {
-    pub fn drop(&self, item_id: u16, amount: u32, pos: Position, world: &World) {
-        world.obj_stacks.add(item_id, amount, pos, Some(self.player_index));
+    pub fn drop(&self, obj_id: u16, amount: u32, pos: Position, world: &World) {
+        world.obj_stacks.add(obj_id, amount, pos, Some(self.player_index));
     }
 
-    pub async fn forget(&mut self, id: u32, item_id: u16, pos: Position) {
+    pub async fn forget(&mut self, id: u32, obj_id: u16, pos: Position) {
         if self.known.remove(&id) {
-            self.send_objdel(item_id, pos).await;
+            self.send_objdel(obj_id, pos).await;
         }
     }
 
@@ -39,31 +39,31 @@ impl ObjStackManager {
         let ids: Vec<u32> = self.known.drain().collect();
         for id in ids {
             if let Some(item) = obj_stacks.get(id) {
-                self.send_objdel(item.item_id, item.position).await;
+                self.send_objdel(item.obj_id, item.position).await;
             }
         }
     }
 
-    async fn send_objadd(&mut self, item_id: u16, amount: u32, pos: Position) {
+    async fn send_objadd(&mut self, obj_id: u16, amount: u32, pos: Position) {
         let (zone_x, zone_y, packed_offset) = pos.zone_coords(self.region_base);
         let zone_frame = ZoneFrame::new(zone_x, zone_y, pos.plane as u8);
         self.outbox
             .write(ObjAdd {
                 zone_frame,
-                item_id,
+                obj_id,
                 amount,
                 packed_offset,
             })
             .await;
     }
 
-    pub async fn send_objdel(&mut self, item_id: u16, pos: Position) {
+    pub async fn send_objdel(&mut self, obj_id: u16, pos: Position) {
         let (zone_x, zone_y, packed_offset) = pos.zone_coords(self.region_base);
         let zone_frame = ZoneFrame::new(zone_x, zone_y, pos.plane as u8);
         self.outbox
             .write(ObjDel {
                 zone_frame,
-                item_id,
+                obj_id,
                 packed_offset,
             })
             .await;
@@ -103,9 +103,9 @@ impl PlayerSystem for ObjStackManager {
             };
 
             let visible = ctx.world.obj_stacks.visible_to(player_index, in_range);
-            for (id, item_id, amount, pos) in visible {
+            for (id, obj_id, amount, pos) in visible {
                 if self.known.insert(id) {
-                    self.send_objadd(item_id, amount, pos).await;
+                    self.send_objadd(obj_id, amount, pos).await;
                 }
             }
 
@@ -125,7 +125,7 @@ impl PlayerSystem for ObjStackManager {
             for id in invisible {
                 self.known.remove(&id);
                 if let Some(item) = ctx.world.obj_stacks.get(id) {
-                    self.send_objdel(item.item_id, item.position).await;
+                    self.send_objdel(item.obj_id, item.position).await;
                 }
             }
         })

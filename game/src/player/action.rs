@@ -9,7 +9,7 @@ use std::{
     task::{Context, Poll, Waker},
 };
 
-use net::{ChatMessage, Encodable};
+use net::{Encodable, MessageGame};
 
 use crate::player::Player;
 
@@ -105,7 +105,7 @@ pub fn poll_action(state: &mut ActionState) -> Poll<()> {
 }
 
 pub fn send_message(player: &mut Player, text: &str) {
-    let frame = ChatMessage {
+    let frame = MessageGame {
         msg_type: 0,
         text: text.to_string(),
     }

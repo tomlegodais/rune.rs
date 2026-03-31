@@ -1,16 +1,23 @@
 use tokio_util::bytes::{BufMut, BytesMut};
+use util::BytesMutExt;
 
 use crate::{Encodable, Frame, Prefix};
 
-pub struct RunEnergy(pub u8);
+pub struct UpdateStat {
+    pub id: u8,
+    pub level: u8,
+    pub xp: u32,
+}
 
-impl Encodable for RunEnergy {
+impl Encodable for UpdateStat {
     fn encode(self) -> Frame {
         let mut buf = BytesMut::new();
-        buf.put_u8(self.0);
+        buf.put_u32_le(self.xp);
+        buf.put_u8_add(self.id);
+        buf.put_u8_sub(self.level);
 
         Frame {
-            opcode: 18,
+            opcode: 9,
             prefix: Prefix::Fixed,
             payload: buf.freeze(),
         }

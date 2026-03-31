@@ -1,7 +1,7 @@
 use std::{future::Future, pin::Pin};
 
 use macros::player_system;
-use net::{Outbox, OutboxExt, PlayerOption};
+use net::{Outbox, OutboxExt, SetPlayerOp};
 
 use crate::{
     player::{
@@ -13,12 +13,12 @@ use crate::{
 
 const NUM_OPTIONS: usize = 5;
 
-pub struct PlayerOptions {
+pub struct SetPlayerOps {
     outbox: Outbox,
     options: [Option<(String, bool)>; NUM_OPTIONS],
 }
 
-impl PlayerOptions {
+impl SetPlayerOps {
     fn new(outbox: Outbox) -> Self {
         let mut options: [Option<(String, bool)>; NUM_OPTIONS] = Default::default();
         options[1] = Some(("Follow".into(), false));
@@ -37,10 +37,10 @@ impl PlayerOptions {
         let idx = slot as usize;
         self.options[idx] = None;
         self.outbox
-            .write(PlayerOption {
+            .write(SetPlayerOp {
                 slot,
                 top: false,
-                option: "null".into(),
+                op: "null".into(),
             })
             .await;
     }
@@ -56,18 +56,12 @@ impl PlayerOptions {
             return;
         };
         let text = text.clone();
-        self.outbox
-            .write(PlayerOption {
-                slot,
-                top,
-                option: text,
-            })
-            .await;
+        self.outbox.write(SetPlayerOp { slot, top, op: text }).await;
     }
 }
 
 #[player_system]
-impl PlayerSystem for PlayerOptions {
+impl PlayerSystem for SetPlayerOps {
     type TickContext = ();
 
     fn create(ctx: &PlayerInitContext) -> Self {

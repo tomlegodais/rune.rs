@@ -3,12 +3,12 @@ use util::BytesMutExt;
 
 use crate::{Encodable, Frame, Prefix};
 
-pub struct ChatMessage {
+pub struct MessageGame {
     pub msg_type: u16,
     pub text: String,
 }
 
-impl Encodable for ChatMessage {
+impl Encodable for MessageGame {
     fn encode(self) -> Frame {
         let mut buf = BytesMut::new();
         buf.put_smart(self.msg_type);

@@ -62,9 +62,7 @@ async fn handle_npc(player: &mut Player, msg: OpNpc) {
     world.npc_mut(index).entity.face_target = Some(player.index as u16 + 32768);
     player.entity.face_target = Some(index as u16);
 
-    player
-        .interaction_mut()
-        .set(InteractionTarget::Npc { index }, msg.op);
+    player.interaction_mut().set(InteractionTarget::Npc { index }, msg.op);
 
     with_movement!(player, |m, ctx| m
         .walk_to(&mut ctx, npc_pos, msg.ctrl_run, Some((size, size, 0)))

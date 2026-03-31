@@ -3,18 +3,18 @@ use util::BytesMutExt;
 
 use crate::{Encodable, Frame, Prefix};
 
-pub struct MinimapFlag {
+pub struct MinimapToggle {
     pub x: u8,
     pub y: u8,
 }
 
-impl MinimapFlag {
+impl MinimapToggle {
     pub fn reset() -> Self {
         Self { x: 255, y: 255 }
     }
 }
 
-impl Encodable for MinimapFlag {
+impl Encodable for MinimapToggle {
     fn encode(self) -> Frame {
         let mut buf = BytesMut::new();
         buf.put_u8(self.x);

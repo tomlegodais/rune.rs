@@ -1,3 +1,3 @@
 mod obj;
-mod skills;
+mod skill;
 mod ui;

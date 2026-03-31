@@ -38,7 +38,7 @@ pub use interface::SubInterface;
 pub use inv::SIZE as INV_SIZE;
 pub use mask::{ChatMask, FaceDirectionMask, MoveTypeMask, SeqMask, SpotAnim1Mask, SpotAnim2Mask, TempMoveTypeMask};
 pub use movement::{Movement, MovementContext};
-use net::{ChatMessage, Inbox, Logout, Outbox, OutboxExt};
+use net::{Inbox, Logout, MessageGame, Outbox, OutboxExt};
 pub use obj::Obj;
 use persistence::{
     account::{Account, Rights},
@@ -206,7 +206,7 @@ impl Player {
 
     pub async fn send_message(&mut self, text: &str) {
         self.outbox
-            .write(ChatMessage {
+            .write(MessageGame {
                 msg_type: 0,
                 text: text.to_string(),
             })

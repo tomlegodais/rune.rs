@@ -6,7 +6,7 @@ use crate::world::Position;
 
 pub struct ObjStack {
     pub id: u32,
-    pub item_id: u16,
+    pub obj_id: u16,
     pub amount: u32,
     pub position: Position,
     pub owner: Option<usize>,
@@ -15,7 +15,7 @@ pub struct ObjStack {
 }
 
 pub struct ObjStackSnapshot {
-    pub item_id: u16,
+    pub obj_id: u16,
     pub amount: u32,
     pub position: Position,
     pub owner: Option<usize>,
@@ -35,7 +35,7 @@ struct StoreInner {
 }
 
 impl ObjStackStore {
-    pub fn add(&self, item_id: u16, amount: u32, position: Position, owner: Option<usize>) -> u32 {
+    pub fn add(&self, obj_id: u16, amount: u32, position: Position, owner: Option<usize>) -> u32 {
         let mut inner = self.inner.lock();
         let id = inner.next_id;
         inner.next_id = inner.next_id.wrapping_add(1);
@@ -43,7 +43,7 @@ impl ObjStackStore {
             id,
             ObjStack {
                 id,
-                item_id,
+                obj_id,
                 amount,
                 position,
                 owner,
@@ -58,13 +58,13 @@ impl ObjStackStore {
         self.inner.lock().items.remove(&id)
     }
 
-    pub fn find(&self, item_id: u16, x: i32, y: i32, viewer: usize) -> Option<u32> {
+    pub fn find(&self, obj_id: u16, x: i32, y: i32, viewer: usize) -> Option<u32> {
         let inner = self.inner.lock();
         inner
             .items
             .values()
             .find(|g| {
-                g.item_id == item_id
+                g.obj_id == obj_id
                     && g.position.x == x
                     && g.position.y == y
                     && (g.owner.is_none() || g.owner == Some(viewer))
@@ -112,14 +112,14 @@ impl ObjStackStore {
             .items
             .values()
             .filter(|g| viewport_contains(g.position) && (g.owner.is_none() || g.owner == Some(player_index)))
-            .map(|g| (g.id, g.item_id, g.amount, g.position))
+            .map(|g| (g.id, g.obj_id, g.amount, g.position))
             .collect()
     }
 
     pub fn get(&self, id: u32) -> Option<ObjStackSnapshot> {
         let inner = self.inner.lock();
         inner.items.get(&id).map(|g| ObjStackSnapshot {
-            item_id: g.item_id,
+            obj_id: g.obj_id,
             amount: g.amount,
             position: g.position,
             owner: g.owner,
@@ -130,7 +130,7 @@ impl ObjStackStore {
 
     pub fn add_with_state(
         &self,
-        item_id: u16,
+        obj_id: u16,
         amount: u32,
         position: Position,
         owner: Option<usize>,
@@ -144,7 +144,7 @@ impl ObjStackStore {
             id,
             ObjStack {
                 id,
-                item_id,
+                obj_id,
                 amount,
                 position,
                 owner,

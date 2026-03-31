@@ -98,7 +98,7 @@ impl World {
                 self.players
                     .get_mut(index)
                     .obj_stack_mut()
-                    .forget(item.id, item.item_id, item.position)
+                    .forget(item.id, item.obj_id, item.position)
                     .await;
             }
         }

@@ -4,9 +4,9 @@ use sea_orm_migration::{prelude::*, schema::*};
 pub struct Migration;
 
 const DEFAULT_INV: &str = r#"[
-    {"item_id":1205,"amount":1},
-    {"item_id":1171,"amount":1},
-    {"item_id":2309,"amount":1},
+    {"obj_id":1205,"amount":1},
+    {"obj_id":1171,"amount":1},
+    {"obj_id":2309,"amount":1},
     null,null,null,null,
     null,null,null,null,
     null,null,null,null,

@@ -24,7 +24,7 @@ impl InvType {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InvEntry {
-    pub item_id: u16,
+    pub obj_id: u16,
     pub amount: u32,
 }
 
@@ -51,7 +51,7 @@ impl Encodable for UpdateInvFull {
                         buf.put_u8_sub(255);
                         buf.put_u32_le(entry.amount);
                     }
-                    buf.put_u16(entry.item_id.saturating_add(1));
+                    buf.put_u16(entry.obj_id.saturating_add(1));
                 }
                 None => {
                     buf.put_u8_sub(0);

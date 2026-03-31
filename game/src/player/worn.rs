@@ -94,7 +94,7 @@ impl Worn {
                     .iter()
                     .map(|s| {
                         s.map(|obj| InvEntry {
-                            item_id: obj.id,
+                            obj_id: obj.id,
                             amount: obj.amount,
                         })
                     })

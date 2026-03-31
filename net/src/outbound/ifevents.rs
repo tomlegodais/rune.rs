@@ -18,7 +18,7 @@ impl IfEvents {
         self
     }
 
-    pub fn use_on_ground_items(mut self, allow: bool) -> Self {
+    pub fn use_on_obj_stacks(mut self, allow: bool) -> Self {
         self.0 = (self.0 & !(1 << 11)) | ((allow as u32) << 11);
         self
     }
@@ -124,7 +124,7 @@ macro_rules! if_events {
         if_events!(@munch $e.can_drag(true); $($rest)*)
     };
 
-    (@use_on $e:ident, ground)      => { $e.use_on_ground_items(true) };
+    (@use_on $e:ident, ground)      => { $e.use_on_obj_stacks(true) };
     (@use_on $e:ident, npcs)        => { $e.use_on_npcs(true) };
     (@use_on $e:ident, locs)        => { $e.use_on_locs(true) };
     (@use_on $e:ident, players)     => { $e.use_on_players(true) };

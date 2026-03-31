@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct InvEntry {
-    pub item_id: u16,
+    pub obj_id: u16,
     pub amount: u32,
 }
 

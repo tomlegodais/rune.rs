@@ -21,11 +21,6 @@ const _: () = {
         let x = payload.get_u16();
         let y = payload.get_u16_le_add();
 
-        Box::new(OpObj {
-            obj_id,
-            ctrl_run,
-            x,
-            y,
-        })
+        Box::new(OpObj { obj_id, ctrl_run, x, y })
     }
 };

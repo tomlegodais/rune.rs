@@ -3,27 +3,27 @@ use util::BytesMutExt;
 
 use crate::{Encodable, Frame, Prefix};
 
-pub struct SmallVarp {
+pub struct VarpSmall {
     pub id: u16,
     pub value: u8,
 }
 
-pub struct LargeVarp {
+pub struct VarpLarge {
     pub id: u16,
     pub value: u32,
 }
 
-pub struct SmallVarbit {
+pub struct VarbitSmall {
     pub id: u16,
     pub value: u8,
 }
 
-pub struct LargeVarbit {
+pub struct VarbitLarge {
     pub id: u16,
     pub value: u32,
 }
 
-impl Encodable for SmallVarp {
+impl Encodable for VarpSmall {
     fn encode(self) -> Frame {
         let mut buf = BytesMut::new();
         buf.put_u16(self.id);
@@ -37,7 +37,7 @@ impl Encodable for SmallVarp {
     }
 }
 
-impl Encodable for LargeVarp {
+impl Encodable for VarpLarge {
     fn encode(self) -> Frame {
         let mut buf = BytesMut::new();
         buf.put_u32_mid_le(self.value);
@@ -51,7 +51,7 @@ impl Encodable for LargeVarp {
     }
 }
 
-impl Encodable for SmallVarbit {
+impl Encodable for VarbitSmall {
     fn encode(self) -> Frame {
         let mut buf = BytesMut::new();
         buf.put_u16(self.id);
@@ -65,7 +65,7 @@ impl Encodable for SmallVarbit {
     }
 }
 
-impl Encodable for LargeVarbit {
+impl Encodable for VarbitLarge {
     fn encode(self) -> Frame {
         let mut buf = BytesMut::new();
         buf.put_u16_le_add(self.id);

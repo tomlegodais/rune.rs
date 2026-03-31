@@ -1,7 +1,7 @@
 use std::{future::Future, pin::Pin};
 
 use macros::player_system;
-use net::{Outbox, OutboxExt, UpdateSkill};
+use net::{Outbox, OutboxExt, UpdateStat};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use persistence::player::PlayerData;
 
@@ -100,7 +100,7 @@ impl SkillManager {
     pub async fn send_skill(&mut self, skill: Skill) {
         let i: usize = skill.into();
         self.outbox
-            .write(UpdateSkill {
+            .write(UpdateStat {
                 id: i as u8,
                 level: self.levels[i],
                 xp: self.xp[i],
