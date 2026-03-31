@@ -8,6 +8,7 @@ mod info;
 mod interaction;
 mod interface;
 mod inv;
+mod loc;
 mod mask;
 mod movement;
 mod obj;
@@ -192,6 +193,7 @@ impl Player {
             .await
         {
             self.obj_stack_mut().on_viewport_rebuild(&world.obj_stacks).await;
+            self.loc_mut().on_viewport_rebuild(&world.locs).await;
         }
 
         let player_pos = self.position;

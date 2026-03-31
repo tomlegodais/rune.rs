@@ -25,6 +25,13 @@ pub fn macros() -> proc_macro2::TokenStream {
                     return;
                 }
             };
+            (loc) => {{
+                let __player = crate::player::active_player();
+                let __pos = crate::world::Position::new(loc_x as i32, loc_y as i32, __player.position.plane);
+                if __player.world().locs.is_replaced(__pos, loc_id as u32) {
+                    return;
+                }
+            }};
         }
         macro_rules! give_xp {
             (stat = $stat:ident, amount = $xp:expr) => {

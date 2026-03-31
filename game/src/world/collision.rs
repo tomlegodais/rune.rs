@@ -97,10 +97,13 @@ struct RegionData {
     locs: Box<LocStore>,
 }
 
+type DynamicKey = (i32, i32, i32);
+
 pub struct CollisionMap {
     cache: Arc<Cache>,
     archive_index: HashMap<i32, ArchiveId>,
     regions: RwLock<HashMap<RegionKey, Arc<RegionData>>>,
+    dynamic: RwLock<HashMap<DynamicKey, (u32, u32)>>,
 }
 
 impl CollisionMap {
@@ -117,6 +120,7 @@ impl CollisionMap {
             cache,
             archive_index,
             regions: RwLock::new(HashMap::new()),
+            dynamic: RwLock::new(HashMap::new()),
         })
     }
 
@@ -146,7 +150,13 @@ impl CollisionMap {
         let lx = (pos.x & 63) as usize;
         let ly = (pos.y & 63) as usize;
 
-        if plane < PLANES && lx < REGION_SIZE && ly < REGION_SIZE { region.flags[plane][lx][ly] } else { 0 }
+        let static_flags =
+            if plane < PLANES && lx < REGION_SIZE && ly < REGION_SIZE { region.flags[plane][lx][ly] } else { 0 };
+
+        let key = (pos.x, pos.y, pos.plane);
+        let (added, removed) = self.dynamic.read().unwrap().get(&key).copied().unwrap_or((0, 0));
+
+        (static_flags | added) & !removed
     }
 
     pub fn get_loc(&self, pos: Position, id: u32) -> Option<Loc> {
@@ -183,6 +193,90 @@ impl CollisionMap {
         };
 
         (w, h, access)
+    }
+
+    pub fn clip_loc(&self, pos: Position, loc_id: u32, loc_type: u8, rotation: u8) {
+        self.modify_loc_flags(pos, loc_id, loc_type, rotation, true);
+    }
+
+    pub fn unclip_loc(&self, pos: Position, loc_id: u32, loc_type: u8, rotation: u8) {
+        self.modify_loc_flags(pos, loc_id, loc_type, rotation, false);
+    }
+
+    fn modify_loc_flags(&self, pos: Position, loc_id: u32, loc_type: u8, rotation: u8, add: bool) {
+        let Some(def) = provider::get_loc_type(loc_id) else {
+            return;
+        };
+
+        match loc_type {
+            0..=3 if def.block_walk => {
+                self.modify_wall_flags(pos, loc_type, rotation, add);
+            }
+            9..=21 if def.block_walk => {
+                let (sx, sy) = if rotation & 1 == 1 {
+                    (def.size_y as i32, def.size_x as i32)
+                } else {
+                    (def.size_x as i32, def.size_y as i32)
+                };
+                for dx in 0..sx {
+                    for dy in 0..sy {
+                        let tile = Position::new(pos.x + dx, pos.y + dy, pos.plane);
+                        if add { self.add_flag(tile, LOC) } else { self.remove_flag(tile, LOC) }
+                    }
+                }
+            }
+            22 if def.solid == 1 => {
+                if add {
+                    self.add_flag(pos, FLOOR_DECO_BLOCKED);
+                } else {
+                    self.remove_flag(pos, FLOOR_DECO_BLOCKED);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn modify_wall_flags(&self, pos: Position, loc_type: u8, rotation: u8, add: bool) {
+        let r = rotation as usize;
+        let apply = |p: Position, flag: u32| {
+            if add { self.add_flag(p, flag) } else { self.remove_flag(p, flag) }
+        };
+
+        match loc_type {
+            0 => {
+                let (sf, dx, dy, nf) = WALL_STRAIGHT[r];
+                apply(pos, sf);
+                apply(Position::new(pos.x + dx, pos.y + dy, pos.plane), nf);
+            }
+            1 | 3 => {
+                let (sf, dx, dy, nf) = WALL_PILLAR[r];
+                apply(pos, sf);
+                apply(Position::new(pos.x + dx, pos.y + dy, pos.plane), nf);
+            }
+            2 => {
+                let (sf, dx1, dy1, nf1, dx2, dy2, nf2) = WALL_L_CORNER[r];
+                apply(pos, sf);
+                apply(Position::new(pos.x + dx1, pos.y + dy1, pos.plane), nf1);
+                apply(Position::new(pos.x + dx2, pos.y + dy2, pos.plane), nf2);
+            }
+            _ => {}
+        }
+    }
+
+    fn add_flag(&self, pos: Position, flag: u32) {
+        let key = (pos.x, pos.y, pos.plane);
+        let mut dynamic = self.dynamic.write().unwrap();
+        let entry = dynamic.entry(key).or_insert((0, 0));
+        entry.0 |= flag;
+        entry.1 &= !flag;
+    }
+
+    fn remove_flag(&self, pos: Position, flag: u32) {
+        let key = (pos.x, pos.y, pos.plane);
+        let mut dynamic = self.dynamic.write().unwrap();
+        let entry = dynamic.entry(key).or_insert((0, 0));
+        entry.1 |= flag;
+        entry.0 &= !flag;
     }
 
     fn region_data(&self, pos: Position) -> Arc<RegionData> {

@@ -1,4 +1,5 @@
 mod collision;
+mod loc;
 mod objstack;
 mod pathfinding;
 mod position;
@@ -11,6 +12,7 @@ use std::{
 };
 
 pub use collision::CollisionMap;
+pub use loc::{LocStore, TempLoc, TempLocSnapshot};
 use net::{Frame, IncomingMessage};
 pub use objstack::ObjStackStore;
 use parking_lot::Mutex;
@@ -32,6 +34,7 @@ pub struct World {
     pub players: WorldSlab<Player>,
     pub npcs: WorldSlab<Npc>,
     pub obj_stacks: ObjStackStore,
+    pub locs: LocStore,
     pub action_states: Mutex<HashMap<usize, ActionState>>,
 }
 
@@ -42,6 +45,7 @@ impl Default for World {
             players: WorldSlab::new(),
             npcs: WorldSlab::new(),
             obj_stacks: ObjStackStore::default(),
+            locs: LocStore::default(),
             action_states: Mutex::new(HashMap::new()),
         }
     }
@@ -100,6 +104,14 @@ impl World {
                     .obj_stack_mut()
                     .forget(item.id, item.obj_id, item.position)
                     .await;
+            }
+        }
+    }
+
+    pub(super) async fn respawn_locs(&self) {
+        for expired in self.locs.tick() {
+            for index in self.players.keys() {
+                self.players.get_mut(index).loc_mut().on_expire(&expired).await;
             }
         }
     }

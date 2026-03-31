@@ -137,6 +137,7 @@ impl TickPhase<Npc> for Reset {
 impl WorldTickPhase for WorldTick {
     async fn execute(&self, world: &World) {
         world.decay_obj_stacks().await;
+        world.respawn_locs().await;
     }
 }
 

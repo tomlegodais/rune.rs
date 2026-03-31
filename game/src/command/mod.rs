@@ -1,4 +1,5 @@
 mod inv;
+mod loc;
 mod pos;
 mod seq;
 mod setlevel;

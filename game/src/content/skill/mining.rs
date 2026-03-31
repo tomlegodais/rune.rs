@@ -8,6 +8,7 @@ async fn mine_gold_rock() {
     send_message!("You swing your pickaxe at the rock.");
 
     repeat!(delay = 3, seq = 12189, {
+        requires!(loc);
         requires!(inv, slots = 1);
 
         if !successful!(chance = 0.20) {
@@ -19,6 +20,7 @@ async fn mine_gold_rock() {
         send_message!("You mine some gold ore.");
 
         if depleted!(chance = 0.25) {
+            loc_replace!(replace = 11554, ticks = 100);
             break;
         }
     });
