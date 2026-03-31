@@ -1,4 +1,4 @@
-#[macros::on_obj(option = Seven)]
+#[macros::on_obj(op = Op7)]
 async fn drop_obj() {
     let Some(obj) = slot_obj!() else {
         return;

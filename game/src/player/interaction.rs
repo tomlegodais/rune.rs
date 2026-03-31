@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use macros::player_system;
-use net::ClickOption;
+use net::Op;
 
 use crate::{
     handler::run_action,
@@ -20,7 +20,7 @@ pub struct Interaction {
 
 pub struct PendingInteraction {
     pub target: InteractionTarget,
-    pub option: ClickOption,
+    pub op: Op,
 }
 
 pub enum InteractionTarget {
@@ -45,15 +45,15 @@ pub enum InteractionTarget {
     Button {
         interface: u16,
         component: u16,
-        option: ClickOption,
+        op: Op,
         slot1: u16,
         slot2: u16,
     },
 }
 
 impl Interaction {
-    pub fn set(&mut self, target: InteractionTarget, option: ClickOption) {
-        self.pending = Some(PendingInteraction { target, option });
+    pub fn set(&mut self, target: InteractionTarget, op: Op) {
+        self.pending = Some(PendingInteraction { target, op });
     }
 
     pub fn clear(&mut self) {
@@ -149,7 +149,7 @@ pub fn resolve(player: &mut Player, world: &World) {
     let pending = player.interaction_mut().take().unwrap();
     face_target(player, world, &pending.target, target_pos);
 
-    if let Some(future) = crate::handler::dispatch(player, pending.target, pending.option) {
+    if let Some(future) = crate::handler::dispatch(player, pending.target, pending.op) {
         run_action(player, future);
         if !world.action_states.lock().contains_key(&player_index) {
             clear_face_if_needed(player, world);

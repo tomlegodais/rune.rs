@@ -1,7 +1,7 @@
 use std::{future::Future, pin::Pin};
 
 use macros::message_handler;
-use net::{ChatMessage, ClickOption, ObjClick, OutboxExt};
+use net::{ChatMessage, Op, ObjClick, OutboxExt};
 
 use super::MessageHandler;
 use crate::{
@@ -34,7 +34,7 @@ async fn handle_obj_click(player: &mut Player, msg: ObjClick) {
 
     player
         .interaction_mut()
-        .set(InteractionTarget::ObjStack { id, position }, ClickOption::One);
+        .set(InteractionTarget::ObjStack { id, position }, Op::Op1);
 
     with_movement!(player, |m, ctx| m
         .walk_to(&mut ctx, position, msg.force_run, None)

@@ -3,10 +3,10 @@ use tokio_util::bytes::{Buf, Bytes};
 use util::BufExt;
 
 use super::{InboundDecoder, IncomingMessage};
-use crate::inbound::ClickOption;
+use crate::inbound::Op;
 
 pub struct PlayerClick {
-    pub option: ClickOption,
+    pub op: Op,
     pub player_index: u16,
     pub ctrl_run: bool,
 }
@@ -19,7 +19,7 @@ const _: () = {
         let player_index = payload.get_u16_add();
         let ctrl_run = payload.get_u8() == 1;
         Box::new(PlayerClick {
-            option: ClickOption::One,
+            op: Op::Op1,
             player_index,
             ctrl_run,
         })
@@ -34,7 +34,7 @@ const _: () = {
         let player_index = payload.get_u16_add();
         let ctrl_run = payload.get_u8() == 1;
         Box::new(PlayerClick {
-            option: ClickOption::Two,
+            op: Op::Op2,
             player_index,
             ctrl_run,
         })
@@ -49,7 +49,7 @@ const _: () = {
         let ctrl_run = payload.get_u8() == 1;
         let player_index = payload.get_u16_le_add();
         Box::new(PlayerClick {
-            option: ClickOption::Four,
+            op: Op::Op4,
             player_index,
             ctrl_run,
         })

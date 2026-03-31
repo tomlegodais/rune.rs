@@ -1,5 +1,5 @@
 use macros::message_handler;
-use net::{ButtonClick, ClickOption, LocClick, NpcClick, PlayerClick};
+use net::{ButtonClick, Op, LocClick, NpcClick, PlayerClick};
 
 use super::{
     MessageHandler,
@@ -26,7 +26,7 @@ async fn handle_loc(player: &mut Player, msg: LocClick) {
             x: dest.x,
             y: dest.y,
         },
-        msg.option,
+        msg.op,
     );
 
     let params = crate::provider::get_collision().resolve_loc_params(dest, msg.id as u32);
@@ -64,7 +64,7 @@ async fn handle_npc(player: &mut Player, msg: NpcClick) {
 
     player
         .interaction_mut()
-        .set(InteractionTarget::Npc { index }, msg.option);
+        .set(InteractionTarget::Npc { index }, msg.op);
 
     with_movement!(player, |m, ctx| m
         .walk_to(&mut ctx, npc_pos, msg.ctrl_run, Some((size, size, 0)))
@@ -90,7 +90,7 @@ async fn handle_player(player: &mut Player, msg: PlayerClick) {
 
     player
         .interaction_mut()
-        .set(InteractionTarget::Player { index }, msg.option);
+        .set(InteractionTarget::Player { index }, msg.op);
 
     with_movement!(player, |m, ctx| m
         .walk_to(&mut ctx, target_pos, msg.ctrl_run, Some((1, 1, 0)))
@@ -99,7 +99,7 @@ async fn handle_player(player: &mut Player, msg: PlayerClick) {
 
 #[message_handler]
 async fn handle_button(player: &mut Player, msg: ButtonClick) {
-    let handler = [Some(msg.option), None]
+    let handler = [Some(msg.op), None]
         .into_iter()
         .flat_map(|o| [Some(msg.component), None].map(|c| (o, c)))
         .find_map(|(o, c)| CONTENT_HANDLERS.get(&ContentTarget::Button(o, msg.interface, c)));
@@ -117,7 +117,7 @@ async fn handle_button(player: &mut Player, msg: ButtonClick) {
     let target = InteractionTarget::Button {
         interface: msg.interface,
         component: msg.component,
-        option: msg.option,
+        op: msg.op,
         slot1: msg.slot1,
         slot2: msg.slot2,
     };
@@ -125,14 +125,14 @@ async fn handle_button(player: &mut Player, msg: ButtonClick) {
     run_action(player, handler(target));
 }
 
-pub fn try_dispatch_obj(player: &mut Player, option: ClickOption, slot: u16) -> bool {
+pub fn try_dispatch_obj(player: &mut Player, op: Op, slot: u16) -> bool {
     let Some(obj) = player.inv().slot(slot as usize) else {
         return false;
     };
 
     let handler = CONTENT_HANDLERS
-        .get(&ContentTarget::Obj(obj.id as i32, option))
-        .or_else(|| CONTENT_HANDLERS.get(&ContentTarget::Obj(-1, option)));
+        .get(&ContentTarget::Obj(obj.id as i32, op))
+        .or_else(|| CONTENT_HANDLERS.get(&ContentTarget::Obj(-1, op)));
 
     let Some(handler) = handler else {
         return false;

@@ -61,34 +61,25 @@ impl InteractionAttr {
         self.get_value(key, |v| if let AttrValue::Ident(i) = v { Some(i) } else { None })
     }
 
-    pub fn option_variant(&self) -> syn::Result<proc_macro2::TokenStream> {
-        if let Some(ident) = self.get_ident("option") {
+    pub fn op_variant(&self) -> syn::Result<proc_macro2::TokenStream> {
+        if let Some(ident) = self.get_ident("op") {
             return match ident.to_string().as_str() {
-                "One" | "Two" | "Three" | "Four" | "Five" | "Six" | "Seven" | "Eight" | "Nine" | "Ten" => {
-                    Ok(quote! { net::ClickOption::#ident })
+                "Op1" | "Op2" | "Op3" | "Op4" | "Op5" | "Op6" | "Op7" | "Op8" | "Op9" | "Op10" => {
+                    Ok(quote! { net::Op::#ident })
                 }
-                _ => Err(syn::Error::new(ident.span(), "option must be One..Ten")),
+                _ => Err(syn::Error::new(ident.span(), "option must be Op1..Op10")),
             };
         }
-        let opt = self.require_int("option")?;
+        let opt = self.require_int("op")?;
         let n: u8 = opt.base10_parse()?;
         let variant = format_ident!(
-            "{}",
+            "Op{}",
             match n {
-                1 => "One",
-                2 => "Two",
-                3 => "Three",
-                4 => "Four",
-                5 => "Five",
-                6 => "Six",
-                7 => "Seven",
-                8 => "Eight",
-                9 => "Nine",
-                10 => "Ten",
+                1..=10 => n,
                 _ => return Err(syn::Error::new(opt.span(), "option must be 1-10")),
             }
         );
-        Ok(quote! { net::ClickOption::#variant })
+        Ok(quote! { net::Op::#variant })
     }
 }
 

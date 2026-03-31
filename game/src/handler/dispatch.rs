@@ -1,6 +1,6 @@
 use std::{collections::HashMap, future::Future, pin::Pin, sync::Arc};
 
-use net::ClickOption;
+use net::Op;
 
 use crate::{
     player::{
@@ -11,11 +11,11 @@ use crate::{
 
 #[derive(Hash, Eq, PartialEq, Clone, Copy)]
 pub enum ContentTarget {
-    Loc(u16, ClickOption),
-    Npc(u16, ClickOption),
-    Player(ClickOption),
-    Obj(i32, ClickOption),
-    Button(Option<ClickOption>, u16, Option<u16>),
+    Loc(u16, Op),
+    Npc(u16, Op),
+    Player(Op),
+    Obj(i32, Op),
+    Button(Option<Op>, u16, Option<u16>),
 }
 
 pub type ContentHandlerFn = fn(InteractionTarget) -> Pin<Box<dyn Future<Output = ()> + Send + 'static>>;
@@ -37,19 +37,19 @@ pub static CONTENT_HANDLERS: std::sync::LazyLock<HashMap<ContentTarget, ContentH
 pub fn dispatch(
     player: &mut Player,
     target: InteractionTarget,
-    option: ClickOption,
+    op: Op,
 ) -> Option<Pin<Box<dyn Future<Output = ()> + Send + 'static>>> {
     let content_target = match &target {
-        InteractionTarget::Loc { id, .. } => ContentTarget::Loc(*id, option),
+        InteractionTarget::Loc { id, .. } => ContentTarget::Loc(*id, op),
         InteractionTarget::Npc { index } => {
             let world = player.world();
             if !world.npcs.contains(*index) {
                 return None;
             }
             let npc_id = world.npc(*index).npc_id;
-            ContentTarget::Npc(npc_id, option)
+            ContentTarget::Npc(npc_id, op)
         }
-        InteractionTarget::Player { .. } => ContentTarget::Player(option),
+        InteractionTarget::Player { .. } => ContentTarget::Player(op),
         InteractionTarget::Obj { .. } | InteractionTarget::Button { .. } => return None,
         InteractionTarget::ObjStack { .. } => {
             return Some(Box::pin(crate::handler::pickup_obj_stack(target)));

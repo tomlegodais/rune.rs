@@ -8,7 +8,7 @@ pub fn on_player(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as InteractionAttr);
     let func = parse_macro_input!(item as syn::ItemFn);
     let wrapper_name = format_ident!("__{}_content_wrapper", func.sig.ident);
-    let option = match attr.option_variant() {
+    let op = match attr.op_variant() {
         Ok(v) => v,
         Err(e) => return e.to_compile_error().into(),
     };
@@ -17,7 +17,7 @@ pub fn on_player(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     emit_content_handler(
         &wrapper_name,
-        quote! { crate::handler::ContentTarget::Player(#option) },
+        quote! { crate::handler::ContentTarget::Player(#op) },
         quote! { let crate::player::InteractionTarget::Player { index: __player_index } = target else { unreachable!() }; },
         quote! {
             let mut player = crate::player::PlayerRef;

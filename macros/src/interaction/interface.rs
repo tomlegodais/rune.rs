@@ -8,7 +8,7 @@ pub fn on_interface(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as InteractionAttr);
     let func = parse_macro_input!(item as syn::ItemFn);
     let wrapper_name = format_ident!("__{}_content_wrapper", func.sig.ident);
-    let option_expr = match attr.option_variant() {
+    let op_expr = match attr.op_variant() {
         Ok(v) => quote! { Some(#v) },
         Err(_) => quote! { None },
     };
@@ -20,8 +20,8 @@ pub fn on_interface(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let component_key = attr.get_int("component");
     let target_expr = match &component_key {
-        Some(c) => quote! { crate::handler::ContentTarget::Button(#option_expr, #interface, Some(#c)) },
-        None => quote! { crate::handler::ContentTarget::Button(#option_expr, #interface, None) },
+        Some(c) => quote! { crate::handler::ContentTarget::Button(#op_expr, #interface, Some(#c)) },
+        None => quote! { crate::handler::ContentTarget::Button(#op_expr, #interface, None) },
     };
 
     let base = super::macros::base();
@@ -33,14 +33,14 @@ pub fn on_interface(attr: TokenStream, item: TokenStream) -> TokenStream {
             let crate::player::InteractionTarget::Button {
                 interface: __interface,
                 component: __component,
-                option: __option,
+                op: __op,
                 slot1: __slot1,
                 slot2: __slot2,
             } = target else { unreachable!() };
         },
         quote! {
             let mut player = crate::player::PlayerRef;
-            let option = __option;
+            let op = __op;
             let component = __component;
             let slot1 = __slot1;
             let slot2 = __slot2;

@@ -3,10 +3,10 @@ use tokio_util::bytes::{Buf, Bytes};
 use util::BufExt;
 
 use super::{InboundDecoder, IncomingMessage};
-use crate::inbound::ClickOption;
+use crate::inbound::Op;
 
 pub struct LocClick {
-    pub option: ClickOption,
+    pub op: Op,
     pub id: u16,
     pub x: u16,
     pub y: u16,
@@ -23,7 +23,7 @@ const _: () = {
         let id = payload.get_u16();
         let y = payload.get_u16();
         Box::new(LocClick {
-            option: ClickOption::One,
+            op: Op::Op1,
             id,
             x,
             y,
@@ -42,7 +42,7 @@ const _: () = {
         let id = payload.get_u16_le_add();
         let ctrl_run = payload.get_u8() == 1;
         Box::new(LocClick {
-            option: ClickOption::Two,
+            op: Op::Op2,
             id,
             x,
             y,
@@ -61,7 +61,7 @@ const _: () = {
         let y = payload.get_u16();
         let id = payload.get_u16_le_add();
         Box::new(LocClick {
-            option: ClickOption::Three,
+            op: Op::Op3,
             id,
             x,
             y,

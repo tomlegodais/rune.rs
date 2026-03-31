@@ -27,17 +27,17 @@ pub use walk::WalkRequest;
 use crate::Frame;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ClickOption {
-    One,
-    Two,
-    Three,
-    Four,
-    Five,
-    Six,
-    Seven,
-    Eight,
-    Nine,
-    Ten,
+pub enum Op {
+    Op1,
+    Op2,
+    Op3,
+    Op4,
+    Op5,
+    Op6,
+    Op7,
+    Op8,
+    Op9,
+    Op10,
 }
 
 pub type IncomingMessage = Box<dyn Any + Send>;

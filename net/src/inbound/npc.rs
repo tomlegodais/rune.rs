@@ -3,10 +3,10 @@ use tokio_util::bytes::{Buf, Bytes};
 use util::BufExt;
 
 use super::{InboundDecoder, IncomingMessage};
-use crate::inbound::ClickOption;
+use crate::inbound::Op;
 
 pub struct NpcClick {
-    pub option: ClickOption,
+    pub op: Op,
     pub npc_index: u16,
     pub ctrl_run: bool,
 }
@@ -19,7 +19,7 @@ const _: () = {
         let ctrl_run = payload.get_u8_sub() == 1;
         let npc_index = payload.get_u16();
         Box::new(NpcClick {
-            option: ClickOption::One,
+            op: Op::Op1,
             npc_index,
             ctrl_run,
         })
@@ -34,7 +34,7 @@ const _: () = {
         let ctrl_run = payload.get_u8_sub() == 1;
         let npc_index = payload.get_u16_le();
         Box::new(NpcClick {
-            option: ClickOption::Two,
+            op: Op::Op2,
             npc_index,
             ctrl_run,
         })
@@ -49,7 +49,7 @@ const _: () = {
         let npc_index = payload.get_u16_le_add();
         let ctrl_run = payload.get_u8_sub() == 1;
         Box::new(NpcClick {
-            option: ClickOption::Three,
+            op: Op::Op3,
             npc_index,
             ctrl_run,
         })

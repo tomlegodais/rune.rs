@@ -1,7 +1,7 @@
 use filesystem::definition::{WearFlag, WearPos};
 use num_enum::TryFromPrimitive;
 
-#[macros::on_obj(option = Two)]
+#[macros::on_obj(op = Op2)]
 async fn wear_obj() {
     let Some(obj) = slot_obj!() else { return };
     let Some(obj_type) = obj_def!(obj.id) else { return };
@@ -39,7 +39,7 @@ async fn wear_obj() {
     player.flush_appearance();
 }
 
-#[macros::on_interface(option = One, interface = 387)]
+#[macros::on_interface(op = 1, interface = 387)]
 async fn unwear_obj() {
     let slot = match component {
         8 => WearPos::Head,

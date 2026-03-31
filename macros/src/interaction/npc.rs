@@ -13,7 +13,7 @@ pub fn on_npc(attr: TokenStream, item: TokenStream) -> TokenStream {
         Err(e) => return e.to_compile_error().into(),
     };
 
-    let option = match attr.option_variant() {
+    let op = match attr.op_variant() {
         Ok(v) => v,
         Err(e) => return e.to_compile_error().into(),
     };
@@ -23,7 +23,7 @@ pub fn on_npc(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     emit_content_handler(
         &wrapper_name,
-        quote! { crate::handler::ContentTarget::Npc(#npc_id, #option) },
+        quote! { crate::handler::ContentTarget::Npc(#npc_id, #op) },
         quote! { let crate::player::InteractionTarget::Npc { index: __npc_index } = target else { unreachable!() }; },
         quote! {
             let mut player = crate::player::PlayerRef;

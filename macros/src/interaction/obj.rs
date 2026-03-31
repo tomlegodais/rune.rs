@@ -14,7 +14,7 @@ pub fn on_obj(attr: TokenStream, item: TokenStream) -> TokenStream {
         None => quote! { -1i32 },
     };
 
-    let option = match attr.option_variant() {
+    let op = match attr.op_variant() {
         Ok(v) => v,
         Err(e) => return e.to_compile_error().into(),
     };
@@ -24,7 +24,7 @@ pub fn on_obj(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     emit_content_handler(
         &wrapper_name,
-        quote! { crate::handler::ContentTarget::Obj(#id_expr, #option) },
+        quote! { crate::handler::ContentTarget::Obj(#id_expr, #op) },
         quote! { let crate::player::InteractionTarget::Obj { slot: __slot } = target else { unreachable!() }; },
         quote! {
             let mut player = crate::player::PlayerRef;

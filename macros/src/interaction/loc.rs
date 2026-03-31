@@ -13,7 +13,7 @@ pub fn on_loc(attr: TokenStream, item: TokenStream) -> TokenStream {
         Err(e) => return e.to_compile_error().into(),
     };
 
-    let option = match attr.option_variant() {
+    let op = match attr.op_variant() {
         Ok(v) => v,
         Err(e) => return e.to_compile_error().into(),
     };
@@ -22,7 +22,7 @@ pub fn on_loc(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     emit_content_handler(
         &wrapper_name,
-        quote! { crate::handler::ContentTarget::Loc(#id, #option) },
+        quote! { crate::handler::ContentTarget::Loc(#id, #op) },
         quote! { let crate::player::InteractionTarget::Loc { id: __id, x: __x, y: __y } = target else { unreachable!() }; },
         quote! {
             let mut player = crate::player::PlayerRef;
