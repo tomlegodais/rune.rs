@@ -76,14 +76,14 @@ impl PlayerData {
             .map_err(|_| DbErr::Type("invalid colors array length".to_string()))?;
 
         let inv_entries: Vec<Option<InvEntry>> =
-            serde_json::from_value(inv_model.items).map_err(|e| DbErr::Type(e.to_string()))?;
+            serde_json::from_value(inv_model.objs).map_err(|e| DbErr::Type(e.to_string()))?;
         let inv = inv_entries
             .into_iter()
             .map(|e| e.map(|e| (e.obj_id, e.amount)))
             .collect();
 
         let worn_entries: Vec<Option<WornEntry>> =
-            serde_json::from_value(worn_model.items).map_err(|e| DbErr::Type(e.to_string()))?;
+            serde_json::from_value(worn_model.objs).map_err(|e| DbErr::Type(e.to_string()))?;
         let worn = worn_entries
             .into_iter()
             .map(|e| e.map(|e| (e.obj_id, e.amount)))
@@ -229,7 +229,7 @@ impl PlayerRepository for PgPlayerRepository {
 
         inv::Entity::update_many()
             .filter(inv::Column::PlayerId.eq(data.player_id))
-            .col_expr(inv::Column::Items, Expr::value(inv_json))
+            .col_expr(inv::Column::Objs, Expr::value(inv_json))
             .exec(&self.db)
             .await?;
 
@@ -242,7 +242,7 @@ impl PlayerRepository for PgPlayerRepository {
 
         worn::Entity::update_many()
             .filter(worn::Column::PlayerId.eq(data.player_id))
-            .col_expr(worn::Column::Items, Expr::value(worn_json))
+            .col_expr(worn::Column::Objs, Expr::value(worn_json))
             .exec(&self.db)
             .await?;
 

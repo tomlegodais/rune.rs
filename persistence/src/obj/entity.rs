@@ -51,7 +51,9 @@ pub enum WearFlag {
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub obj_id: i32,
+    #[sea_orm(column_name = "wear_pos")]
     pub wearpos: Option<WearPos>,
+    #[sea_orm(column_name = "wear_flag")]
     pub wearflag: Option<WearFlag>,
 }
 

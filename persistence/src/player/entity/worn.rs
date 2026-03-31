@@ -13,7 +13,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub player_id: i64,
     #[sea_orm(column_type = "JsonBinary")]
-    pub items: Json,
+    pub objs: Json,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

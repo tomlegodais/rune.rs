@@ -26,7 +26,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(big_integer(PlayerInv::PlayerId).primary_key().not_null())
                     .col(
-                        ColumnDef::new(PlayerInv::Items)
+                        ColumnDef::new(PlayerInv::Objs)
                             .json_binary()
                             .not_null()
                             .default(Expr::cust(format!("'{DEFAULT_INV}'::jsonb"))),
@@ -44,7 +44,7 @@ impl MigrationTrait for Migration {
         manager
             .get_connection()
             .execute_unprepared(&format!(
-                "INSERT INTO player_inv (player_id, items) \
+                "INSERT INTO player_inv (player_id, objs) \
                  SELECT id, '{DEFAULT_INV}'::jsonb FROM players \
                  ON CONFLICT (player_id) DO NOTHING"
             ))
@@ -65,7 +65,7 @@ impl MigrationTrait for Migration {
 enum PlayerInv {
     Table,
     PlayerId,
-    Items,
+    Objs,
 }
 
 #[derive(DeriveIden)]

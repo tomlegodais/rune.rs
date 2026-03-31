@@ -15,7 +15,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(big_integer(PlayerWorn::PlayerId).primary_key().not_null())
                     .col(
-                        ColumnDef::new(PlayerWorn::Items)
+                        ColumnDef::new(PlayerWorn::Objs)
                             .json_binary()
                             .not_null()
                             .default(Expr::cust(format!("'{DEFAULT_WORN}'::jsonb"))),
@@ -33,7 +33,7 @@ impl MigrationTrait for Migration {
         manager
             .get_connection()
             .execute_unprepared(&format!(
-                "INSERT INTO player_worn (player_id, items) \
+                "INSERT INTO player_worn (player_id, objs) \
                  SELECT id, '{DEFAULT_WORN}'::jsonb FROM players \
                  ON CONFLICT (player_id) DO NOTHING"
             ))
@@ -54,7 +54,7 @@ impl MigrationTrait for Migration {
 enum PlayerWorn {
     Table,
     PlayerId,
-    Items,
+    Objs,
 }
 
 #[derive(DeriveIden)]
