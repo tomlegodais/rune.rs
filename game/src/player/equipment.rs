@@ -74,7 +74,7 @@ impl Equipment {
             .then(|| self.slots[EquipmentSlot::Weapon])
             .flatten()
             .filter(|wep| {
-                crate::provider::get_item_definition(wep.id as u32)
+                crate::provider::get_obj_type(wep.id as u32)
                     .is_some_and(|d| d.equipment_flag == EquipmentFlag::TwoHanded)
             });
 

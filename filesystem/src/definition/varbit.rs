@@ -3,14 +3,14 @@ use std::io;
 use tokio_util::bytes::{Buf, Bytes};
 
 #[derive(Debug, Clone)]
-pub struct VarbitDefinition {
+pub struct VarbitType {
     pub id: u32,
     pub varp: u16,
     pub low_bit: u8,
     pub high_bit: u8,
 }
 
-impl VarbitDefinition {
+impl VarbitType {
     pub fn decode(id: u32, data: &[u8]) -> io::Result<Self> {
         let mut buf = Bytes::copy_from_slice(data);
         let mut def = Self {

@@ -6,12 +6,12 @@ use util::BufExt;
 use crate::definition::ParamValue;
 
 #[derive(Debug, Clone)]
-pub struct StructDefinition {
+pub struct StructType {
     pub id: u32,
     pub params: HashMap<u32, ParamValue>,
 }
 
-impl StructDefinition {
+impl StructType {
     pub fn decode(id: u32, data: &[u8]) -> anyhow::Result<Self> {
         let mut def = Self {
             id,

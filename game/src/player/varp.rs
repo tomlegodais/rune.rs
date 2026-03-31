@@ -40,7 +40,7 @@ impl VarpManager {
     }
 
     pub async fn send_varbit(&mut self, id: u32, value: i32) {
-        let Some(def) = provider::get_varbit_definition(id) else {
+        let Some(def) = provider::get_varbit_type(id) else {
             return;
         };
 

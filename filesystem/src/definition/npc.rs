@@ -2,7 +2,7 @@ use tokio_util::bytes::{Buf, Bytes};
 use util::BufExt;
 
 #[derive(Debug, Clone)]
-pub struct NpcDefinition {
+pub struct NpcType {
     pub id: u32,
     pub name: String,
     pub size: u8,
@@ -11,7 +11,7 @@ pub struct NpcDefinition {
     pub visible_on_map: bool,
 }
 
-impl Default for NpcDefinition {
+impl Default for NpcType {
     fn default() -> Self {
         Self {
             id: 0,
@@ -24,7 +24,7 @@ impl Default for NpcDefinition {
     }
 }
 
-impl NpcDefinition {
+impl NpcType {
     pub fn decode(id: u32, data: &[u8]) -> anyhow::Result<Self> {
         let mut def = Self {
             id,

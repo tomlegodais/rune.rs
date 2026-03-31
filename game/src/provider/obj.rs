@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use filesystem::{
-    definition::{EquipmentFlag, EquipmentSlot, ItemDefinition},
-    loader::ItemLoader,
+    definition::{EquipmentFlag, EquipmentSlot, ObjType},
+    loader::ObjLoader,
 };
 use macros::data_provider;
 use once_cell::sync::OnceCell;
@@ -11,7 +11,7 @@ use shaku::HasComponent;
 
 use crate::provider::ProviderContext;
 
-static INSTANCE: OnceCell<ItemLoader> = OnceCell::new();
+static INSTANCE: OnceCell<ObjLoader> = OnceCell::new();
 
 fn map_slot(slot: obj::EquipmentSlot) -> EquipmentSlot {
     match slot {
@@ -43,7 +43,7 @@ fn map_flag(flag: obj::EquipmentFlag) -> EquipmentFlag {
 
 #[data_provider]
 async fn load_item_definitions(ctx: &ProviderContext) -> anyhow::Result<()> {
-    let mut loader = ItemLoader::load(&ctx.cache)?;
+    let mut loader = ObjLoader::load(&ctx.cache)?;
 
     let repo: Arc<dyn ObjConfigRepository> = ctx.persistence.resolve();
     let configs = repo.find_all().await?;
@@ -60,6 +60,6 @@ async fn load_item_definitions(ctx: &ProviderContext) -> anyhow::Result<()> {
         .map_err(|_| anyhow::anyhow!("item definitions already loaded"))
 }
 
-pub fn get_item_definition(id: u32) -> Option<&'static ItemDefinition> {
+pub fn get_obj_type(id: u32) -> Option<&'static ObjType> {
     INSTANCE.get().and_then(|l| l.get(id))
 }

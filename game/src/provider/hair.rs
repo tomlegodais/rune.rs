@@ -4,7 +4,7 @@ use filesystem::definition::ParamMap;
 use macros::data_provider;
 use once_cell::sync::OnceCell;
 
-use crate::provider::{ProviderContext, get_enum_definition, get_struct_definition};
+use crate::provider::{ProviderContext, get_enum_type, get_struct_type};
 
 const LOOK_HAIR_MALE: u32 = 2338;
 const LOOK_HAIR_FEMALE: u32 = 2341;
@@ -35,12 +35,12 @@ async fn load_hair_replacements(_ctx: &ProviderContext) -> anyhow::Result<()> {
 }
 
 fn build_lookup(look_hair_id: u32) -> HairLookup {
-    let entries: Vec<_> = get_enum_definition(look_hair_id)
+    let entries: Vec<_> = get_enum_type(look_hair_id)
         .into_iter()
         .flat_map(|e| {
             e.values
                 .keys()
-                .filter_map(|&k| e.int_value(k).and_then(|id| get_struct_definition(id as u32)))
+                .filter_map(|&k| e.int_value(k).and_then(|id| get_struct_type(id as u32)))
         })
         .filter_map(|s| s.params.int_param(BODY_LOOK_INDEX).map(|i| (i as u16, s)))
         .collect();

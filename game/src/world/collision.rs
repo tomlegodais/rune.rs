@@ -167,7 +167,7 @@ impl CollisionMap {
     }
 
     pub fn resolve_loc_params(&self, pos: Position, id: u32) -> (i32, i32, u8) {
-        let def = provider::get_loc_definition(id);
+        let def = provider::get_loc_type(id);
         let (base_w, base_h, base_access) = def
             .map(|d| (d.size_x as i32, d.size_y as i32, d.access_block_flag))
             .unwrap_or((1, 1, 0));
@@ -283,7 +283,7 @@ fn parse_loc_placements(data: &[u8], flags: &mut TileFlags, settings: &TileSetti
         }
         loc_id = loc_id.wrapping_add(delta as i32);
 
-        let def = provider::get_loc_definition(loc_id as u32);
+        let def = provider::get_loc_type(loc_id as u32);
 
         let mut packed_pos: u32 = 0;
         loop {

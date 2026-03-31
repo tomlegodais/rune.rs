@@ -25,7 +25,7 @@ pub fn macros() -> proc_macro2::TokenStream {
             }};
         }
         macro_rules! obj_def {
-            ($id:expr) => { crate::provider::get_item_definition($id as u32) };
+            ($id:expr) => { crate::provider::get_obj_type($id as u32) };
         }
         macro_rules! equipped {
             ($slot:expr) => { crate::player::active_player().equipment().slot($slot) };

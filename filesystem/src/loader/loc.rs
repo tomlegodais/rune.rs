@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{Cache, CacheResult, IndexId, definition::LocDefinition};
+use crate::{Cache, CacheResult, IndexId, definition::LocType};
 
 pub struct LocLoader {
-    definitions: HashMap<u32, LocDefinition>,
+    definitions: HashMap<u32, LocType>,
 }
 
 impl LocLoader {
@@ -16,7 +16,7 @@ impl LocLoader {
             for (file_id, data) in files {
                 let loc_id = archive_id.as_u32() * 256 + file_id.as_u32();
 
-                match LocDefinition::decode(loc_id, &data) {
+                match LocType::decode(loc_id, &data) {
                     Ok(def) => {
                         definitions.insert(loc_id, def);
                     }
@@ -28,7 +28,7 @@ impl LocLoader {
         Ok(Self { definitions })
     }
 
-    pub fn get(&self, id: u32) -> Option<&LocDefinition> {
+    pub fn get(&self, id: u32) -> Option<&LocType> {
         self.definitions.get(&id)
     }
 

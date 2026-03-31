@@ -10,7 +10,7 @@ pub enum EnumValue {
 }
 
 #[derive(Debug, Clone)]
-pub struct EnumDefinition {
+pub struct EnumType {
     pub id: u32,
     pub key_type: char,
     pub value_type: char,
@@ -19,7 +19,7 @@ pub struct EnumDefinition {
     pub values: HashMap<i32, EnumValue>,
 }
 
-impl Default for EnumDefinition {
+impl Default for EnumType {
     fn default() -> Self {
         Self {
             id: 0,
@@ -32,7 +32,7 @@ impl Default for EnumDefinition {
     }
 }
 
-impl EnumDefinition {
+impl EnumType {
     pub fn decode(id: u32, data: &[u8]) -> anyhow::Result<Self> {
         let mut def = Self {
             id,

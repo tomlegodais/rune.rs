@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{ArchiveId, Cache, CacheResult, IndexId, definition::StructDefinition};
+use crate::{ArchiveId, Cache, CacheResult, IndexId, definition::StructType};
 
 pub struct StructLoader {
-    definitions: HashMap<u32, StructDefinition>,
+    definitions: HashMap<u32, StructType>,
 }
 
 impl StructLoader {
@@ -13,7 +13,7 @@ impl StructLoader {
 
         for (file_id, data) in files {
             let id = file_id.as_u32();
-            match StructDefinition::decode(id, &data) {
+            match StructType::decode(id, &data) {
                 Ok(def) => {
                     definitions.insert(id, def);
                 }
@@ -24,7 +24,7 @@ impl StructLoader {
         Ok(Self { definitions })
     }
 
-    pub fn get(&self, id: u32) -> Option<&StructDefinition> {
+    pub fn get(&self, id: u32) -> Option<&StructType> {
         self.definitions.get(&id)
     }
 

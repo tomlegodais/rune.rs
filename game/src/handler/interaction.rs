@@ -55,7 +55,7 @@ async fn handle_npc(player: &mut Player, msg: NpcClick) {
         (npc.position, npc.npc_id)
     };
 
-    let size = crate::provider::get_npc_definition(npc_id as u32)
+    let size = crate::provider::get_npc_type(npc_id as u32)
         .map(|d| d.size as i32)
         .unwrap_or(1);
 

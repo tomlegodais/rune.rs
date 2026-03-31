@@ -184,7 +184,7 @@ impl AppearanceMask {
 
     fn flag_for(&self, slot: EquipmentSlot) -> Option<EquipmentFlag> {
         self.equipment[slot]
-            .and_then(|obj| provider::get_item_definition(obj.id as u32))
+            .and_then(|obj| provider::get_obj_type(obj.id as u32))
             .map(|def| def.equipment_flag)
             .filter(|f| *f != EquipmentFlag::None)
     }
@@ -201,7 +201,7 @@ impl AppearanceMask {
 
     fn readyanim(&self) -> u16 {
         self.equipment[EquipmentSlot::Weapon]
-            .and_then(|item| provider::get_item_definition(item.id as u32))
+            .and_then(|item| provider::get_obj_type(item.id as u32))
             .and_then(|def| def.params.int_param(644))
             .map(|v| v as u16)
             .unwrap_or(DEFAULT_READYANIM)

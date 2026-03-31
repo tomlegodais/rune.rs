@@ -1,12 +1,12 @@
 mod enums;
-mod item;
+mod obj;
 mod loc;
 mod npc;
 mod structs;
 mod varbit;
 
 pub use enums::EnumLoader;
-pub use item::ItemLoader;
+pub use obj::ObjLoader;
 pub use loc::LocLoader;
 pub use npc::NpcLoader;
 pub use structs::StructLoader;

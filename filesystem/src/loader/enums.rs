@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{Cache, CacheResult, IndexId, definition::EnumDefinition};
+use crate::{Cache, CacheResult, IndexId, definition::EnumType};
 
 pub struct EnumLoader {
-    definitions: HashMap<u32, EnumDefinition>,
+    definitions: HashMap<u32, EnumType>,
 }
 
 impl EnumLoader {
@@ -16,7 +16,7 @@ impl EnumLoader {
             for (file_id, data) in files {
                 let enum_id = archive_id.as_u32() * 256 + file_id.as_u32();
 
-                match EnumDefinition::decode(enum_id, &data) {
+                match EnumType::decode(enum_id, &data) {
                     Ok(def) => {
                         definitions.insert(enum_id, def);
                     }
@@ -28,7 +28,7 @@ impl EnumLoader {
         Ok(Self { definitions })
     }
 
-    pub fn get(&self, id: u32) -> Option<&EnumDefinition> {
+    pub fn get(&self, id: u32) -> Option<&EnumType> {
         self.definitions.get(&id)
     }
 

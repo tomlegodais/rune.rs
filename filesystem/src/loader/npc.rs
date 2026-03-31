@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{Cache, CacheResult, IndexId, definition::NpcDefinition};
+use crate::{Cache, CacheResult, IndexId, definition::NpcType};
 
 pub struct NpcLoader {
-    definitions: HashMap<u32, NpcDefinition>,
+    definitions: HashMap<u32, NpcType>,
 }
 
 impl NpcLoader {
@@ -16,7 +16,7 @@ impl NpcLoader {
             for (file_id, data) in files {
                 let npc_id = archive_id.as_u32() * 128 + file_id.as_u32();
 
-                match NpcDefinition::decode(npc_id, &data) {
+                match NpcType::decode(npc_id, &data) {
                     Ok(def) => {
                         definitions.insert(npc_id, def);
                     }
@@ -28,7 +28,7 @@ impl NpcLoader {
         Ok(Self { definitions })
     }
 
-    pub fn get(&self, id: u32) -> Option<&NpcDefinition> {
+    pub fn get(&self, id: u32) -> Option<&NpcType> {
         self.definitions.get(&id)
     }
 

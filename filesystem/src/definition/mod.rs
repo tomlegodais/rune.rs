@@ -1,16 +1,16 @@
 mod enums;
-mod item;
+mod obj;
 mod loc;
 mod npc;
 mod structs;
 mod varbit;
 
-pub use enums::{EnumDefinition, EnumValue};
-pub use item::{EquipmentFlag, EquipmentSlot, ItemDefinition, TransformKind};
-pub use loc::LocDefinition;
-pub use npc::NpcDefinition;
-pub use structs::StructDefinition;
-pub use varbit::VarbitDefinition;
+pub use enums::{EnumType, EnumValue};
+pub use obj::{EquipmentFlag, EquipmentSlot, ObjType, TransformKind};
+pub use loc::LocType;
+pub use npc::NpcType;
+pub use structs::StructType;
+pub use varbit::VarbitType;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ParamValue {

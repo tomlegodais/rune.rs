@@ -2,14 +2,14 @@ use std::collections::HashMap;
 
 use crate::{
     Cache, CacheResult, IndexId,
-    definition::{ItemDefinition, TransformKind},
+    definition::{ObjType, TransformKind},
 };
 
-pub struct ItemLoader {
-    definitions: HashMap<u32, ItemDefinition>,
+pub struct ObjLoader {
+    definitions: HashMap<u32, ObjType>,
 }
 
-impl ItemLoader {
+impl ObjLoader {
     #[rustfmt::skip]
     pub fn load(cache: &Cache) -> CacheResult<Self> {
         let mut definitions = HashMap::new();
@@ -21,7 +21,7 @@ impl ItemLoader {
                 .flatten()
                 .map(move |(file_id, data)| {
                     let item_id = archive_id.as_u32() * 256 + file_id.as_u32();
-                    (item_id, ItemDefinition::decode(item_id, &data))
+                    (item_id, ObjType::decode(item_id, &data))
                 })
         });
 
@@ -51,11 +51,11 @@ impl ItemLoader {
         Ok(Self { definitions })
     }
 
-    pub fn get(&self, id: u32) -> Option<&ItemDefinition> {
+    pub fn get(&self, id: u32) -> Option<&ObjType> {
         self.definitions.get(&id)
     }
 
-    pub fn get_mut(&mut self, id: u32) -> Option<&mut ItemDefinition> {
+    pub fn get_mut(&mut self, id: u32) -> Option<&mut ObjType> {
         self.definitions.get_mut(&id)
     }
 

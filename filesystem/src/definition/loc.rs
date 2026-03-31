@@ -2,7 +2,7 @@ use tokio_util::bytes::{Buf, Bytes};
 use util::BufExt;
 
 #[derive(Debug, Clone)]
-pub struct LocDefinition {
+pub struct LocType {
     pub id: u32,
     pub name: String,
     pub size_x: u8,
@@ -17,7 +17,7 @@ pub struct LocDefinition {
     pub options: [Option<String>; 5],
 }
 
-impl Default for LocDefinition {
+impl Default for LocType {
     fn default() -> Self {
         Self {
             id: 0,
@@ -36,7 +36,7 @@ impl Default for LocDefinition {
     }
 }
 
-impl LocDefinition {
+impl LocType {
     pub fn decode(id: u32, data: &[u8]) -> anyhow::Result<Self> {
         let mut def = Self {
             id,

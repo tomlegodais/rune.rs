@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{Cache, CacheResult, IndexId, definition::VarbitDefinition};
+use crate::{Cache, CacheResult, IndexId, definition::VarbitType};
 
 pub struct VarbitLoader {
-    definitions: HashMap<u32, VarbitDefinition>,
+    definitions: HashMap<u32, VarbitType>,
 }
 
 impl VarbitLoader {
@@ -16,7 +16,7 @@ impl VarbitLoader {
             for (file_id, data) in files {
                 let varbit_id = archive_id.as_u32() * 1024 + file_id.as_u32();
 
-                match VarbitDefinition::decode(varbit_id, &data) {
+                match VarbitType::decode(varbit_id, &data) {
                     Ok(def) => {
                         definitions.insert(varbit_id, def);
                     }
@@ -30,7 +30,7 @@ impl VarbitLoader {
         Ok(Self { definitions })
     }
 
-    pub fn get(&self, id: u32) -> Option<&VarbitDefinition> {
+    pub fn get(&self, id: u32) -> Option<&VarbitType> {
         self.definitions.get(&id)
     }
 }

@@ -41,7 +41,7 @@ pub enum EquipmentFlag {
 }
 
 #[derive(Debug, Clone)]
-pub struct ItemDefinition {
+pub struct ObjType {
     pub id: u32,
     pub name: String,
     pub inventory_model: u32,
@@ -77,7 +77,7 @@ pub struct ItemDefinition {
     pub params: HashMap<u32, ParamValue>,
 }
 
-impl Default for ItemDefinition {
+impl Default for ObjType {
     fn default() -> Self {
         Self {
             id: 0,
@@ -117,7 +117,7 @@ impl Default for ItemDefinition {
     }
 }
 
-impl ItemDefinition {
+impl ObjType {
     pub fn decode(id: u32, data: &[u8]) -> anyhow::Result<Self> {
         let mut def = Self {
             id,
@@ -350,14 +350,14 @@ impl ItemDefinition {
             )
     }
 
-    pub fn apply_transform(&mut self, kind: TransformKind, source: &ItemDefinition) {
+    pub fn apply_transform(&mut self, kind: TransformKind, source: &ObjType) {
         match kind {
             TransformKind::Noted => self.transform_noted(source),
             TransformKind::Lent => self.transform_lent(source),
         }
     }
 
-    fn transform_noted(&mut self, noted_def: &ItemDefinition) {
+    fn transform_noted(&mut self, noted_def: &ObjType) {
         self.members = noted_def.members;
         self.value = noted_def.value;
         self.name = noted_def.name.clone();
@@ -365,7 +365,7 @@ impl ItemDefinition {
         self.params = noted_def.params.clone();
     }
 
-    fn transform_lent(&mut self, lent_def: &ItemDefinition) {
+    fn transform_lent(&mut self, lent_def: &ObjType) {
         self.recolor_find = lent_def.recolor_find.clone();
         self.male_equip_models = lent_def.male_equip_models;
         self.female_equip_models = lent_def.female_equip_models;

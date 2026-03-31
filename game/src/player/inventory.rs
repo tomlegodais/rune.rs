@@ -177,7 +177,7 @@ impl Inventory {
 }
 
 fn is_stackable(obj_id: u16) -> bool {
-    provider::get_item_definition(obj_id as u32).is_some_and(|def| def.stackable)
+    provider::get_obj_type(obj_id as u32).is_some_and(|def| def.stackable)
 }
 
 #[player_system]
