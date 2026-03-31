@@ -27,10 +27,10 @@ use std::{
 };
 
 pub use action::{
-    ActionShared, ActionState, AnimResetGuard, PlayerRef, active_player, active_shared, clear_action_context, delay,
+    ActionShared, ActionState, PlayerRef, SeqResetGuard, active_player, active_shared, clear_action_context, delay,
     is_action_locked, lock, poll_action, send_message, set_action_context, unlock,
 };
-pub use appearance::{Appearance, DEFAULT_RENDER_EMOTE};
+pub use appearance::{Appearance, DEFAULT_READYANIM};
 pub use equipment::{EquipSlots, SIZE as EQUIPMENT_SIZE};
 pub use gpi::encode_player_info;
 pub use info::PlayerInfo;
@@ -39,7 +39,7 @@ pub use interface::SubInterface;
 pub use inventory::SIZE as INVENTORY_SIZE;
 pub use item::Item;
 pub use mask::{
-    AnimationMask, ChatMask, FaceDirectionMask, MoveTypeMask, SpotAnim1Mask, SpotAnim2Mask, TempMoveTypeMask,
+    ChatMask, FaceDirectionMask, MoveTypeMask, SeqMask, SpotAnim1Mask, SpotAnim2Mask, TempMoveTypeMask,
 };
 pub use movement::{Movement, MovementContext};
 use net::{ChatMessage, Inbox, Logout, Outbox, OutboxExt};
@@ -54,7 +54,7 @@ pub use varp::VarpManager;
 pub use viewport::Viewport;
 
 use crate::{
-    entity::{Anim, AnimBuilder, Entity, MaskBlock, MoveStep, SpotAnim, SpotAnimBuilder},
+    entity::{Entity, MaskBlock, MoveStep, Seq, SeqBuilder, SpotAnim, SpotAnimBuilder},
     npc::{NpcInfo, NpcSnapshot},
     world::{Direction, Position, Teleport, World},
 };
@@ -224,8 +224,8 @@ impl Player {
         self.player_info.add_mask(mask);
     }
 
-    pub fn anim(&mut self, id: u16) -> AnimBuilder<impl FnOnce(Anim) + '_> {
-        AnimBuilder::new(id, |a| self.player_info.add_mask(AnimationMask(a)))
+    pub fn seq(&mut self, id: u16) -> SeqBuilder<impl FnOnce(Seq) + '_> {
+        SeqBuilder::new(id, |a| self.player_info.add_mask(SeqMask(a)))
     }
 
     pub fn spot_anim(&mut self, id: u16) -> SpotAnimBuilder<impl FnOnce(SpotAnim) + '_> {

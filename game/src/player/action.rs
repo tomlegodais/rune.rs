@@ -126,14 +126,14 @@ pub fn unlock(shared: &ActionShared) {
     shared.locked.store(false, Ordering::Relaxed);
 }
 
-pub struct AnimResetGuard(pub *mut Player);
+pub struct SeqResetGuard(pub *mut Player);
 
-unsafe impl Send for AnimResetGuard {}
+unsafe impl Send for SeqResetGuard {}
 
-impl Drop for AnimResetGuard {
+impl Drop for SeqResetGuard {
     fn drop(&mut self) {
         let player = unsafe { &mut *self.0 };
-        player.anim(0xFFFF);
+        player.seq(0xFFFF);
         player.spot_anim(0xFFFF);
     }
 }

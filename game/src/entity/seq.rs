@@ -1,15 +1,15 @@
-pub struct Anim {
+pub struct Seq {
     pub id: u16,
     pub speed: u8,
 }
 
-pub struct AnimBuilder<F: FnOnce(Anim)> {
+pub struct SeqBuilder<F: FnOnce(Seq)> {
     id: u16,
     speed: u8,
     apply: Option<F>,
 }
 
-impl<F: FnOnce(Anim)> AnimBuilder<F> {
+impl<F: FnOnce(Seq)> SeqBuilder<F> {
     pub fn new(id: u16, apply: F) -> Self {
         Self {
             id,
@@ -24,10 +24,10 @@ impl<F: FnOnce(Anim)> AnimBuilder<F> {
     }
 }
 
-impl<F: FnOnce(Anim)> Drop for AnimBuilder<F> {
+impl<F: FnOnce(Seq)> Drop for SeqBuilder<F> {
     fn drop(&mut self) {
         if let Some(apply) = self.apply.take() {
-            apply(Anim {
+            apply(Seq {
                 id: self.id,
                 speed: self.speed,
             });

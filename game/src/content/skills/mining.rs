@@ -7,7 +7,7 @@ async fn mine_gold_rock() {
 
     send_message!("You swing your pickaxe at the rock.");
 
-    repeat!(delay = 3, anim = 12189, {
+    repeat!(delay = 3, seq = 12189, {
         requires!(inventory, slots = 1);
 
         if !successful!(chance = 0.20) {

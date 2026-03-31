@@ -6,10 +6,10 @@ pub fn macros() -> proc_macro2::TokenStream {
         macro_rules! lock { () => { crate::player::lock(&__shared) }; }
         macro_rules! unlock { () => { crate::player::unlock(&__shared) }; }
         macro_rules! repeat {
-            (delay = $d:expr, anim = $a:expr, times = $t:expr, $body:block) => {
+            (delay = $d:expr, seq = $a:expr, times = $t:expr, $body:block) => {
                 repeat!(@__impl $d, $t, Some($a), $body)
             };
-            (delay = $d:expr, anim = $a:expr, $body:block) => {
+            (delay = $d:expr, seq = $a:expr, $body:block) => {
                 repeat!(@__impl $d, 0, Some($a), $body)
             };
             (delay = $d:expr, times = $t:expr, $body:block) => {
@@ -21,11 +21,11 @@ pub fn macros() -> proc_macro2::TokenStream {
             (@__impl $d:expr, $t:expr, $a:expr, $body:block) => {{
                 let __max_iters: u32 = $t;
                 let mut __iter_count: u32 = 0;
-                let __anim_id: Option<u16> = $a;
-                let __anim_guard = crate::player::AnimResetGuard(crate::player::active_player() as *mut _);
+                let __seq_id: Option<u16> = $a;
+                let __seq_guard = crate::player::SeqResetGuard(crate::player::active_player() as *mut _);
                 loop {
-                    if let Some(id) = __anim_id {
-                        crate::player::active_player().anim(id);
+                    if let Some(id) = __seq_id {
+                        crate::player::active_player().seq(id);
                     }
                     crate::player::delay(&__shared, $d).await;
                     __iter_count += 1;
@@ -34,7 +34,7 @@ pub fn macros() -> proc_macro2::TokenStream {
                         break;
                     }
                 }
-                drop(__anim_guard);
+                drop(__seq_guard);
             }};
         }
         macro_rules! with_movement {

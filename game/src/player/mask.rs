@@ -5,8 +5,8 @@ use tokio_util::bytes::{BufMut, BytesMut};
 use util::BytesMutExt;
 
 use crate::{
-    entity::{Anim, Mask, MaskConfig, MaskFlags, SpotAnim},
-    player::{DEFAULT_RENDER_EMOTE, EquipSlots, equipment::EquipmentSlot},
+    entity::{Mask, MaskConfig, MaskFlags, Seq, SpotAnim},
+    player::{DEFAULT_READYANIM, EquipSlots, equipment::EquipmentSlot},
     provider,
     world::Direction,
 };
@@ -17,7 +17,7 @@ impl PlayerMask {
     pub const MOVE_TYPE: MaskFlags = MaskFlags(0x1);
     pub const FACE_ENTITY: MaskFlags = MaskFlags(0x2);
     pub const EXTENDED: MaskFlags = MaskFlags(0x4);
-    pub const ANIMATION: MaskFlags = MaskFlags(0x8);
+    pub const SEQ: MaskFlags = MaskFlags(0x8);
     pub const HIT_1: MaskFlags = MaskFlags(0x10);
     pub const APPEARANCE: MaskFlags = MaskFlags(0x20);
     pub const FACE_DIRECTION: MaskFlags = MaskFlags(0x40);
@@ -39,7 +39,7 @@ pub static PLAYER_MASKS: MaskConfig = MaskConfig {
         PlayerMask::FACE_ENTITY,
         PlayerMask::CHAT,
         PlayerMask::SPOT_ANIM_1,
-        PlayerMask::ANIMATION,
+        PlayerMask::SEQ,
         PlayerMask::TEMP_MOVE_TYPE,
         PlayerMask::HIT_1,
         PlayerMask::APPEARANCE,
@@ -174,7 +174,7 @@ impl AppearanceMask {
             buf.put_u8(color);
         }
 
-        buf.put_u16(self.render_emote());
+        buf.put_u16(self.readyanim());
         buf.put_string(&self.display_name);
         buf.put_u8(self.combat_level);
         buf.put_u8(0);
@@ -199,20 +199,20 @@ impl AppearanceMask {
         }
     }
 
-    fn render_emote(&self) -> u16 {
+    fn readyanim(&self) -> u16 {
         self.equipment[EquipmentSlot::Weapon]
             .and_then(|item| provider::get_item_definition(item.id as u32))
             .and_then(|def| def.params.int_param(644))
             .map(|v| v as u16)
-            .unwrap_or(DEFAULT_RENDER_EMOTE)
+            .unwrap_or(DEFAULT_READYANIM)
     }
 }
 
-pub struct AnimationMask(pub Anim);
+pub struct SeqMask(pub Seq);
 
-impl Mask for AnimationMask {
+impl Mask for SeqMask {
     fn flag(&self) -> MaskFlags {
-        PlayerMask::ANIMATION
+        PlayerMask::SEQ
     }
 
     fn encode(&self, out: &mut BytesMut) {

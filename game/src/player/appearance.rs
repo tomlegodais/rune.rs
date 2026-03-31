@@ -1,4 +1,4 @@
-pub const DEFAULT_RENDER_EMOTE: u16 = 1426;
+pub const DEFAULT_READYANIM: u16 = 1426;
 
 use std::{future::Future, pin::Pin, sync::Arc};
 

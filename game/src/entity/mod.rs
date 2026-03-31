@@ -1,4 +1,4 @@
-mod anim;
+mod seq;
 mod mask;
 mod movement;
 mod spotanim;
@@ -8,7 +8,7 @@ use std::{
     sync::{Arc, Weak},
 };
 
-pub use anim::{Anim, AnimBuilder};
+pub use seq::{Seq, SeqBuilder};
 pub use mask::{Mask, MaskBlock, MaskConfig, MaskFlags};
 pub use spotanim::{SpotAnim, SpotAnimBuilder};
 

@@ -1,4 +1,4 @@
-mod anim;
+mod seq;
 mod inv;
 mod pos;
 mod setlevel;

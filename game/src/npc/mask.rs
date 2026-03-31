@@ -1,14 +1,14 @@
 use tokio_util::bytes::{BufMut, BytesMut};
 use util::BytesMutExt;
 
-use crate::entity::{Anim, Mask, MaskConfig, MaskFlags, SpotAnim};
+use crate::entity::{Mask, MaskConfig, MaskFlags, Seq, SpotAnim};
 
 pub struct NpcMask;
 
 impl NpcMask {
     pub const SPOT_ANIM_1: MaskFlags = MaskFlags(0x1);
     pub const HIT_2: MaskFlags = MaskFlags(0x2);
-    pub const ANIMATION: MaskFlags = MaskFlags(0x4);
+    pub const SEQ: MaskFlags = MaskFlags(0x4);
     pub const FACE_ENTITY: MaskFlags = MaskFlags(0x8);
     pub const TRANSFORMATION: MaskFlags = MaskFlags(0x10);
     pub const HIT_1: MaskFlags = MaskFlags(0x20);
@@ -26,7 +26,7 @@ pub static NPC_MASKS: MaskConfig = MaskConfig {
         NpcMask::HIT_2,
         NpcMask::FACE_WORLD_TILE,
         NpcMask::SPOT_ANIM_2,
-        NpcMask::ANIMATION,
+        NpcMask::SEQ,
         NpcMask::COLOR_CHANGE,
         NpcMask::SPOT_ANIM_1,
         NpcMask::SECONDARY_BAR,
@@ -37,11 +37,11 @@ pub static NPC_MASKS: MaskConfig = MaskConfig {
     extended: &[(0x80, NpcMask::EXTENDED)],
 };
 
-pub struct AnimationMask(pub Anim);
+pub struct SeqMask(pub Seq);
 
-impl Mask for AnimationMask {
+impl Mask for SeqMask {
     fn flag(&self) -> MaskFlags {
-        NpcMask::ANIMATION
+        NpcMask::SEQ
     }
 
     fn encode(&self, out: &mut BytesMut) {

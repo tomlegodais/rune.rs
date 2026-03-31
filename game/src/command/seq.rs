@@ -2,9 +2,9 @@ use macros::command;
 
 use crate::{command::CommandEntry, player::Player, send_message};
 
-#[command(name = "anim")]
-async fn anim(player: &mut Player, id: u16, speed: Option<u8>) {
-    player.anim(id).speed(speed.unwrap_or(0));
+#[command(name = "seq")]
+async fn seq(player: &mut Player, id: u16, speed: Option<u8>) {
+    player.seq(id).speed(speed.unwrap_or(0));
 }
 
 #[command(name = "spotanim")]
@@ -16,11 +16,11 @@ async fn spotanim(player: &mut Player, id: u16, speed: Option<u16>, height: Opti
         .rotation(rotation.unwrap_or(0));
 }
 
-#[command(name = "npc_anim")]
-async fn npc_anim(player: &mut Player, npc_index: usize, id: u16, speed: Option<u8>) {
+#[command(name = "npc_seq")]
+async fn npc_seq(player: &mut Player, npc_index: usize, id: u16, speed: Option<u8>) {
     let world = player.world();
     if world.npcs.contains(npc_index) {
-        world.npc_mut(npc_index).anim(id).speed(speed.unwrap_or(0));
+        world.npc_mut(npc_index).seq(id).speed(speed.unwrap_or(0));
     } else {
         send_message!(player, "No NPC at index {}", npc_index);
     }

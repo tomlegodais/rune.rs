@@ -6,12 +6,12 @@ use std::ops::{Deref, DerefMut};
 
 pub use gni::encode_npc_info;
 pub use info::NpcInfo;
-pub use mask::{AnimationMask, FaceEntityMask, SpotAnim1Mask, SpotAnim2Mask};
+pub use mask::{FaceEntityMask, SeqMask, SpotAnim1Mask, SpotAnim2Mask};
 use rand::Rng;
 use strum::IntoEnumIterator;
 
 use crate::{
-    entity::{Anim, AnimBuilder, Entity, MaskBlock, MoveStep, SpotAnim, SpotAnimBuilder},
+    entity::{Entity, MaskBlock, MoveStep, Seq, SeqBuilder, SpotAnim, SpotAnimBuilder},
     provider,
     world::{Direction, Position, Teleport},
 };
@@ -124,8 +124,8 @@ impl Npc {
         }
     }
 
-    pub fn anim(&mut self, id: u16) -> AnimBuilder<impl FnOnce(Anim) + '_> {
-        AnimBuilder::new(id, |a| self.masks.add(AnimationMask(a)))
+    pub fn seq(&mut self, id: u16) -> SeqBuilder<impl FnOnce(Seq) + '_> {
+        SeqBuilder::new(id, |a| self.masks.add(SeqMask(a)))
     }
 
     pub fn spot_anim(&mut self, id: u16) -> SpotAnimBuilder<impl FnOnce(SpotAnim) + '_> {
