@@ -38,8 +38,14 @@ pub mod chat {
 
     interface_group! {
         pub const CHAT_FRAME: SubInterface = SubInterface::new(752, 142, 18);
-        pub const CHAT_AREA: SubInterface = SubInterface::chatbox(137, 9);
+        pub const CHAT_AREA: SubInterface = SubInterface::chatbox_split(137, 9);
         pub const CHAT_OPTIONS: SubInterface = SubInterface::new(751, 20, 15);
         pub const PRIVATE_CHAT_AREA: SubInterface = SubInterface::new(754, 14, 19);
     }
+}
+
+pub mod chatbox {
+    use crate::player::SubInterface;
+
+    pub const LEVEL_UP: SubInterface = SubInterface::chatbox(740);
 }

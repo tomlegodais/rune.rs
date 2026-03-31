@@ -17,8 +17,8 @@ pub use inbound::{
 };
 pub use message::{Encodable, Frame, LoginOutcome, LoginRequest, LoginSuccess, Prefix, StatusCode};
 pub use outbound::{
-    IfCloseSub, IfEvents, IfOpenSub, IfOpenTop, IfSetEvents, InvEntry, InvType, LocAddChange, LocDel, Logout,
-    MessageGame, MinimapToggle, ObjAdd, ObjDel, Outbox, OutboxExt, RebuildNormal, SetPlayerOp, UpdateInvFull,
+    IfCloseSub, IfEvents, IfOpenSub, IfOpenTop, IfSetEvents, IfSetText, InvEntry, InvType, LocAddChange, LocDel,
+    Logout, MessageGame, MinimapToggle, ObjAdd, ObjDel, Outbox, OutboxExt, RebuildNormal, SetPlayerOp, UpdateInvFull,
     UpdateRunEnergy, UpdateStat, VarbitLarge, VarbitSmall, VarpLarge, VarpSmall, ZoneFrame,
 };
 pub use service::{LoginService, TcpService};

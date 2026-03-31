@@ -29,7 +29,7 @@ use std::{
 
 pub use action::{
     ActionShared, ActionState, PlayerRef, SeqResetGuard, active_player, active_shared, clear_action_context, delay,
-    is_action_locked, lock, poll_action, send_message, set_action_context, unlock,
+    is_action_locked, poll_action, send_message, set_action_context,
 };
 pub use appearance::{Appearance, DEFAULT_READYANIM};
 pub use gpi::encode_player_info;
@@ -48,6 +48,7 @@ use persistence::{
 pub use stat::Stat;
 use system::{PlayerInitContext, SystemStore};
 use tracing::info;
+pub use ui::*;
 pub use varp::VarpManager;
 pub use viewport::Viewport;
 pub use worn::{SIZE as WORN_SIZE, WornSlots};

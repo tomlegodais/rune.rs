@@ -1,7 +1,7 @@
 use std::{collections::HashMap, future::Future, pin::Pin};
 
 use macros::player_system;
-use net::{IfCloseSub, IfOpenSub, IfOpenTop, Outbox, OutboxExt};
+use net::{IfCloseSub, IfOpenSub, IfOpenTop, IfSetText, Outbox, OutboxExt};
 
 use crate::{
     player::{
@@ -91,16 +91,26 @@ impl SubInterface {
         }
     }
 
-    pub const fn chatbox(interface: u16, component: u16) -> Self {
-        Self::chatbox_split(interface, component, component)
+    pub const fn inventory(interface: u16) -> Self {
+        Self {
+            interface,
+            parent: Parent::Root,
+            fixed_component: 147,
+            resizable_component: 30,
+            transparent: false,
+        }
     }
 
-    pub const fn chatbox_split(interface: u16, fixed: u16, resizable: u16) -> Self {
+    pub const fn chatbox(interface: u16) -> Self {
+        Self::chatbox_split(interface, 13)
+    }
+
+    pub const fn chatbox_split(interface: u16, component: u16) -> Self {
         Self {
             interface,
             parent: Parent::Fixed(752),
-            fixed_component: fixed,
-            resizable_component: resizable,
+            fixed_component: component,
+            resizable_component: component,
             transparent: true,
         }
     }
@@ -191,6 +201,16 @@ impl InterfaceManager {
         if self.interfaces.remove(&hash).is_some() {
             self.outbox.write(IfCloseSub { parent, component }).await;
         }
+    }
+
+    pub async fn set_text(&mut self, sub: &SubInterface, component: u16, text: impl Into<String>) {
+        self.outbox
+            .write(IfSetText {
+                parent: sub.interface,
+                component,
+                text: text.into(),
+            })
+            .await;
     }
 
     pub fn is_open(&self, sub: &SubInterface) -> bool {

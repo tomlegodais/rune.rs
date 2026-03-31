@@ -4,6 +4,7 @@ mod pos;
 mod seq;
 mod setlevel;
 mod tele;
+mod test;
 
 use std::{collections::HashMap, future::Future, pin::Pin};
 
