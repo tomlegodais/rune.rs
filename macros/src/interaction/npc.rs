@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
-use super::{InteractionAttr, base_macros, emit_content_handler};
+use super::{InteractionAttr, emit_content_handler};
 
 pub fn on_npc(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as InteractionAttr);
@@ -18,18 +18,8 @@ pub fn on_npc(attr: TokenStream, item: TokenStream) -> TokenStream {
         Err(e) => return e.to_compile_error().into(),
     };
 
-    let base = base_macros();
-    let npc_m = quote! {
-        macro_rules! npc_force_talk { ($($a:tt)*) => { crate::player::npc_force_talk(&*player, npc_index, &format!($($a)*)) }; }
-        macro_rules! npc_anim {
-            ($id:expr) => { drop(player.world().npc_mut(npc_index).anim($id)) };
-            ($id:expr, $($k:ident = $v:expr),+) => { drop({ let b = player.world().npc_mut(npc_index).anim($id); $(let b = b.$k($v);)+ b }) };
-        }
-        macro_rules! npc_spotanim {
-            ($id:expr) => { drop(player.world().npc_mut(npc_index).spot_anim($id)) };
-            ($id:expr, $($k:ident = $v:expr),+) => { drop({ let b = player.world().npc_mut(npc_index).spot_anim($id); $(let b = b.$k($v);)+ b }) };
-        }
-    };
+    let base = super::macros::base();
+    let npc = super::macros::npc::macros();
 
     emit_content_handler(
         &wrapper_name,
@@ -39,7 +29,7 @@ pub fn on_npc(attr: TokenStream, item: TokenStream) -> TokenStream {
             let mut player = crate::player::PlayerRef;
             let npc_index = __npc_index;
         },
-        quote! { #base #npc_m },
+        quote! { #base #npc },
         &func.block,
     )
 }

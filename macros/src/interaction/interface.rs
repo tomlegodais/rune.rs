@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::parse_macro_input;
 
-use super::{InteractionAttr, base_macros, emit_content_handler};
+use super::{InteractionAttr, emit_content_handler};
 
 pub fn on_interface(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as InteractionAttr);
@@ -24,7 +24,7 @@ pub fn on_interface(attr: TokenStream, item: TokenStream) -> TokenStream {
         None => quote! { crate::handler::ContentTarget::Button(#option_expr, #interface, None) },
     };
 
-    let base = base_macros();
+    let base = super::macros::base();
 
     emit_content_handler(
         &wrapper_name,
