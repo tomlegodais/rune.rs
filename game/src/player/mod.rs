@@ -13,7 +13,7 @@ mod movement;
 mod obj;
 mod objstack;
 mod options;
-mod skill;
+mod stat;
 mod state;
 mod system;
 mod ui;
@@ -44,7 +44,7 @@ use persistence::{
     account::{Account, Rights},
     player::PlayerData,
 };
-pub use skill::Skill;
+pub use stat::Stat;
 use system::{PlayerInitContext, SystemStore};
 use tracing::info;
 pub use varp::VarpManager;

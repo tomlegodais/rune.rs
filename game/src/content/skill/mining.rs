@@ -2,7 +2,7 @@
 // Not representative of final content — uses placeholder IDs and hardcoded values.
 #[macros::on_loc(id = 37312, op = Op1)]
 async fn mine_gold_rock() {
-    requires!(skill = Mining, level = 40);
+    requires!(stat = Mining, level = 40);
     requires!(inventory, slots = 1);
 
     send_message!("You swing your pickaxe at the rock.");
@@ -15,7 +15,7 @@ async fn mine_gold_rock() {
         }
 
         inv_add!(id = 444);
-        give_xp!(skill = Mining, amount = 65.0);
+        give_xp!(stat = Mining, amount = 65.0);
         send_message!("You mine some gold ore.");
 
         if depleted!(chance = 0.25) {

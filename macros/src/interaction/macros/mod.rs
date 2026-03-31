@@ -6,13 +6,13 @@ mod messaging;
 pub mod npc;
 pub mod obj;
 mod seq;
-mod skill;
+mod stat;
 
 pub fn base() -> proc_macro2::TokenStream {
     let msg = messaging::macros();
     let inv = inv::macros();
     let seq = seq::macros();
-    let skill = skill::macros();
+    let stat = stat::macros();
     let ctrl = control_flow::macros();
-    quote! { #msg #inv #seq #skill #ctrl }
+    quote! { #msg #inv #seq #stat #ctrl }
 }

@@ -2,16 +2,16 @@ use macros::command;
 
 use super::CommandEntry;
 use crate::{
-    player::{Player, Skill},
+    player::{Player, Stat},
     send_message,
 };
 
 #[command(name = "setlevel")]
-async fn handle(player: &mut Player, skill_id: usize, level: u8) {
-    let skill = match Skill::try_from(skill_id) {
+async fn handle(player: &mut Player, stat_id: usize, level: u8) {
+    let stat = match Stat::try_from(stat_id) {
         Ok(s) => s,
         Err(_) => {
-            player.send_message("Invalid skill id (0-23)").await;
+            player.send_message("Invalid stat id (0-23)").await;
             return;
         }
     };
@@ -21,8 +21,8 @@ async fn handle(player: &mut Player, skill_id: usize, level: u8) {
         return;
     }
 
-    player.skill_mut().set_level(skill, level);
-    player.skill_mut().flush().await;
+    player.stat_mut().set_level(stat, level);
+    player.stat_mut().flush().await;
 
-    send_message!(player, "Set {:?} to level {}", skill, level);
+    send_message!(player, "Set {:?} to level {}", stat, level);
 }

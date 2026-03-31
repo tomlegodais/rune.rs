@@ -3,7 +3,7 @@ use sea_orm_migration::{prelude::*, schema::*};
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
-const DEFAULT_SKILLS: &str = r#"[
+const DEFAULT_STATS: &str = r#"[
     {"level":1,"xp":0},{"level":1,"xp":0},{"level":1,"xp":0},{"level":10,"xp":1154},
     {"level":1,"xp":0},{"level":1,"xp":0},{"level":1,"xp":0},{"level":1,"xp":0},
     {"level":1,"xp":0},{"level":1,"xp":0},{"level":1,"xp":0},{"level":1,"xp":0},
@@ -67,18 +67,18 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(PlayerSkills::Table)
+                    .table(PlayerStats::Table)
                     .if_not_exists()
-                    .col(big_integer(PlayerSkills::PlayerId).primary_key().not_null())
+                    .col(big_integer(PlayerStats::PlayerId).primary_key().not_null())
                     .col(
-                        ColumnDef::new(PlayerSkills::Skills)
+                        ColumnDef::new(PlayerStats::Stats)
                             .json_binary()
                             .not_null()
-                            .default(Expr::cust(format!("'{DEFAULT_SKILLS}'::jsonb"))),
+                            .default(Expr::cust(format!("'{DEFAULT_STATS}'::jsonb"))),
                     )
                     .foreign_key(
                         ForeignKey::create()
-                            .from(PlayerSkills::Table, PlayerSkills::PlayerId)
+                            .from(PlayerStats::Table, PlayerStats::PlayerId)
                             .to(Players::Table, Players::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
@@ -89,7 +89,7 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(PlayerSkills::Table).to_owned())
+            .drop_table(Table::drop().table(PlayerStats::Table).to_owned())
             .await?;
         manager
             .drop_table(Table::drop().table(PlayerAppearance::Table).to_owned())
@@ -118,10 +118,10 @@ enum PlayerAppearance {
 }
 
 #[derive(DeriveIden)]
-enum PlayerSkills {
+enum PlayerStats {
     Table,
     PlayerId,
-    Skills,
+    Stats,
 }
 
 #[derive(DeriveIden)]

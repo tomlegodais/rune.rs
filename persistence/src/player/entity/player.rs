@@ -23,8 +23,8 @@ pub enum Relation {
     Account,
     #[sea_orm(has_one = "super::appearance::Entity")]
     Appearance,
-    #[sea_orm(has_one = "super::skills::Entity")]
-    Skills,
+    #[sea_orm(has_one = "super::stats::Entity")]
+    Stats,
 }
 
 impl Related<crate::account::entity::Entity> for Entity {
@@ -39,9 +39,9 @@ impl Related<super::appearance::Entity> for Entity {
     }
 }
 
-impl Related<super::skills::Entity> for Entity {
+impl Related<super::stats::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Skills.def()
+        Relation::Stats.def()
     }
 }
 

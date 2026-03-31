@@ -3,18 +3,18 @@ use quote::quote;
 pub fn macros() -> proc_macro2::TokenStream {
     quote! {
         macro_rules! requires {
-            (skill = $skill:ident, level = $lvl:expr) => {
-                if crate::player::active_player().skill().level(crate::player::Skill::$skill) < $lvl {
+            (stat = $stat:ident, level = $lvl:expr) => {
+                if crate::player::active_player().stat().level(crate::player::Stat::$stat) < $lvl {
                     send_message!(
                         "You need a {} level of {} to do that.",
-                        stringify!($skill),
+                        stringify!($stat),
                         $lvl
                     );
                     return;
                 }
             };
-            (skill = $skill:ident, level = $lvl:expr, $msg:expr) => {
-                if crate::player::active_player().skill().level(crate::player::Skill::$skill) < $lvl {
+            (stat = $stat:ident, level = $lvl:expr, $msg:expr) => {
+                if crate::player::active_player().stat().level(crate::player::Stat::$stat) < $lvl {
                     send_message!($msg);
                     return;
                 }
@@ -27,8 +27,8 @@ pub fn macros() -> proc_macro2::TokenStream {
             };
         }
         macro_rules! give_xp {
-            (skill = $skill:ident, amount = $xp:expr) => {
-                crate::player::active_player().skill_mut().add_xp(crate::player::Skill::$skill, $xp).await;
+            (stat = $stat:ident, amount = $xp:expr) => {
+                crate::player::active_player().stat_mut().add_xp(crate::player::Stat::$stat, $xp).await;
             };
         }
         macro_rules! successful {

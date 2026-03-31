@@ -5,8 +5,8 @@ use shaku::{Component, Interface};
 use super::entity::{
     appearance, inv,
     inv::InvEntry,
-    player, skills,
-    skills::SkillEntry,
+    player, stats,
+    stats::StatEntry,
     worn::{self, WornEntry},
 };
 
@@ -45,16 +45,16 @@ impl PlayerData {
     fn from_models(
         player: player::Model,
         appearance: appearance::Model,
-        skill_model: skills::Model,
+        stat_model: stats::Model,
         inv_model: inv::Model,
         worn_model: worn::Model,
     ) -> Result<Self, DbErr> {
-        let skill_entries: Vec<SkillEntry> =
-            serde_json::from_value(skill_model.skills).map_err(|e| DbErr::Type(e.to_string()))?;
+        let stat_entries: Vec<StatEntry> =
+            serde_json::from_value(stat_model.stats).map_err(|e| DbErr::Type(e.to_string()))?;
 
         let mut levels = [1u8; 24];
         let mut xp = [0u32; 24];
-        for (i, entry) in skill_entries.iter().enumerate().take(24) {
+        for (i, entry) in stat_entries.iter().enumerate().take(24) {
             levels[i] = entry.level;
             xp[i] = entry.xp;
         }
@@ -123,10 +123,10 @@ impl PlayerRepository for PgPlayerRepository {
             .await?
             .ok_or_else(|| DbErr::RecordNotFound("player_appearance".to_string()))?;
 
-        let skills = skills::Entity::find_by_id(player.id)
+        let stats = stats::Entity::find_by_id(player.id)
             .one(&self.db)
             .await?
-            .ok_or_else(|| DbErr::RecordNotFound("player_skills".to_string()))?;
+            .ok_or_else(|| DbErr::RecordNotFound("player_stats".to_string()))?;
 
         let inv = inv::Entity::find_by_id(player.id)
             .one(&self.db)
@@ -138,7 +138,7 @@ impl PlayerRepository for PgPlayerRepository {
             .await?
             .ok_or_else(|| DbErr::RecordNotFound("player_worn".to_string()))?;
 
-        PlayerData::from_models(player, appearance, skills, inv, worn).map(Some)
+        PlayerData::from_models(player, appearance, stats, inv, worn).map(Some)
     }
 
     async fn create_default(&self, account_id: i64) -> Result<PlayerData, DbErr> {
@@ -156,7 +156,7 @@ impl PlayerRepository for PgPlayerRepository {
         .insert(&self.db)
         .await?;
 
-        let skills = skills::ActiveModel {
+        let stats = stats::ActiveModel {
             player_id: Set(player.id),
             ..Default::default()
         }
@@ -177,18 +177,18 @@ impl PlayerRepository for PgPlayerRepository {
         .insert(&self.db)
         .await?;
 
-        PlayerData::from_models(player, appearance, skills, inv, worn)
+        PlayerData::from_models(player, appearance, stats, inv, worn)
     }
 
     async fn save(&self, data: &PlayerData) -> Result<(), DbErr> {
-        let skill_entries: Vec<SkillEntry> = data
+        let stat_entries: Vec<StatEntry> = data
             .levels
             .iter()
             .zip(data.xp.iter())
-            .map(|(&level, &xp)| SkillEntry { level, xp })
+            .map(|(&level, &xp)| StatEntry { level, xp })
             .collect();
 
-        let skills_json = serde_json::to_value(&skill_entries).map_err(|e| DbErr::Type(e.to_string()))?;
+        let stats_json = serde_json::to_value(&stat_entries).map_err(|e| DbErr::Type(e.to_string()))?;
 
         player::Entity::update_many()
             .filter(player::Column::Id.eq(data.player_id))
@@ -214,9 +214,9 @@ impl PlayerRepository for PgPlayerRepository {
             .exec(&self.db)
             .await?;
 
-        skills::Entity::update_many()
-            .filter(skills::Column::PlayerId.eq(data.player_id))
-            .col_expr(skills::Column::Skills, Expr::value(skills_json))
+        stats::Entity::update_many()
+            .filter(stats::Column::PlayerId.eq(data.player_id))
+            .col_expr(stats::Column::Stats, Expr::value(stats_json))
             .exec(&self.db)
             .await?;
 

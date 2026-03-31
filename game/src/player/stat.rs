@@ -15,7 +15,7 @@ use crate::{
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive, IntoPrimitive)]
 #[repr(usize)]
-pub enum Skill {
+pub enum Stat {
     Attack = 0,
     Defence = 1,
     Strength = 2,
@@ -42,63 +42,63 @@ pub enum Skill {
     Summoning = 23,
 }
 
-const NUM_SKILLS: usize = 24;
+const NUM_STATS: usize = 24;
 
-pub struct SkillManager {
+pub struct StatManager {
     outbox: Outbox,
-    levels: [u8; NUM_SKILLS],
-    xp: [u32; NUM_SKILLS],
+    levels: [u8; NUM_STATS],
+    xp: [u32; NUM_STATS],
 }
 
-impl SkillManager {
-    pub fn from_data(outbox: Outbox, levels: [u8; NUM_SKILLS], xp: [u32; NUM_SKILLS]) -> Self {
+impl StatManager {
+    pub fn from_data(outbox: Outbox, levels: [u8; NUM_STATS], xp: [u32; NUM_STATS]) -> Self {
         Self { outbox, levels, xp }
     }
 
-    pub fn levels(&self) -> [u8; NUM_SKILLS] {
+    pub fn levels(&self) -> [u8; NUM_STATS] {
         self.levels
     }
 
-    pub fn xp_values(&self) -> [u32; NUM_SKILLS] {
+    pub fn xp_values(&self) -> [u32; NUM_STATS] {
         self.xp
     }
 
-    pub fn level(&self, skill: Skill) -> u8 {
-        self.levels[skill as usize]
+    pub fn level(&self, stat: Stat) -> u8 {
+        self.levels[stat as usize]
     }
 
-    pub fn xp(&self, skill: Skill) -> u32 {
-        self.xp[skill as usize]
+    pub fn xp(&self, stat: Stat) -> u32 {
+        self.xp[stat as usize]
     }
 
-    pub fn set_level(&mut self, skill: Skill, level: u8) {
-        let i = skill as usize;
+    pub fn set_level(&mut self, stat: Stat, level: u8) {
+        let i = stat as usize;
         self.levels[i] = level;
         self.xp[i] = xp_for_level(level);
     }
 
-    pub fn set_xp(&mut self, skill: Skill, xp: u32) {
-        let i = skill as usize;
+    pub fn set_xp(&mut self, stat: Stat, xp: u32) {
+        let i = stat as usize;
         self.xp[i] = xp;
         self.levels[i] = level_for_xp(xp);
     }
 
-    pub async fn add_xp(&mut self, skill: Skill, xp: f64) {
-        let i = skill as usize;
+    pub async fn add_xp(&mut self, stat: Stat, xp: f64) {
+        let i = stat as usize;
         self.xp[i] = self.xp[i].saturating_add(xp as u32);
         self.levels[i] = level_for_xp(self.xp[i]);
-        self.send_skill(skill).await;
+        self.send_stat(stat).await;
     }
 
     pub async fn flush(&mut self) {
-        let skills: Vec<_> = (0..NUM_SKILLS).filter_map(|i| Skill::try_from(i).ok()).collect();
-        for skill in skills {
-            self.send_skill(skill).await;
+        let stats: Vec<_> = (0..NUM_STATS).filter_map(|i| Stat::try_from(i).ok()).collect();
+        for stat in stats {
+            self.send_stat(stat).await;
         }
     }
 
-    pub async fn send_skill(&mut self, skill: Skill) {
-        let i: usize = skill.into();
+    pub async fn send_stat(&mut self, stat: Stat) {
+        let i: usize = stat.into();
         self.outbox
             .write(UpdateStat {
                 id: i as u8,
@@ -127,7 +127,7 @@ fn level_for_xp(xp: u32) -> u8 {
 }
 
 #[player_system]
-impl PlayerSystem for SkillManager {
+impl PlayerSystem for StatManager {
     type TickContext = ();
 
     fn create(ctx: &PlayerInitContext) -> Self {

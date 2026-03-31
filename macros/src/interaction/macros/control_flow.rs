@@ -41,7 +41,7 @@ pub fn macros() -> proc_macro2::TokenStream {
             ($player:expr, |$m:ident, $ctx:ident| $body:expr) => {{
                 let mut $m = $player.systems.guard::<crate::player::Movement>();
                 let mut varps = $player.systems.guard::<crate::player::VarpManager>();
-                let agility_level = $player.skill().level(crate::player::Skill::Agility);
+                let agility_level = $player.stat().level(crate::player::Stat::Agility);
                 let mut $ctx = crate::player::MovementContext {
                     entity: &mut $player.entity,
                     player_info: &mut $player.player_info,
