@@ -1,7 +1,7 @@
 use std::{future::Future, pin::Pin};
 
 use macros::message_handler;
-use net::{ChatMessage, Op, ObjClick, OutboxExt};
+use net::{ChatMessage, Op, OpObj, OutboxExt};
 
 use super::MessageHandler;
 use crate::{
@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[message_handler]
-async fn handle_obj_click(player: &mut Player, msg: ObjClick) {
+async fn handle_op_obj(player: &mut Player, msg: OpObj) {
     if crate::player::is_action_locked(player) {
         return;
     }
@@ -21,7 +21,7 @@ async fn handle_obj_click(player: &mut Player, msg: ObjClick) {
         let world = player.world();
         let Some(id) = world
             .obj_stacks
-            .find(msg.item_id, msg.x as i32, msg.y as i32, player.index)
+            .find(msg.obj_id, msg.x as i32, msg.y as i32, player.index)
         else {
             return;
         };
@@ -37,7 +37,7 @@ async fn handle_obj_click(player: &mut Player, msg: ObjClick) {
         .set(InteractionTarget::ObjStack { id, position }, Op::Op1);
 
     with_movement!(player, |m, ctx| m
-        .walk_to(&mut ctx, position, msg.force_run, None)
+        .walk_to(&mut ctx, position, msg.ctrl_run, None)
         .await);
 }
 

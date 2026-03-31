@@ -5,7 +5,7 @@ use util::BufExt;
 use super::{InboundDecoder, IncomingMessage};
 
 #[derive(Debug)]
-pub struct PublicChat {
+pub struct MessagePublic {
     pub color: u8,
     pub effect: u8,
     pub text_len: usize,
@@ -21,7 +21,7 @@ fn decode(mut payload: Bytes) -> IncomingMessage {
     let effect = payload.get_u8();
     let text_len = payload.get_smart() as usize;
 
-    Box::new(PublicChat {
+    Box::new(MessagePublic {
         color,
         effect,
         text_len,

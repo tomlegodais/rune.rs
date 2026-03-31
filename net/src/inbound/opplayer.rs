@@ -5,66 +5,52 @@ use util::BufExt;
 use super::{InboundDecoder, IncomingMessage};
 use crate::inbound::Op;
 
-pub struct LocClick {
+pub struct OpPlayer {
     pub op: Op,
-    pub id: u16,
-    pub x: u16,
-    pub y: u16,
+    pub player_index: u16,
     pub ctrl_run: bool,
 }
 
 const _: () = {
-    const OPCODE: u8 = 77;
+    const OPCODE: u8 = 40;
 
     #[message_decoder]
     fn decode(mut payload: Bytes) -> IncomingMessage {
-        let x = payload.get_u16_le_add();
+        let player_index = payload.get_u16_add();
         let ctrl_run = payload.get_u8() == 1;
-        let id = payload.get_u16();
-        let y = payload.get_u16();
-        Box::new(LocClick {
+        Box::new(OpPlayer {
             op: Op::Op1,
-            id,
-            x,
-            y,
+            player_index,
             ctrl_run,
         })
     }
 };
 
 const _: () = {
-    const OPCODE: u8 = 14;
+    const OPCODE: u8 = 41;
 
     #[message_decoder]
     fn decode(mut payload: Bytes) -> IncomingMessage {
-        let x = payload.get_u16_add();
-        let y = payload.get_u16_add();
-        let id = payload.get_u16_le_add();
+        let player_index = payload.get_u16_add();
         let ctrl_run = payload.get_u8() == 1;
-        Box::new(LocClick {
+        Box::new(OpPlayer {
             op: Op::Op2,
-            id,
-            x,
-            y,
+            player_index,
             ctrl_run,
         })
     }
 };
 
 const _: () = {
-    const OPCODE: u8 = 10;
+    const OPCODE: u8 = 65;
 
     #[message_decoder]
     fn decode(mut payload: Bytes) -> IncomingMessage {
-        let x = payload.get_u16_le();
         let ctrl_run = payload.get_u8() == 1;
-        let y = payload.get_u16();
-        let id = payload.get_u16_le_add();
-        Box::new(LocClick {
-            op: Op::Op3,
-            id,
-            x,
-            y,
+        let player_index = payload.get_u16_le_add();
+        Box::new(OpPlayer {
+            op: Op::Op4,
+            player_index,
             ctrl_run,
         })
     }

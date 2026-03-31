@@ -1,5 +1,5 @@
 use macros::message_handler;
-use net::{ButtonClick, Op, LocClick, NpcClick, PlayerClick};
+use net::{IfButton, Op, OpLoc, OpNpc, OpPlayer};
 
 use super::{
     MessageHandler,
@@ -12,7 +12,7 @@ use crate::{
 };
 
 #[message_handler]
-async fn handle_loc(player: &mut Player, msg: LocClick) {
+async fn handle_loc(player: &mut Player, msg: OpLoc) {
     if is_action_locked(player) {
         return;
     }
@@ -37,7 +37,7 @@ async fn handle_loc(player: &mut Player, msg: LocClick) {
 }
 
 #[message_handler]
-async fn handle_npc(player: &mut Player, msg: NpcClick) {
+async fn handle_npc(player: &mut Player, msg: OpNpc) {
     if is_action_locked(player) {
         return;
     }
@@ -72,7 +72,7 @@ async fn handle_npc(player: &mut Player, msg: NpcClick) {
 }
 
 #[message_handler]
-async fn handle_player(player: &mut Player, msg: PlayerClick) {
+async fn handle_player(player: &mut Player, msg: OpPlayer) {
     if is_action_locked(player) {
         return;
     }
@@ -98,7 +98,7 @@ async fn handle_player(player: &mut Player, msg: PlayerClick) {
 }
 
 #[message_handler]
-async fn handle_button(player: &mut Player, msg: ButtonClick) {
+async fn handle_button(player: &mut Player, msg: IfButton) {
     let handler = [Some(msg.op), None]
         .into_iter()
         .flat_map(|o| [Some(msg.component), None].map(|c| (o, c)))

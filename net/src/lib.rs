@@ -12,8 +12,8 @@ mod session;
 pub use config::TcpConfig;
 pub use error::SessionError;
 pub use inbound::{
-    ButtonClick, Op, ClientCommand, IfMoveSlot, Inbox, InboxExt, IncomingMessage, LocClick, NpcClick,
-    ObjClick, PlayerClick, PublicChat, WalkRequest,
+    ClientCheat, IfButton, IfMoveSlot, Inbox, InboxExt, IncomingMessage, MessagePublic, MoveClick, Op,
+    OpLoc, OpNpc, OpObj, OpPlayer,
 };
 pub use message::{Encodable, Frame, LoginOutcome, LoginRequest, LoginSuccess, Prefix, StatusCode};
 pub use outbound::{

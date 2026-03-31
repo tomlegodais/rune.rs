@@ -1,28 +1,27 @@
-mod button;
-mod chat;
-mod command;
+mod client_cheat;
+mod ifbutton;
 mod ifmoveslot;
-mod loc;
-mod minimap_walk;
-mod npc;
-mod objclick;
-mod player;
-mod walk;
+mod message_public;
+mod moveclick;
+mod opnpc;
+mod opobj;
+mod oploc;
+mod opplayer;
 
 use std::any::Any;
 
-pub use button::ButtonClick;
-pub use chat::PublicChat;
-pub use command::ClientCommand;
+pub use client_cheat::ClientCheat;
+pub use ifbutton::IfButton;
 pub use ifmoveslot::IfMoveSlot;
-pub use loc::LocClick;
-pub use npc::NpcClick;
-pub use objclick::ObjClick;
-pub use player::PlayerClick;
+pub use message_public::MessagePublic;
+pub use moveclick::MoveClick;
+pub use opnpc::OpNpc;
+pub use opobj::OpObj;
+pub use oploc::OpLoc;
+pub use opplayer::OpPlayer;
 use tokio::sync::mpsc;
 use tokio_util::bytes::Bytes;
 use tracing::debug;
-pub use walk::WalkRequest;
 
 use crate::Frame;
 

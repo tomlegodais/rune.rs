@@ -5,52 +5,52 @@ use util::BufExt;
 use super::{InboundDecoder, IncomingMessage};
 use crate::inbound::Op;
 
-pub struct PlayerClick {
+pub struct OpNpc {
     pub op: Op,
-    pub player_index: u16,
+    pub npc_index: u16,
     pub ctrl_run: bool,
 }
 
 const _: () = {
-    const OPCODE: u8 = 40;
+    const OPCODE: u8 = 13;
 
     #[message_decoder]
     fn decode(mut payload: Bytes) -> IncomingMessage {
-        let player_index = payload.get_u16_add();
-        let ctrl_run = payload.get_u8() == 1;
-        Box::new(PlayerClick {
+        let ctrl_run = payload.get_u8_sub() == 1;
+        let npc_index = payload.get_u16();
+        Box::new(OpNpc {
             op: Op::Op1,
-            player_index,
+            npc_index,
             ctrl_run,
         })
     }
 };
 
 const _: () = {
-    const OPCODE: u8 = 41;
+    const OPCODE: u8 = 30;
 
     #[message_decoder]
     fn decode(mut payload: Bytes) -> IncomingMessage {
-        let player_index = payload.get_u16_add();
-        let ctrl_run = payload.get_u8() == 1;
-        Box::new(PlayerClick {
+        let ctrl_run = payload.get_u8_sub() == 1;
+        let npc_index = payload.get_u16_le();
+        Box::new(OpNpc {
             op: Op::Op2,
-            player_index,
+            npc_index,
             ctrl_run,
         })
     }
 };
 
 const _: () = {
-    const OPCODE: u8 = 65;
+    const OPCODE: u8 = 31;
 
     #[message_decoder]
     fn decode(mut payload: Bytes) -> IncomingMessage {
-        let ctrl_run = payload.get_u8() == 1;
-        let player_index = payload.get_u16_le_add();
-        Box::new(PlayerClick {
-            op: Op::Op4,
-            player_index,
+        let npc_index = payload.get_u16_le_add();
+        let ctrl_run = payload.get_u8_sub() == 1;
+        Box::new(OpNpc {
+            op: Op::Op3,
+            npc_index,
             ctrl_run,
         })
     }

@@ -1,5 +1,5 @@
 use macros::message_handler;
-use net::PublicChat;
+use net::MessagePublic;
 use util::format_sentence;
 
 use super::MessageHandler;
@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[message_handler]
-async fn handle(player: &mut Player, msg: PublicChat) {
+async fn handle(player: &mut Player, msg: MessagePublic) {
     let message = provider::decode_huffman(&msg.payload, msg.text_len);
 
     player.player_info.add_mask(ChatMask {

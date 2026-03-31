@@ -4,9 +4,9 @@ use util::BufExt;
 
 use super::{InboundDecoder, IncomingMessage};
 
-pub struct ObjClick {
-    pub item_id: u16,
-    pub force_run: bool,
+pub struct OpObj {
+    pub obj_id: u16,
+    pub ctrl_run: bool,
     pub x: u16,
     pub y: u16,
 }
@@ -16,14 +16,14 @@ const _: () = {
 
     #[message_decoder]
     fn decode_obj_click(mut payload: Bytes) -> IncomingMessage {
-        let item_id = payload.get_u16_add();
-        let force_run = payload.get_u8_neg() != 0;
+        let obj_id = payload.get_u16_add();
+        let ctrl_run = payload.get_u8_neg() != 0;
         let x = payload.get_u16();
         let y = payload.get_u16_le_add();
 
-        Box::new(ObjClick {
-            item_id,
-            force_run,
+        Box::new(OpObj {
+            obj_id,
+            ctrl_run,
             x,
             y,
         })
