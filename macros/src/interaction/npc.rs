@@ -28,6 +28,10 @@ pub fn on_npc(attr: TokenStream, item: TokenStream) -> TokenStream {
         quote! {
             let mut player = crate::player::PlayerRef;
             let npc_index = __npc_index;
+            let __npc_id: u16 = #npc_id;
+            let __npc_name: &str = crate::provider::get_npc_type(#npc_id as u32)
+                .map(|t| t.name.as_str())
+                .unwrap_or("Unknown");
         },
         quote! { #base #npc },
         &func.block,

@@ -2,6 +2,7 @@ use proc_macro::TokenStream;
 
 mod command;
 mod data_provider;
+mod dialogue_tree;
 mod interaction;
 mod message;
 mod player_system;
@@ -29,6 +30,11 @@ pub fn player_system(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn data_provider(attr: TokenStream, item: TokenStream) -> TokenStream {
     data_provider::data_provider(attr, item)
+}
+
+#[proc_macro]
+pub fn dialogue_tree(input: TokenStream) -> TokenStream {
+    dialogue_tree::dialogue_tree(input)
 }
 
 #[proc_macro_attribute]

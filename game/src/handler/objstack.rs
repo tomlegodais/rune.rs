@@ -15,7 +15,7 @@ async fn handle_op_obj(player: &mut Player, msg: OpObj) {
         return;
     }
 
-    player.world().action_states.lock().remove(&player.index);
+    player.cancel_action().await;
 
     let (id, position) = {
         let world = player.world();
@@ -56,6 +56,7 @@ pub fn pickup_obj_stack(target: InteractionTarget) -> Pin<Box<dyn Future<Output 
                 .into_iter()
                 .filter(|&i| i != player.index)
                 .collect();
+
             world.obj_stacks.remove(id);
             (
                 snap.obj_id,

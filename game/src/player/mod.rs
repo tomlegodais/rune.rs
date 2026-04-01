@@ -3,6 +3,7 @@ mod macros;
 
 mod action;
 mod appearance;
+mod dialogue;
 mod gpi;
 mod info;
 mod interaction;
@@ -28,10 +29,11 @@ use std::{
 };
 
 pub use action::{
-    ActionShared, ActionState, PlayerRef, SeqResetGuard, active_player, active_shared, clear_action_context, delay,
-    is_action_locked, poll_action, send_message, set_action_context,
+    ActionShared, ActionState, PlayerRef, SeqResetGuard, active_player, active_shared, await_dialogue,
+    clear_action_context, delay, is_action_locked, poll_action, send_message, set_action_context,
 };
 pub use appearance::{Appearance, DEFAULT_READYANIM};
+pub use dialogue::{DialogueEntity, OPTIONS_BASE, OPTIONS_FIRST_COMPONENT};
 pub use gpi::encode_player_info;
 pub use info::PlayerInfo;
 pub use interaction::{InteractionTarget, resolve as resolve_interaction};
@@ -46,7 +48,7 @@ use persistence::{
     player::PlayerData,
 };
 pub use stat::Stat;
-use system::{PlayerInitContext, SystemStore};
+use system::{PlayerInitContext, SystemStore, Systems};
 use tracing::info;
 pub use ui::*;
 pub use varp::VarpManager;
@@ -104,13 +106,13 @@ impl Player {
         let viewport = Viewport::new(outbox.clone(), position, 0);
         let npc_info = NpcInfo::new(outbox.clone());
         let player_info = PlayerInfo::new(outbox.clone(), index, snapshots, &[&MoveTypeMask(player_data.running)]);
-
         let systems = SystemStore::from_init(&PlayerInitContext {
             index,
             outbox: outbox.clone(),
             player_data: player_data.clone(),
             display_mode,
             display_name: username.clone(),
+            systems: Systems::uninit(),
         });
 
         Self {
@@ -205,6 +207,11 @@ impl Player {
 
         self.npc_info
             .sync(npc_snapshots, |pos| viewport.is_within_view(player_pos, pos));
+    }
+
+    pub async fn cancel_action(&mut self) {
+        self.world().action_states.lock().remove(&self.index);
+        self.dialogue_mut().close().await;
     }
 
     pub async fn send_message(&mut self, text: &str) {

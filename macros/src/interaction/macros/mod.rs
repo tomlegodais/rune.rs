@@ -1,6 +1,7 @@
 use quote::quote;
 
 mod control_flow;
+mod dialogue;
 mod inv;
 mod loc;
 mod messaging;
@@ -16,5 +17,6 @@ pub fn base() -> proc_macro2::TokenStream {
     let stat = stat::macros();
     let ctrl = control_flow::macros();
     let loc = loc::macros();
-    quote! { #msg #inv #seq #stat #ctrl #loc }
+    let dialogue = dialogue::macros();
+    quote! { #msg #inv #seq #stat #ctrl #loc #dialogue }
 }

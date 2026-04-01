@@ -17,7 +17,7 @@ async fn handle_loc(player: &mut Player, msg: OpLoc) {
         return;
     }
 
-    player.world().action_states.lock().remove(&player.index);
+    player.cancel_action().await;
 
     let dest = Position::new(msg.x as i32, msg.y as i32, player.position.plane);
     player.interaction_mut().set(
@@ -30,7 +30,6 @@ async fn handle_loc(player: &mut Player, msg: OpLoc) {
     );
 
     let params = crate::provider::get_collision().resolve_loc_params(dest, msg.id as u32);
-
     with_movement!(player, |m, ctx| m
         .walk_to(&mut ctx, dest, msg.ctrl_run, Some(params))
         .await);
@@ -42,7 +41,7 @@ async fn handle_npc(player: &mut Player, msg: OpNpc) {
         return;
     }
 
-    player.world().action_states.lock().remove(&player.index);
+    player.cancel_action().await;
 
     let index = msg.npc_index as usize;
     let world = player.world();
@@ -58,10 +57,9 @@ async fn handle_npc(player: &mut Player, msg: OpNpc) {
     let size = crate::provider::get_npc_type(npc_id as u32)
         .map(|d| d.size as i32)
         .unwrap_or(1);
-
     world.npc_mut(index).entity.face_target = Some(player.index as u16 + 32768);
-    player.entity.face_target = Some(index as u16);
 
+    player.entity.face_target = Some(index as u16);
     player.interaction_mut().set(InteractionTarget::Npc { index }, msg.op);
 
     with_movement!(player, |m, ctx| m
@@ -75,17 +73,15 @@ async fn handle_player(player: &mut Player, msg: OpPlayer) {
         return;
     }
 
-    player.world().action_states.lock().remove(&player.index);
+    player.cancel_action().await;
 
     let index = msg.player_index as usize;
     let world = player.world();
-
     if !world.players.contains(index) || index == player.index {
         return;
     }
 
     let target_pos = world.player(index).position;
-
     player
         .interaction_mut()
         .set(InteractionTarget::Player { index }, msg.op);
@@ -110,7 +106,7 @@ async fn handle_button(player: &mut Player, msg: IfButton) {
         return;
     }
 
-    player.world().action_states.lock().remove(&player.index);
+    player.cancel_action().await;
 
     let target = InteractionTarget::Button {
         interface: msg.interface,

@@ -19,6 +19,32 @@ pub struct PlayerInitContext {
     pub player_data: PlayerData,
     pub display_mode: u8,
     pub display_name: String,
+    pub systems: Systems,
+}
+
+#[derive(Clone)]
+pub struct Systems(*const HashMap<TypeId, SystemEntry>);
+
+unsafe impl Send for Systems {}
+unsafe impl Sync for Systems {}
+
+impl Systems {
+    pub(super) fn uninit() -> Self {
+        Self(std::ptr::null())
+    }
+
+    pub fn guard<T: PlayerSystem>(&self) -> SystemGuard<'_, T> {
+        let map = unsafe { &*self.0 };
+        let entry = map
+            .get(&TypeId::of::<T>())
+            .unwrap_or_else(|| panic!("system {} not registered", std::any::type_name::<T>()));
+
+        let value = unsafe { *entry.slot.take_shared().downcast::<T>().unwrap() };
+        SystemGuard {
+            value: Some(value),
+            slot: &entry.slot,
+        }
+    }
 }
 
 pub trait PlayerSystem: Any + Send + Sync + 'static {
@@ -122,20 +148,28 @@ struct SystemEntry {
 }
 
 pub struct SystemStore {
-    systems: HashMap<TypeId, SystemEntry>,
+    systems: Box<HashMap<TypeId, SystemEntry>>,
     login_order: Vec<TypeId>,
 }
 
 impl SystemStore {
     pub fn from_init(ctx: &PlayerInitContext) -> Self {
         let registrations: Vec<&SystemRegistration> = inventory::iter::<SystemRegistration>().collect();
-
         let login_order = topological_sort(&registrations);
+        let mut systems = Box::new(HashMap::new());
+        let handle = Systems(&*systems as *const _);
+        let ctx = PlayerInitContext {
+            index: ctx.index,
+            outbox: ctx.outbox.clone(),
+            player_data: ctx.player_data.clone(),
+            display_mode: ctx.display_mode,
+            display_name: ctx.display_name.clone(),
+            systems: handle,
+        };
 
-        let mut systems = HashMap::new();
         for reg in &registrations {
             let type_id = (reg.type_id)();
-            let value = (reg.factory)(ctx);
+            let value = (reg.factory)(&ctx);
             systems.insert(
                 type_id,
                 SystemEntry {
@@ -149,6 +183,10 @@ impl SystemStore {
         }
 
         Self { systems, login_order }
+    }
+
+    pub fn handle(&self) -> Systems {
+        Systems(&*self.systems as *const _)
     }
 
     pub fn get<T: PlayerSystem>(&self) -> &T {
@@ -183,10 +221,8 @@ impl SystemStore {
         for i in 0..self.login_order.len() {
             let type_id = self.login_order[i];
             let entry = self.systems.get_mut(&type_id).unwrap();
-
             let mut boxed = entry.slot.take_value();
             let on_login = entry.on_login;
-
             let mut ctx = SystemContext {
                 store: &self.systems,
                 player_info,
@@ -205,6 +241,7 @@ impl SystemStore {
             let ctx = (entry.tick_context)(world, player);
             let mut boxed = entry.slot.take_value();
             let tick = entry.tick;
+
             tick(boxed.as_mut(), &ctx).await;
             self.systems.get_mut(&type_id).unwrap().slot.put_value(boxed);
         }
@@ -280,7 +317,6 @@ impl<'a> SystemContext<'a> {
 fn topological_sort(registrations: &[&SystemRegistration]) -> Vec<TypeId> {
     let ids: Vec<TypeId> = registrations.iter().map(|r| (r.type_id)()).collect();
     let deps: HashMap<TypeId, Vec<TypeId>> = registrations.iter().map(|r| ((r.type_id)(), (r.deps)())).collect();
-
     let mut visited = HashMap::new();
     let mut order = Vec::new();
 

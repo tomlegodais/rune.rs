@@ -1,4 +1,5 @@
 mod client_cheat;
+mod dialogue;
 mod dispatch;
 mod ifmoveslot;
 mod interaction;

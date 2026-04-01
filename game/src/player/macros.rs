@@ -24,6 +24,13 @@ macro_rules! with_movement {
     }};
 }
 
+#[macro_export]
+macro_rules! chatbox_dialogue {
+    ($player:expr, $sub:expr, $($text:expr),+ $(,)?) => {
+        $player.dialogue_mut().chatbox($sub, &[$($text),+]).await
+    };
+}
+
 macro_rules! interface_group {
     (
         $(

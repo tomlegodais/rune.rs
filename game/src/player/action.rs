@@ -90,6 +90,23 @@ impl Future for DelayFuture {
     }
 }
 
+pub struct DialogueFuture;
+
+impl Future for DialogueFuture {
+    type Output = u8;
+
+    fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<u8> {
+        match active_player().dialogue_mut().take_response() {
+            Some(choice) => Poll::Ready(choice),
+            None => Poll::Pending,
+        }
+    }
+}
+
+pub fn await_dialogue() -> DialogueFuture {
+    DialogueFuture
+}
+
 pub fn delay(shared: &Arc<ActionShared>, ticks: u16) -> DelayFuture {
     shared.delay_remaining.store(ticks, Ordering::Relaxed);
     DelayFuture {

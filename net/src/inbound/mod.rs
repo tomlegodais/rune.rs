@@ -1,5 +1,6 @@
 mod client_cheat;
 mod ifbutton;
+mod ifdialogcontinue;
 mod ifmoveslot;
 mod message_public;
 mod moveclick;
@@ -12,6 +13,7 @@ use std::any::Any;
 
 pub use client_cheat::ClientCheat;
 pub use ifbutton::IfButton;
+pub use ifdialogcontinue::IfDialogContinue;
 pub use ifmoveslot::IfMoveSlot;
 pub use message_public::MessagePublic;
 pub use moveclick::MoveClick;
