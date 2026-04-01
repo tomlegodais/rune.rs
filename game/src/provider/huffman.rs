@@ -15,8 +15,8 @@ async fn load_huffman(ctx: &ProviderContext) -> anyhow::Result<()> {
         .ok_or_else(|| anyhow::anyhow!("huffman archive not found"))?;
 
     let table = ctx.cache.read_file(IndexId::HUFFMAN, archive, FileId::new(0))?;
-
     INSTANCE.get_or_init(|| HuffmanTable::build(&table));
+
     Ok(())
 }
 

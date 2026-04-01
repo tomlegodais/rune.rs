@@ -9,7 +9,9 @@ async fn spawnloc(player: &mut Player, id: u16, loc_type: Option<u8>, rotation: 
     let ticks = ticks.unwrap_or(100);
     let pos = player.position;
     let world = player.world();
+
     world.locs.spawn(pos, id, loc_type, rotation, ticks);
+
     send_message!(
         player,
         "Spawned loc {} at {},{},{} for {} ticks",

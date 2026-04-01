@@ -76,7 +76,6 @@ impl LoginResponse {
                 status: StatusCode::OK,
                 payload: Some(s.payload()),
             },
-
             other => LoginResponse {
                 status: other.status_code(),
                 payload: None,
