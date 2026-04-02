@@ -2,7 +2,7 @@ use macros::command;
 
 use super::CommandEntry;
 use crate::{
-    player::{Player, Stat},
+    player::{Clientbound, Player, Stat},
     send_message,
 };
 

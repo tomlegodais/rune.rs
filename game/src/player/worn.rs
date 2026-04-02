@@ -7,13 +7,13 @@ use std::{
 use filesystem::config::WearFlag;
 pub use filesystem::config::WearPos;
 use macros::player_system;
-use net::{InvEntry, InvType, Outbox, OutboxExt, UpdateInvFull};
+use net::{InvEntry, InvType};
 use persistence::player::PlayerData;
 
 use crate::{
     player::{
-        Obj, PlayerSnapshot,
-        system::{PlayerInitContext, PlayerSystem, SystemContext},
+        Clientbound, Obj, PlayerSnapshot,
+        system::{PlayerHandle, PlayerInitContext, PlayerSystem},
     },
     world::World,
 };
@@ -47,7 +47,7 @@ impl<T: AsRef<[Option<(u16, u32)>]>> From<T> for WornSlots {
 }
 
 pub struct Worn {
-    outbox: Outbox,
+    player: PlayerHandle,
     slots: WornSlots,
 }
 
@@ -84,23 +84,18 @@ impl Worn {
     }
 
     pub async fn flush(&mut self) {
-        self.outbox
-            .write(UpdateInvFull {
-                inv_type: InvType::Worn,
-                negative_key: false,
-                objs: self
-                    .slots
-                    .0
-                    .iter()
-                    .map(|s| {
-                        s.map(|obj| InvEntry {
-                            obj_id: obj.id,
-                            amount: obj.amount,
-                        })
-                    })
-                    .collect(),
+        let objs = self
+            .slots
+            .0
+            .iter()
+            .map(|s| {
+                s.map(|obj| InvEntry {
+                    obj_id: obj.id,
+                    amount: obj.amount,
+                })
             })
-            .await;
+            .collect();
+        self.player.update_inv(InvType::Worn, false, objs).await;
     }
 }
 
@@ -110,12 +105,15 @@ impl PlayerSystem for Worn {
 
     fn create(ctx: &PlayerInitContext) -> Self {
         Self {
-            outbox: ctx.outbox.clone(),
+            player: ctx.player,
             slots: WornSlots::from(&ctx.player_data.worn),
         }
     }
 
-    fn on_login<'a>(&'a mut self, _ctx: &'a mut SystemContext<'_>) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+    fn on_login<'a>(
+        &'a mut self,
+        _player: &'a mut crate::player::Player,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(async move {
             self.flush().await;
         })

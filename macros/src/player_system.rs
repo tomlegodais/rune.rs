@@ -52,12 +52,13 @@ pub fn player_system(_attr: TokenStream, item: TokenStream) -> TokenStream {
             crate::player::system::SystemRegistration {
                 type_id: || std::any::TypeId::of::<#self_ty>(),
                 deps: <#self_ty as crate::player::system::PlayerSystem>::dependencies,
+                tick_phase: <#self_ty as crate::player::system::PlayerSystem>::tick_phase,
                 factory: |ctx| Box::new(<#self_ty as crate::player::system::PlayerSystem>::create(ctx)),
                 persist: |any, data| {
                     any.downcast_ref::<#self_ty>().unwrap().persist(data);
                 },
-                on_login: |any, ctx| {
-                    any.downcast_mut::<#self_ty>().unwrap().on_login(ctx)
+                on_login: |any, player| {
+                    any.downcast_mut::<#self_ty>().unwrap().on_login(player)
                 },
                 tick_context: |world, player| Box::new(<#self_ty as crate::player::system::PlayerSystem>::tick_context(world, player)),
                 tick: |any, ctx| {

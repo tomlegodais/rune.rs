@@ -96,6 +96,7 @@ pub fn emit_content_handler(
         fn #wrapper_name(
             target: crate::player::InteractionTarget,
         ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'static>> {
+            use crate::player::Clientbound as _;
             #destructure
             Box::pin(async move {
                 let __shared = crate::player::active_shared();

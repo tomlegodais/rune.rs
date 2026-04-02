@@ -36,7 +36,7 @@ async fn wear_obj() {
     }
 
     player.worn_mut().flush().await;
-    player.flush_appearance();
+    player.appearance_mut().flush();
 }
 
 #[macros::on_interface(op = 1, interface = 387)]
@@ -66,5 +66,5 @@ async fn unwear_obj() {
     player.worn_mut().set(slot, None);
     player.inv_mut().add(obj.id, obj.amount).await;
     player.worn_mut().flush().await;
-    player.flush_appearance();
+    player.appearance_mut().flush();
 }

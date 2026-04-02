@@ -1,19 +1,18 @@
 use std::{future::Future, pin::Pin};
 
 use macros::player_system;
-use net::{Outbox, OutboxExt, UpdateStat};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use persistence::player::PlayerData;
 
 use crate::{
     player::{
-        PlayerSnapshot,
-        system::{PlayerInitContext, PlayerSystem, SystemContext},
+        Clientbound, PlayerSnapshot, chatbox,
+        system::{PlayerHandle, PlayerInitContext, PlayerSystem},
     },
     world::World,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive, IntoPrimitive)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive, IntoPrimitive, strum::IntoStaticStr)]
 #[repr(usize)]
 pub enum Stat {
     Attack = 0,
@@ -42,19 +41,80 @@ pub enum Stat {
     Summoning = 23,
 }
 
+impl Stat {
+    pub fn article(self) -> &'static str {
+        let name: &str = self.into();
+        if name.starts_with(['A', 'E', 'I', 'O', 'U']) { "an" } else { "a" }
+    }
+
+    pub fn flash_varbit(self) -> u32 {
+        match self {
+            Self::Attack => 4732,
+            Self::Strength => 4733,
+            Self::Defence => 4734,
+            Self::Ranged => 4735,
+            Self::Prayer => 4736,
+            Self::Magic => 4737,
+            Self::Hitpoints => 4738,
+            Self::Agility => 4739,
+            Self::Herblore => 4740,
+            Self::Thieving => 4741,
+            Self::Crafting => 4742,
+            Self::Fletching => 4743,
+            Self::Mining => 4744,
+            Self::Smithing => 4745,
+            Self::Fishing => 4746,
+            Self::Cooking => 4747,
+            Self::Firemaking => 4748,
+            Self::Woodcutting => 4749,
+            Self::Runecraft => 4750,
+            Self::Slayer => 4751,
+            Self::Farming => 4752,
+            Self::Construction => 4753,
+            Self::Hunter => 4754,
+            Self::Summoning => 4755,
+        }
+    }
+
+    pub fn level_up_icon(self) -> i32 {
+        match self {
+            Self::Attack => 1,
+            Self::Strength => 2,
+            Self::Ranged => 3,
+            Self::Magic => 4,
+            Self::Defence => 5,
+            Self::Hitpoints => 6,
+            Self::Prayer => 7,
+            Self::Agility => 8,
+            Self::Herblore => 9,
+            Self::Thieving => 10,
+            Self::Crafting => 11,
+            Self::Runecraft => 12,
+            Self::Mining => 13,
+            Self::Smithing => 14,
+            Self::Fishing => 15,
+            Self::Cooking => 16,
+            Self::Firemaking => 17,
+            Self::Woodcutting => 18,
+            Self::Fletching => 19,
+            Self::Slayer => 20,
+            Self::Farming => 21,
+            Self::Construction => 22,
+            Self::Hunter => 23,
+            Self::Summoning => 24,
+        }
+    }
+}
+
 const NUM_STATS: usize = 24;
 
 pub struct StatManager {
-    outbox: Outbox,
+    player: PlayerHandle,
     levels: [u8; NUM_STATS],
     xp: [u32; NUM_STATS],
 }
 
 impl StatManager {
-    pub fn from_data(outbox: Outbox, levels: [u8; NUM_STATS], xp: [u32; NUM_STATS]) -> Self {
-        Self { outbox, levels, xp }
-    }
-
     pub fn levels(&self) -> [u8; NUM_STATS] {
         self.levels
     }
@@ -85,9 +145,41 @@ impl StatManager {
 
     pub async fn add_xp(&mut self, stat: Stat, xp: f64) {
         let i = stat as usize;
+        let old_level = self.levels[i];
         self.xp[i] = self.xp[i].saturating_add(xp as u32);
         self.levels[i] = level_for_xp(self.xp[i]);
         self.send_stat(stat).await;
+
+        if self.levels[i] > old_level {
+            self.on_level_up(stat, self.levels[i]).await;
+        }
+    }
+
+    async fn on_level_up(&mut self, stat: Stat, new_level: u8) {
+        let name: &str = stat.into();
+        let article = stat.article();
+        let line1 = format!("Congratulations, you have just advanced {} {} level!", article, name);
+        let line2 = format!("You have now reached level {}.", new_level);
+
+        self.player.spot_anim(199);
+        self.player
+            .dialogue_mut()
+            .chatbox(&chatbox::LEVEL_UP, &[&line1, &line2])
+            .await;
+
+        self.player.varp_mut().send_varbit(4757, stat.level_up_icon()).await;
+        self.player.varp_mut().send_varbit(stat.flash_varbit(), 1).await;
+        self.player.play_jingle(39).await;
+        self.player
+            .send_message(format!(
+                "You've just advanced {} {} level! You have reached level {}.",
+                article, name, new_level
+            ))
+            .await;
+    }
+
+    pub fn combat_level(&self) -> u8 {
+        126
     }
 
     pub async fn flush(&mut self) {
@@ -99,13 +191,7 @@ impl StatManager {
 
     pub async fn send_stat(&mut self, stat: Stat) {
         let i: usize = stat.into();
-        self.outbox
-            .write(UpdateStat {
-                id: i as u8,
-                level: self.levels[i],
-                xp: self.xp[i],
-            })
-            .await;
+        self.player.update_stat(i as u8, self.levels[i], self.xp[i]).await;
     }
 }
 
@@ -131,10 +217,17 @@ impl PlayerSystem for StatManager {
     type TickContext = ();
 
     fn create(ctx: &PlayerInitContext) -> Self {
-        Self::from_data(ctx.outbox.clone(), ctx.player_data.levels, ctx.player_data.xp)
+        Self {
+            player: ctx.player,
+            levels: ctx.player_data.levels,
+            xp: ctx.player_data.xp,
+        }
     }
 
-    fn on_login<'a>(&'a mut self, _ctx: &'a mut SystemContext<'_>) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+    fn on_login<'a>(
+        &'a mut self,
+        _player: &'a mut crate::player::Player,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(self.flush())
     }
 

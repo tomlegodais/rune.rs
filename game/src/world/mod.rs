@@ -67,18 +67,12 @@ impl World {
         let (outbound_tx, outbound_rx) = mpsc::channel::<Frame>(128);
         let snapshots = self.player_snapshots();
         let index = self.players.vacant_index();
-        let player = Player::new(
-            index,
-            account,
-            player_data,
-            inbox_rx,
-            outbound_tx,
-            display_mode,
-            &snapshots,
-        );
-
+        let player = Player::new(index, account, player_data, inbox_rx, outbound_tx, &snapshots);
         self.players.insert(player);
-        self.players.get_mut(index).set_world(&self.arc());
+
+        let mut guard = self.players.get_mut(index);
+        guard.set_world(&self.arc());
+        guard.init_systems(player_data, display_mode);
 
         (index, inbox_tx, outbound_rx)
     }

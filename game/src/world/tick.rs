@@ -7,7 +7,6 @@ use crate::{
     handler::handle_incoming_message,
     npc::{Npc, NpcSnapshot},
     player::{Player, PlayerSnapshot, resolve_interaction},
-    with_movement,
     world::World,
 };
 
@@ -73,7 +72,6 @@ impl TickPhase<Player> for Tick {
 
     async fn execute(&self, world: &World, player: &mut Player, _: &()) {
         resolve_interaction(player, world);
-        with_movement!(player, |m, ctx| m.process(&mut ctx).await);
         player.tick_systems(&world.arc()).await;
     }
 }

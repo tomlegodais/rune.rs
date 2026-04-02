@@ -3,6 +3,7 @@ use tokio_util::bytes::{Buf, Bytes};
 
 use super::{InboundDecoder, IncomingMessage, Op};
 
+#[derive(Debug)]
 pub struct IfButton {
     pub op: Op,
     pub interface: u16,

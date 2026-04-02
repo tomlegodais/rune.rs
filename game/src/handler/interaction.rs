@@ -7,12 +7,11 @@ use super::{
 };
 use crate::{
     player::{InteractionTarget, Player, is_action_locked},
-    with_movement,
     world::Position,
 };
 
 #[message_handler]
-async fn handle_loc(player: &mut Player, msg: OpLoc) {
+async fn handle_oploc(player: &mut Player, msg: OpLoc) {
     if is_action_locked(player) {
         return;
     }
@@ -30,13 +29,11 @@ async fn handle_loc(player: &mut Player, msg: OpLoc) {
     );
 
     let params = crate::provider::get_collision().resolve_loc_params(dest, msg.id as u32);
-    with_movement!(player, |m, ctx| m
-        .walk_to(&mut ctx, dest, msg.ctrl_run, Some(params))
-        .await);
+    player.movement_mut().walk_to(dest, msg.ctrl_run, Some(params)).await;
 }
 
 #[message_handler]
-async fn handle_npc(player: &mut Player, msg: OpNpc) {
+async fn handle_opnpc(player: &mut Player, msg: OpNpc) {
     if is_action_locked(player) {
         return;
     }
@@ -61,14 +58,14 @@ async fn handle_npc(player: &mut Player, msg: OpNpc) {
 
     player.entity.face_target = Some(index as u16);
     player.interaction_mut().set(InteractionTarget::Npc { index }, msg.op);
-
-    with_movement!(player, |m, ctx| m
-        .walk_to(&mut ctx, npc_pos, msg.ctrl_run, Some((size, size, 0)))
-        .await);
+    player
+        .movement_mut()
+        .walk_to(npc_pos, msg.ctrl_run, Some((size, size, 0)))
+        .await;
 }
 
 #[message_handler]
-async fn handle_player(player: &mut Player, msg: OpPlayer) {
+async fn handle_opplayer(player: &mut Player, msg: OpPlayer) {
     if is_action_locked(player) {
         return;
     }
@@ -86,19 +83,21 @@ async fn handle_player(player: &mut Player, msg: OpPlayer) {
         .interaction_mut()
         .set(InteractionTarget::Player { index }, msg.op);
 
-    with_movement!(player, |m, ctx| m
-        .walk_to(&mut ctx, target_pos, msg.ctrl_run, Some((1, 1, 0)))
-        .await);
+    player
+        .movement_mut()
+        .walk_to(target_pos, msg.ctrl_run, Some((1, 1, 0)))
+        .await;
 }
 
 #[message_handler]
-async fn handle_button(player: &mut Player, msg: IfButton) {
+async fn handle_ifbutton(player: &mut Player, msg: IfButton) {
     let handler = [Some(msg.op), None]
         .into_iter()
         .flat_map(|o| [Some(msg.component), None].map(|c| (o, c)))
         .find_map(|(o, c)| CONTENT_HANDLERS.get(&ContentTarget::Button(o, msg.interface, c)));
 
     let Some(handler) = handler else {
+        tracing::trace!("Unhandled IfButton: {:?}", msg);
         return;
     };
 

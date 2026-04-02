@@ -1,12 +1,11 @@
 use std::{collections::HashMap, future::Future, pin::Pin};
 
 use macros::player_system;
-use net::{IfCloseSub, IfOpenSub, IfOpenTop, IfSetText, Outbox, OutboxExt};
 
 use crate::{
     player::{
-        PlayerSnapshot,
-        system::{PlayerInitContext, PlayerSystem, SystemContext},
+        Clientbound, PlayerSnapshot,
+        system::{PlayerHandle, PlayerInitContext, PlayerSystem},
         ui,
     },
     world::World,
@@ -141,24 +140,13 @@ impl SubInterface {
 }
 
 pub struct InterfaceManager {
-    outbox: Outbox,
+    player: PlayerHandle,
     display_mode: DisplayMode,
     top: TopInterface,
     interfaces: HashMap<u32, u16>,
 }
 
 impl InterfaceManager {
-    pub fn new(outbox: Outbox, display_mode: u8) -> Self {
-        let display_mode = DisplayMode::from_u8(display_mode).unwrap_or(DisplayMode::Fixed);
-
-        Self {
-            outbox,
-            display_mode,
-            top: display_mode.top_interface(),
-            interfaces: HashMap::new(),
-        }
-    }
-
     fn resolve(&self, sub: &SubInterface) -> (u16, u16, u32) {
         let parent = sub.resolve_parent(self.top);
         let component = sub.component(self.display_mode);
@@ -170,22 +158,16 @@ impl InterfaceManager {
         if self.top != top {
             self.top = top;
         }
-        self.outbox.write(IfOpenTop(top.0)).await;
+        self.player.if_open_top(top.0).await;
     }
 
     pub async fn open_sub(&mut self, sub: &SubInterface) {
         self.close_sub(sub).await;
 
         let (parent, component, hash) = self.resolve(sub);
-
         self.interfaces.insert(hash, sub.interface);
-        self.outbox
-            .write(IfOpenSub {
-                parent,
-                component,
-                interface: sub.interface,
-                transparent: sub.transparent,
-            })
+        self.player
+            .if_open_sub(parent, component, sub.interface, sub.transparent)
             .await;
     }
 
@@ -199,18 +181,12 @@ impl InterfaceManager {
         let (parent, component, hash) = self.resolve(sub);
 
         if self.interfaces.remove(&hash).is_some() {
-            self.outbox.write(IfCloseSub { parent, component }).await;
+            self.player.if_close_sub(parent, component).await;
         }
     }
 
-    pub async fn set_text(&mut self, sub: &SubInterface, component: u16, text: impl Into<String>) {
-        self.outbox
-            .write(IfSetText {
-                parent: sub.interface,
-                component,
-                text: text.into(),
-            })
-            .await;
+    pub async fn set_text(&mut self, sub: &SubInterface, component: u16, text: impl Into<String> + Send) {
+        self.player.if_set_text(sub.interface, component, text).await;
     }
 
     pub fn is_open(&self, sub: &SubInterface) -> bool {
@@ -224,10 +200,19 @@ impl PlayerSystem for InterfaceManager {
     type TickContext = ();
 
     fn create(ctx: &PlayerInitContext) -> Self {
-        Self::new(ctx.outbox.clone(), ctx.display_mode)
+        let display_mode = DisplayMode::from_u8(ctx.display_mode).unwrap_or(DisplayMode::Fixed);
+        Self {
+            player: ctx.player,
+            display_mode,
+            top: display_mode.top_interface(),
+            interfaces: HashMap::new(),
+        }
     }
 
-    fn on_login<'a>(&'a mut self, _ctx: &'a mut SystemContext<'_>) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+    fn on_login<'a>(
+        &'a mut self,
+        _player: &'a mut crate::player::Player,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(async {
             self.open_top(self.top).await;
             self.open_subs(ui::tabs::interfaces()).await;

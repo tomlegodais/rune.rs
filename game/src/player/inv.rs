@@ -1,13 +1,13 @@
 use std::{future::Future, pin::Pin};
 
 use macros::player_system;
-use net::{InvEntry, InvType, Outbox, OutboxExt, UpdateInvFull, if_events, if_set_events};
+use net::{InvEntry, InvType, if_events, if_set_events};
 use persistence::player::PlayerData;
 
 use crate::{
     player::{
-        Obj, PlayerSnapshot,
-        system::{PlayerInitContext, PlayerSystem, SystemContext},
+        Clientbound, Obj, PlayerSnapshot,
+        system::{PlayerHandle, PlayerInitContext, PlayerSystem},
     },
     provider,
     world::World,
@@ -17,15 +17,11 @@ pub const STACK_MAX: u32 = i32::MAX as u32;
 pub const SIZE: usize = 28;
 
 pub struct Inv {
-    outbox: Outbox,
+    player: PlayerHandle,
     slots: [Option<Obj>; SIZE],
 }
 
 impl Inv {
-    fn from_slots(outbox: Outbox, slots: [Option<Obj>; SIZE]) -> Self {
-        Self { outbox, slots }
-    }
-
     pub fn slot(&self, index: usize) -> Option<Obj> {
         self.slots[index]
     }
@@ -137,8 +133,8 @@ impl Inv {
     }
 
     async fn send_if_set_events(&mut self) {
-        self.outbox
-            .write(if_set_events!(
+        self.player
+            .if_set_events(if_set_events!(
                 interface_id: 149,
                 component_id: 0,
                 slots: [0 => 27],
@@ -149,30 +145,26 @@ impl Inv {
             ))
             .await;
 
-        self.outbox
-            .write(if_set_events!(
+        self.player
+            .if_set_events(if_set_events!(
                 interface_id: 149, component_id: 0, slots: [28 => 55], can_drag_onto
             ))
             .await;
     }
 
     pub async fn flush(&mut self) {
-        self.outbox
-            .write(UpdateInvFull {
-                inv_type: InvType::Inv,
-                negative_key: false,
-                objs: self
-                    .slots
-                    .iter()
-                    .map(|s| {
-                        s.map(|obj| InvEntry {
-                            obj_id: obj.id,
-                            amount: obj.amount,
-                        })
-                    })
-                    .collect(),
+        let objs = self
+            .slots
+            .iter()
+            .map(|s| {
+                s.map(|obj| InvEntry {
+                    obj_id: obj.id,
+                    amount: obj.amount,
+                })
             })
-            .await;
+            .collect();
+
+        self.player.update_inv(InvType::Inv, false, objs).await;
     }
 }
 
@@ -189,10 +181,16 @@ impl PlayerSystem for Inv {
         for (i, slot) in ctx.player_data.inv.iter().enumerate().take(SIZE) {
             slots[i] = slot.map(|(id, amount)| Obj::new(id, amount));
         }
-        Self::from_slots(ctx.outbox.clone(), slots)
+        Self {
+            player: ctx.player,
+            slots,
+        }
     }
 
-    fn on_login<'a>(&'a mut self, _ctx: &'a mut SystemContext<'_>) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+    fn on_login<'a>(
+        &'a mut self,
+        _player: &'a mut crate::player::Player,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(async move {
             self.flush().await;
             self.send_if_set_events().await;

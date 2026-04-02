@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
 use macros::player_system;
-use net::{IfSetAnim, IfSetNpcHead, IfSetPlayerHead, Outbox, OutboxExt};
 
 use crate::{
     player::{
-        PlayerSnapshot,
-        interface::{InterfaceManager, SubInterface},
-        system::{PlayerInitContext, PlayerSystem, Systems},
+        Clientbound, PlayerSnapshot,
+        interface::SubInterface,
+        system::{PlayerHandle, PlayerInitContext, PlayerSystem},
     },
     world::World,
 };
@@ -46,8 +45,7 @@ enum State {
 }
 
 pub struct Dialogue {
-    outbox: Outbox,
-    systems: Systems,
+    player: PlayerHandle,
     state: State,
 }
 
@@ -60,19 +58,18 @@ impl Dialogue {
         let anim_id = entity.anim().unwrap_or(9827);
         self.state = State::Active(sub);
 
-        let mut interfaces = self.systems.guard::<InterfaceManager>();
-        interfaces.open_sub(&sub).await;
+        self.player.interface_mut().open_sub(&sub).await;
 
         match entity {
-            DialogueEntity::Npc(npc_id, _) => self.outbox.write(IfSetNpcHead {interface_id, component: 2, npc_id}).await,
-            DialogueEntity::Player(_) => self.outbox.write(IfSetPlayerHead { interface_id, component: 2 }).await,
+            DialogueEntity::Npc(npc_id, _) => self.player.if_set_npc_head(interface_id, 2, npc_id).await,
+            DialogueEntity::Player(_) => self.player.if_set_player_head(interface_id, 2).await,
         }
 
-        self.outbox.write(IfSetAnim { interface_id, component: 2, anim_id }).await;
-        interfaces.set_text(&sub, 3, name).await;
+        self.player.if_set_anim(interface_id, 2, anim_id).await;
+        self.player.interface_mut().set_text(&sub, 3, name).await;
 
         for (i, line) in lines.iter().enumerate() {
-            interfaces.set_text(&sub, 4 + i as u16, line).await;
+            self.player.interface_mut().set_text(&sub, 4 + i as u16, line).await;
         }
     }
 
@@ -82,12 +79,17 @@ impl Dialogue {
         let sub = SubInterface::chatbox(interface_id).opaque();
         self.state = State::Active(sub);
 
-        let mut interfaces = self.systems.guard::<InterfaceManager>();
-        interfaces.open_sub(&sub).await;
-        interfaces.set_text(&sub, OPTIONS_TITLE_COMPONENT, OPTIONS_TITLE).await;
+        self.player.interface_mut().open_sub(&sub).await;
+        self.player
+            .interface_mut()
+            .set_text(&sub, OPTIONS_TITLE_COMPONENT, OPTIONS_TITLE)
+            .await;
 
         for (i, &opt) in options.iter().take(5).enumerate() {
-            interfaces.set_text(&sub, OPTIONS_FIRST_COMPONENT + i as u16, opt).await;
+            self.player
+                .interface_mut()
+                .set_text(&sub, OPTIONS_FIRST_COMPONENT + i as u16, opt)
+                .await;
         }
     }
 
@@ -95,10 +97,9 @@ impl Dialogue {
         let sub = SubInterface::chatbox(sub.interface);
         self.state = State::Active(sub);
 
-        let mut interfaces = self.systems.guard::<InterfaceManager>();
-        interfaces.open_sub(&sub).await;
+        self.player.interface_mut().open_sub(&sub).await;
         for (i, &text) in texts.iter().enumerate() {
-            interfaces.set_text(&sub, i as u16, text).await;
+            self.player.interface_mut().set_text(&sub, i as u16, text).await;
         }
     }
 
@@ -109,7 +110,7 @@ impl Dialogue {
 
     pub async fn close(&mut self) {
         if let State::Active(sub) = &self.state {
-            self.systems.guard::<InterfaceManager>().close_sub(sub).await;
+            self.player.interface_mut().close_sub(sub).await;
         }
         self.state = State::Idle;
     }
@@ -128,8 +129,7 @@ impl PlayerSystem for Dialogue {
 
     fn create(ctx: &PlayerInitContext) -> Self {
         Self {
-            outbox: ctx.outbox.clone(),
-            systems: ctx.systems.clone(),
+            player: ctx.player,
             state: State::Idle,
         }
     }

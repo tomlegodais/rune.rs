@@ -1,13 +1,10 @@
 use std::{future::Future, pin::Pin};
 
 use macros::message_handler;
-use net::{MessageGame, Op, OpObj, OutboxExt};
+use net::{Op, OpObj};
 
 use super::MessageHandler;
-use crate::{
-    player::{InteractionTarget, Player},
-    with_movement,
-};
+use crate::player::{Clientbound, InteractionTarget, Player};
 
 #[message_handler]
 async fn handle_op_obj(player: &mut Player, msg: OpObj) {
@@ -36,7 +33,7 @@ async fn handle_op_obj(player: &mut Player, msg: OpObj) {
         .interaction_mut()
         .set(InteractionTarget::ObjStack { id, position }, Op::Op1);
 
-    with_movement!(player, |m, ctx| m.walk_to(&mut ctx, position, msg.ctrl_run, None).await);
+    player.movement_mut().walk_to(position, msg.ctrl_run, None).await;
 }
 
 pub fn pickup_obj_stack(target: InteractionTarget) -> Pin<Box<dyn Future<Output = ()> + Send + 'static>> {
@@ -88,13 +85,7 @@ pub fn pickup_obj_stack(target: InteractionTarget) -> Pin<Box<dyn Future<Output 
                 public_ticks_remaining,
             );
 
-            player
-                .outbox
-                .write(MessageGame {
-                    msg_type: 0,
-                    text: "You can't carry any more of that.".to_string(),
-                })
-                .await;
+            player.send_message("You can't carry any more of that.").await;
         }
     })
 }

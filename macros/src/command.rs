@@ -134,6 +134,7 @@ pub fn command(attr: TokenStream, item: TokenStream) -> TokenStream {
             __client_sent: bool,
             __raw_args: &'a str,
         ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'a>> {
+            use crate::player::Clientbound as _;
             Box::pin(async move {
                 let __args: Vec<&str> = if __raw_args.is_empty() {
                     Vec::new()

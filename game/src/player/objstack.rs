@@ -1,32 +1,24 @@
 use std::{collections::HashSet, future::Future, pin::Pin, sync::Arc};
 
 use macros::player_system;
-use net::{ObjAdd, ObjDel, Outbox, OutboxExt, ZoneFrame};
+use net::ZoneFrame;
 
 use crate::{
     player::{
-        PlayerSnapshot,
-        system::{PlayerInitContext, PlayerSystem},
+        Clientbound, PlayerSnapshot,
+        system::{PlayerHandle, PlayerInitContext, PlayerSystem},
     },
     world::{ObjStackStore, Position, World},
 };
 
 pub struct ObjStackManager {
-    player_index: usize,
-    outbox: Outbox,
+    player: PlayerHandle,
     pub known: HashSet<u32>,
-    region_base: Position,
-}
-
-pub struct ObjStackTickContext {
-    pub world: Arc<World>,
-    pub position: Position,
-    pub region_base: Position,
 }
 
 impl ObjStackManager {
     pub fn drop(&self, obj_id: u16, amount: u32, pos: Position, world: &World) {
-        world.obj_stacks.add(obj_id, amount, pos, Some(self.player_index));
+        world.obj_stacks.add(obj_id, amount, pos, Some(self.player.index));
     }
 
     pub async fn forget(&mut self, id: u32, obj_id: u16, pos: Position) {
@@ -44,65 +36,49 @@ impl ObjStackManager {
         }
     }
 
+    fn region_base(&self) -> Position {
+        self.player.viewport.region_base
+    }
+
     async fn send_obj_add(&mut self, obj_id: u16, amount: u32, pos: Position) {
-        let (zone_x, zone_y, packed_offset) = pos.zone_coords(self.region_base);
+        let (zone_x, zone_y, packed_offset) = pos.zone_coords(self.region_base());
         let zone_frame = ZoneFrame::new(zone_x, zone_y, pos.plane as u8);
-        self.outbox
-            .write(ObjAdd {
-                zone_frame,
-                obj_id,
-                amount,
-                packed_offset,
-            })
-            .await;
+        self.player.obj_add(zone_frame, obj_id, amount, packed_offset).await;
     }
 
     pub async fn send_obj_del(&mut self, obj_id: u16, pos: Position) {
-        let (zone_x, zone_y, packed_offset) = pos.zone_coords(self.region_base);
+        let (zone_x, zone_y, packed_offset) = pos.zone_coords(self.region_base());
         let zone_frame = ZoneFrame::new(zone_x, zone_y, pos.plane as u8);
-        self.outbox
-            .write(ObjDel {
-                zone_frame,
-                obj_id,
-                packed_offset,
-            })
-            .await;
+        self.player.obj_del(zone_frame, obj_id, packed_offset).await;
     }
 }
 
 #[player_system]
 impl PlayerSystem for ObjStackManager {
-    type TickContext = ObjStackTickContext;
+    type TickContext = Arc<World>;
 
     fn create(ctx: &PlayerInitContext) -> Self {
         Self {
-            player_index: ctx.index,
-            outbox: ctx.outbox.clone(),
+            player: ctx.player,
             known: HashSet::new(),
-            region_base: Position::default(),
         }
     }
 
-    fn tick_context(world: &Arc<World>, player: &PlayerSnapshot) -> ObjStackTickContext {
-        ObjStackTickContext {
-            world: world.clone(),
-            position: player.position,
-            region_base: player.region_base,
-        }
+    fn tick_context(world: &Arc<World>, _: &PlayerSnapshot) -> Arc<World> {
+        world.clone()
     }
 
-    fn tick<'a>(&'a mut self, ctx: &'a ObjStackTickContext) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+    fn tick<'a>(&'a mut self, world: &'a Arc<World>) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(async move {
-            self.region_base = ctx.region_base;
-            let player_pos = ctx.position;
-            let player_index = self.player_index;
+            let player_pos = self.player.position;
+            let player_index = self.player.index;
             let in_range = |pos: Position| {
                 pos.plane == player_pos.plane
                     && (pos.x - player_pos.x).abs() <= 15
                     && (pos.y - player_pos.y).abs() <= 15
             };
 
-            let visible = ctx.world.obj_stacks.visible_to(player_index, in_range);
+            let visible = world.obj_stacks.visible_to(player_index, in_range);
             for (id, obj_id, amount, pos) in visible {
                 if self.known.insert(id) {
                     self.send_obj_add(obj_id, amount, pos).await;
@@ -114,7 +90,7 @@ impl PlayerSystem for ObjStackManager {
                 .iter()
                 .copied()
                 .filter(|id| {
-                    ctx.world
+                    world
                         .obj_stacks
                         .get(*id)
                         .map(|g| !in_range(g.position) || (g.owner.is_some() && g.owner != Some(player_index)))
@@ -124,7 +100,7 @@ impl PlayerSystem for ObjStackManager {
 
             for id in invisible {
                 self.known.remove(&id);
-                if let Some(item) = ctx.world.obj_stacks.get(id) {
+                if let Some(item) = world.obj_stacks.get(id) {
                     self.send_obj_del(item.obj_id, item.position).await;
                 }
             }

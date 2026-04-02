@@ -3,48 +3,56 @@ use std::{
     cell::UnsafeCell,
     collections::HashMap,
     future::Future,
-    ops::{Deref, DerefMut},
     pin::Pin,
     sync::Arc,
 };
 
-use net::Outbox;
 use persistence::player::PlayerData;
 
 use crate::world::World;
 
 pub struct PlayerInitContext {
     pub index: usize,
-    pub outbox: Outbox,
     pub player_data: PlayerData,
     pub display_mode: u8,
     pub display_name: String,
-    pub systems: Systems,
+    pub player: PlayerHandle,
 }
 
-#[derive(Clone)]
-pub struct Systems(*const HashMap<TypeId, SystemEntry>);
+#[derive(Clone, Copy)]
+pub struct PlayerHandle(*mut super::Player);
 
-unsafe impl Send for Systems {}
-unsafe impl Sync for Systems {}
+unsafe impl Send for PlayerHandle {}
+unsafe impl Sync for PlayerHandle {}
 
-impl Systems {
-    pub(super) fn uninit() -> Self {
-        Self(std::ptr::null())
+impl PlayerHandle {
+    pub fn new(player: *mut super::Player) -> Self {
+        Self(player)
     }
 
-    pub fn guard<T: PlayerSystem>(&self) -> SystemGuard<'_, T> {
-        let map = unsafe { &*self.0 };
-        let entry = map
-            .get(&TypeId::of::<T>())
-            .unwrap_or_else(|| panic!("system {} not registered", std::any::type_name::<T>()));
-
-        let value = unsafe { *entry.slot.take_shared().downcast::<T>().unwrap() };
-        SystemGuard {
-            value: Some(value),
-            slot: &entry.slot,
-        }
+    #[allow(clippy::mut_from_ref)]
+    pub fn get_mut(&self) -> &mut super::Player {
+        unsafe { &mut *self.0 }
     }
+}
+
+impl std::ops::Deref for PlayerHandle {
+    type Target = super::Player;
+    fn deref(&self) -> &super::Player {
+        unsafe { &*self.0 }
+    }
+}
+
+impl std::ops::DerefMut for PlayerHandle {
+    fn deref_mut(&mut self) -> &mut super::Player {
+        unsafe { &mut *self.0 }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum TickPhase {
+    Movement,
+    Default,
 }
 
 pub trait PlayerSystem: Any + Send + Sync + 'static {
@@ -63,8 +71,15 @@ pub trait PlayerSystem: Any + Send + Sync + 'static {
         vec![]
     }
 
-    fn on_login<'a>(&'a mut self, _ctx: &'a mut SystemContext<'_>) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+    fn on_login<'a>(&'a mut self, _player: &'a mut super::Player) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(async {})
+    }
+
+    fn tick_phase() -> TickPhase
+    where
+        Self: Sized,
+    {
+        TickPhase::Default
     }
 
     fn tick_context(_world: &Arc<World>, _player: &super::PlayerSnapshot) -> Self::TickContext
@@ -81,8 +96,7 @@ pub trait PlayerSystem: Any + Send + Sync + 'static {
     fn persist(&self, _data: &mut PlayerData) {}
 }
 
-type OnLoginFn =
-    for<'a> fn(&'a mut dyn Any, &'a mut SystemContext<'_>) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
+type OnLoginFn = for<'a> fn(&'a mut dyn Any, &'a mut super::Player) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
 
 type TickContextFn = fn(&Arc<World>, &super::PlayerSnapshot) -> Box<dyn Any + Send + Sync>;
 
@@ -92,6 +106,7 @@ type TickFn =
 pub struct SystemRegistration {
     pub type_id: fn() -> TypeId,
     pub deps: fn() -> Vec<TypeId>,
+    pub tick_phase: fn() -> TickPhase,
     pub factory: fn(&PlayerInitContext) -> Box<dyn Any + Send + Sync>,
     pub persist: fn(&dyn Any, &mut PlayerData),
     pub on_login: OnLoginFn,
@@ -127,16 +142,6 @@ impl SystemSlot {
         assert!(slot.is_none(), "system slot is not empty");
         *slot = Some(value);
     }
-
-    unsafe fn take_shared(&self) -> Box<dyn Any + Send + Sync> {
-        unsafe { (*self.0.get()).take().expect("system is already taken") }
-    }
-
-    unsafe fn put_shared(&self, value: Box<dyn Any + Send + Sync>) {
-        let slot = unsafe { &mut *self.0.get() };
-        assert!(slot.is_none(), "system slot is not empty");
-        *slot = Some(value);
-    }
 }
 
 struct SystemEntry {
@@ -150,27 +155,33 @@ struct SystemEntry {
 pub struct SystemStore {
     systems: Box<HashMap<TypeId, SystemEntry>>,
     login_order: Vec<TypeId>,
+    tick_order: Vec<TypeId>,
 }
 
 impl SystemStore {
-    pub fn from_init(ctx: &PlayerInitContext) -> Self {
+    pub fn empty() -> Self {
+        Self {
+            systems: Box::new(HashMap::new()),
+            login_order: Vec::new(),
+            tick_order: Vec::new(),
+        }
+    }
+
+    pub fn init(&mut self, ctx: &PlayerInitContext) {
         let registrations: Vec<&SystemRegistration> = inventory::iter::<SystemRegistration>().collect();
-        let login_order = topological_sort(&registrations);
-        let mut systems = Box::new(HashMap::new());
-        let handle = Systems(&*systems as *const _);
-        let ctx = PlayerInitContext {
-            index: ctx.index,
-            outbox: ctx.outbox.clone(),
-            player_data: ctx.player_data.clone(),
-            display_mode: ctx.display_mode,
-            display_name: ctx.display_name.clone(),
-            systems: handle,
-        };
+        self.login_order = topological_sort(&registrations);
+
+        let mut tick_order: Vec<_> = registrations
+            .iter()
+            .map(|r| ((r.type_id)(), (r.tick_phase)()))
+            .collect();
+        tick_order.sort_by_key(|(_, phase)| *phase);
+        self.tick_order = tick_order.into_iter().map(|(id, _)| id).collect();
 
         for reg in &registrations {
             let type_id = (reg.type_id)();
-            let value = (reg.factory)(&ctx);
-            systems.insert(
+            let value = (reg.factory)(ctx);
+            self.systems.insert(
                 type_id,
                 SystemEntry {
                     slot: SystemSlot::new(value),
@@ -181,12 +192,6 @@ impl SystemStore {
                 },
             );
         }
-
-        Self { systems, login_order }
-    }
-
-    pub fn handle(&self) -> Systems {
-        Systems(&*self.systems as *const _)
     }
 
     pub fn get<T: PlayerSystem>(&self) -> &T {
@@ -197,46 +202,28 @@ impl SystemStore {
         self.entry_mut::<T>().slot.get_mut().downcast_mut::<T>().unwrap()
     }
 
-    pub fn guard<T: PlayerSystem>(&self) -> SystemGuard<'_, T> {
-        let entry = self
-            .systems
-            .get(&TypeId::of::<T>())
-            .unwrap_or_else(|| panic!("system {} not registered", std::any::type_name::<T>()));
-
-        let value = unsafe { *entry.slot.take_shared().downcast::<T>().unwrap() };
-
-        SystemGuard {
-            value: Some(value),
-            slot: &entry.slot,
-        }
-    }
-
     pub fn for_each_persist(&self, data: &mut PlayerData) {
         for entry in self.systems.values() {
             (entry.persist)(entry.slot.get_ref(), data);
         }
     }
 
-    pub async fn on_login(&mut self, player_info: &mut super::PlayerInfo) {
+    pub async fn on_login(&mut self, player: &mut super::Player) {
         for i in 0..self.login_order.len() {
             let type_id = self.login_order[i];
             let entry = self.systems.get_mut(&type_id).unwrap();
             let mut boxed = entry.slot.take_value();
             let on_login = entry.on_login;
-            let mut ctx = SystemContext {
-                store: &self.systems,
-                player_info,
-            };
 
-            on_login(boxed.as_mut(), &mut ctx).await;
+            on_login(boxed.as_mut(), player).await;
 
             self.systems.get_mut(&type_id).unwrap().slot.put_value(boxed);
         }
     }
 
     pub async fn tick(&mut self, world: &Arc<World>, player: &super::PlayerSnapshot) {
-        for i in 0..self.login_order.len() {
-            let type_id = self.login_order[i];
+        for i in 0..self.tick_order.len() {
+            let type_id = self.tick_order[i];
             let entry = self.systems.get_mut(&type_id).unwrap();
             let ctx = (entry.tick_context)(world, player);
             let mut boxed = entry.slot.take_value();
@@ -257,60 +244,6 @@ impl SystemStore {
         self.systems
             .get_mut(&TypeId::of::<T>())
             .unwrap_or_else(|| panic!("system {} not registered", std::any::type_name::<T>()))
-    }
-}
-
-pub struct SystemGuard<'a, T: PlayerSystem> {
-    value: Option<T>,
-    slot: &'a SystemSlot,
-}
-
-impl<T: PlayerSystem> Deref for SystemGuard<'_, T> {
-    type Target = T;
-    fn deref(&self) -> &T {
-        self.value.as_ref().unwrap()
-    }
-}
-
-impl<T: PlayerSystem> DerefMut for SystemGuard<'_, T> {
-    fn deref_mut(&mut self) -> &mut T {
-        self.value.as_mut().unwrap()
-    }
-}
-
-impl<T: PlayerSystem> Drop for SystemGuard<'_, T> {
-    fn drop(&mut self) {
-        if let Some(value) = self.value.take() {
-            unsafe { self.slot.put_shared(Box::new(value)) };
-        }
-    }
-}
-
-pub struct SystemContext<'a> {
-    store: &'a HashMap<TypeId, SystemEntry>,
-    pub player_info: &'a mut super::PlayerInfo,
-}
-
-impl<'a> SystemContext<'a> {
-    pub fn take<T: PlayerSystem>(&self) -> T {
-        let boxed = unsafe {
-            self.store
-                .get(&TypeId::of::<T>())
-                .unwrap_or_else(|| panic!("system {} not registered", std::any::type_name::<T>()))
-                .slot
-                .take_shared()
-        };
-        *boxed.downcast::<T>().unwrap()
-    }
-
-    pub fn put_back<T: PlayerSystem>(&self, system: T) {
-        unsafe {
-            self.store
-                .get(&TypeId::of::<T>())
-                .unwrap_or_else(|| panic!("system {} not registered", std::any::type_name::<T>()))
-                .slot
-                .put_shared(Box::new(system));
-        }
     }
 }
 

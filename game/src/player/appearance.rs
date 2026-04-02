@@ -1,5 +1,3 @@
-pub const DEFAULT_READYANIM: u16 = 1426;
-
 use std::{future::Future, pin::Pin, sync::Arc};
 
 use macros::player_system;
@@ -9,19 +7,21 @@ use crate::{
     player::{
         PlayerSnapshot,
         mask::AppearanceMask,
-        system::{PlayerInitContext, PlayerSystem, SystemContext},
-        worn::{Worn, WornSlots},
+        system::{PlayerHandle, PlayerInitContext, PlayerSystem},
+        worn::WornSlots,
     },
     world::World,
 };
 
+pub const DEFAULT_READYANIM: u16 = 1426;
+
 #[derive(Clone)]
 pub struct Appearance {
+    player: PlayerHandle,
+
     pub male: bool,
     pub look: [u16; 7],
     pub colors: [u8; 5],
-    pub display_name: String,
-    pub combat_level: u8,
 }
 
 impl Appearance {
@@ -30,10 +30,15 @@ impl Appearance {
             male: self.male,
             look: self.look,
             colors: self.colors,
-            display_name: self.display_name.clone(),
-            combat_level: self.combat_level,
+            display_name: self.player.username.clone(),
+            combat_level: self.player.stat().combat_level(),
             worn: *worn,
         }
+    }
+
+    pub fn flush(&mut self) {
+        let mask = self.to_mask(self.player.worn().slots());
+        self.player.player_info.add_mask(mask);
     }
 }
 
@@ -43,23 +48,23 @@ impl PlayerSystem for Appearance {
 
     fn create(ctx: &PlayerInitContext) -> Self {
         Self {
+            player: ctx.player,
             male: ctx.player_data.male,
             look: ctx.player_data.look,
             colors: ctx.player_data.colors,
-            display_name: ctx.display_name.clone(),
-            combat_level: 3,
         }
     }
 
     fn dependencies() -> Vec<std::any::TypeId> {
-        vec![std::any::TypeId::of::<Worn>()]
+        vec![std::any::TypeId::of::<crate::player::worn::Worn>()]
     }
 
-    fn on_login<'a>(&'a mut self, ctx: &'a mut SystemContext<'_>) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+    fn on_login<'a>(
+        &'a mut self,
+        _player: &'a mut crate::player::Player,
+    ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(async move {
-            let worn = ctx.take::<Worn>();
-            ctx.player_info.add_mask(self.to_mask(worn.slots()));
-            ctx.put_back(worn);
+            self.flush();
         })
     }
 

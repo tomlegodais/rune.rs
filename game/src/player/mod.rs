@@ -3,6 +3,7 @@ mod macros;
 
 mod action;
 mod appearance;
+mod clientbound;
 mod dialogue;
 mod gpi;
 mod info;
@@ -33,6 +34,7 @@ pub use action::{
     clear_action_context, delay, is_action_locked, poll_action, send_message, set_action_context,
 };
 pub use appearance::{Appearance, DEFAULT_READYANIM};
+pub use clientbound::Clientbound;
 pub use dialogue::{DialogueEntity, OPTIONS_BASE, OPTIONS_FIRST_COMPONENT};
 pub use gpi::encode_player_info;
 pub use info::PlayerInfo;
@@ -40,15 +42,14 @@ pub use interaction::{InteractionTarget, resolve as resolve_interaction};
 pub use interface::SubInterface;
 pub use inv::SIZE as INV_SIZE;
 pub use mask::{ChatMask, FaceDirectionMask, MoveTypeMask, SeqMask, SpotAnim1Mask, SpotAnim2Mask, TempMoveTypeMask};
-pub use movement::{Movement, MovementContext};
-use net::{Inbox, Logout, MessageGame, Outbox, OutboxExt};
+use net::{Inbox, Outbox};
 pub use obj::Obj;
 use persistence::{
     account::{Account, Rights},
     player::PlayerData,
 };
 pub use stat::Stat;
-use system::{PlayerInitContext, SystemStore, Systems};
+use system::{PlayerHandle, PlayerInitContext, SystemStore};
 use tracing::info;
 pub use ui::*;
 pub use varp::VarpManager;
@@ -86,7 +87,7 @@ pub struct Player {
     pub outbox: Outbox,
 
     pub viewport: Viewport,
-    pub player_info: PlayerInfo,
+    pub player_info: Box<PlayerInfo>,
     pub npc_info: NpcInfo,
     pub systems: SystemStore,
 }
@@ -98,22 +99,18 @@ impl Player {
         player_data: &PlayerData,
         inbox: Inbox,
         outbox: Outbox,
-        display_mode: u8,
         snapshots: &[PlayerSnapshot],
     ) -> Self {
         let username = account.display_name();
         let position = Position::new(player_data.x, player_data.y, player_data.plane);
-        let viewport = Viewport::new(outbox.clone(), position, 0);
+        let viewport = Viewport::new(position, 0);
         let npc_info = NpcInfo::new(outbox.clone());
-        let player_info = PlayerInfo::new(outbox.clone(), index, snapshots, &[&MoveTypeMask(player_data.running)]);
-        let systems = SystemStore::from_init(&PlayerInitContext {
+        let player_info = Box::new(PlayerInfo::new(
+            outbox.clone(),
             index,
-            outbox: outbox.clone(),
-            player_data: player_data.clone(),
-            display_mode,
-            display_name: username.clone(),
-            systems: Systems::uninit(),
-        });
+            snapshots,
+            &[&MoveTypeMask(player_data.running)],
+        ));
 
         Self {
             entity: Entity::new(index, position),
@@ -126,8 +123,19 @@ impl Player {
             viewport,
             player_info,
             npc_info,
-            systems,
+            systems: SystemStore::empty(),
         }
+    }
+
+    pub fn init_systems(&mut self, player_data: &PlayerData, display_mode: u8) {
+        let handle = PlayerHandle::new(self as *mut _);
+        self.systems.init(&PlayerInitContext {
+            index: self.index,
+            player_data: player_data.clone(),
+            display_mode,
+            display_name: self.username.clone(),
+            player: handle,
+        });
     }
 
     pub fn snapshot(&self) -> PlayerSnapshot {
@@ -170,18 +178,20 @@ impl Player {
     }
 
     pub async fn on_login(&mut self) {
-        self.viewport
-            .send_rebuild_normal(true, self.index, &self.player_info, self.position)
-            .await;
+        self.rebuild_normal(true).await;
 
-        self.systems.on_login(&mut self.player_info).await;
+        let systems = &mut self.systems as *mut SystemStore;
+        unsafe { &mut *systems }.on_login(self).await;
+
         self.send_message("Welcome to RuneScape.").await;
 
         info!("Player (index={}, username={}) logged in", self.index, self.username);
     }
 
     pub async fn tick_systems(&mut self, world: &Arc<World>) {
-        self.systems.tick(world, &self.snapshot()).await;
+        let snapshot = self.snapshot();
+        let systems = &mut self.systems as *mut SystemStore;
+        unsafe { &mut *systems }.tick(world, &snapshot).await;
     }
 
     pub async fn sync(
@@ -190,11 +200,8 @@ impl Player {
         npc_snapshots: &[NpcSnapshot],
         world: &Arc<World>,
     ) {
-        if self
-            .viewport
-            .try_rebuild(self.position, self.index, &self.player_info)
-            .await
-        {
+        if self.viewport.try_rebuild(self.position) {
+            self.rebuild_normal(false).await;
             self.obj_stack_mut().on_viewport_rebuild(&world.obj_stacks).await;
             self.loc_mut().on_viewport_rebuild(&world.locs).await;
         }
@@ -214,24 +221,6 @@ impl Player {
         self.dialogue_mut().close().await;
     }
 
-    pub async fn send_message(&mut self, text: &str) {
-        self.outbox
-            .write(MessageGame {
-                msg_type: 0,
-                text: text.to_string(),
-            })
-            .await;
-    }
-
-    pub async fn logout(&mut self) {
-        self.outbox.write(Logout).await;
-    }
-
-    pub fn flush_appearance(&mut self) {
-        let mask = self.appearance().to_mask(self.worn().slots());
-        self.player_info.add_mask(mask);
-    }
-
     pub fn seq(&mut self, id: u16) -> SeqBuilder<impl FnOnce(Seq) + '_> {
         SeqBuilder::new(id, |a| self.player_info.add_mask(SeqMask(a)))
     }
@@ -244,11 +233,6 @@ impl Player {
                 self.player_info.add_mask(SpotAnim1Mask(sa));
             }
         })
-    }
-
-    pub async fn toggle_run(&mut self) {
-        let running = !self.movement().running;
-        with_movement!(self, |m, ctx| m.set_run(&mut ctx, running).await);
     }
 
     pub fn reset(&mut self) {

@@ -5,15 +5,15 @@ async fn logout_tab() {
 
 #[macros::on_interface(op = 1, interface = 750, component = 1)]
 async fn run_energy_orb() {
-    player.toggle_run().await;
+    player.movement_mut().toggle_run().await;
 }
 
 #[macros::on_interface(op = 1, interface = 261)]
 async fn settings_tab() {
     match component {
-        3 => player.toggle_run().await,
+        3 => player.movement_mut().toggle_run().await,
         _ => tracing::info!(
-            "Unhandled Settings Tab Button (op={:?}, component={}, slot1={})",
+            "Unhandled Settings  IfButton (op={:?}, component={}, slot1={})",
             op,
             component,
             slot1
