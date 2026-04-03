@@ -3,6 +3,7 @@ use proc_macro::TokenStream;
 mod command;
 mod data_provider;
 mod dialogue_tree;
+mod enum_data;
 mod interaction;
 mod message;
 mod player_system;
@@ -30,6 +31,11 @@ pub fn player_system(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn data_provider(attr: TokenStream, item: TokenStream) -> TokenStream {
     data_provider::data_provider(attr, item)
+}
+
+#[proc_macro_attribute]
+pub fn enum_data(attr: TokenStream, item: TokenStream) -> TokenStream {
+    enum_data::enum_data(attr, item)
 }
 
 #[proc_macro]

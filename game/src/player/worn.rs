@@ -7,13 +7,14 @@ use std::{
 use filesystem::config::WearFlag;
 pub use filesystem::config::WearPos;
 use macros::player_system;
-use net::{InvEntry, InvType};
+use net::{InvEntry, InvType, if_events, if_set_events};
 use persistence::player::PlayerData;
 
 use crate::{
     player::{
         Clientbound, Obj, PlayerSnapshot,
         system::{PlayerHandle, PlayerInitContext, PlayerSystem},
+        ui::tabs,
     },
     world::World,
 };
@@ -83,6 +84,28 @@ impl Worn {
             .collect()
     }
 
+    async fn send_if_set_events(&mut self) {
+        for component in [8u16, 11, 14, 17, 20, 23, 26, 29, 32, 35, 38] {
+            self.player
+                .if_set_events(if_set_events!(
+                    interface_id: tabs::EQUIPMENT,
+                    component_id: component,
+                    slots: [0 => 0],
+                    right_click[0]
+                ))
+                .await;
+        }
+
+        self.player
+            .if_set_events(if_set_events!(
+                interface_id: tabs::EQUIPMENT,
+                component_id: 4,
+                slots: [0 => 0],
+                right_click[0]
+            ))
+            .await;
+    }
+
     pub async fn flush(&mut self) {
         let objs = self
             .slots
@@ -116,6 +139,7 @@ impl PlayerSystem for Worn {
     ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(async move {
             self.flush().await;
+            self.send_if_set_events().await;
         })
     }
 

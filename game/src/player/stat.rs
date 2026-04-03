@@ -1,6 +1,6 @@
 use std::{future::Future, pin::Pin};
 
-use macros::player_system;
+use macros::{enum_data, player_system};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 use persistence::player::PlayerData;
 
@@ -12,33 +12,34 @@ use crate::{
     world::World,
 };
 
+#[enum_data(discriminant, u32, i32, u16, i32, i32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive, IntoPrimitive, strum::IntoStaticStr)]
 #[repr(usize)]
 pub enum Stat {
-    Attack = 0,
-    Defence = 1,
-    Strength = 2,
-    Hitpoints = 3,
-    Ranged = 4,
-    Prayer = 5,
-    Magic = 6,
-    Cooking = 7,
-    Woodcutting = 8,
-    Fletching = 9,
-    Fishing = 10,
-    Firemaking = 11,
-    Crafting = 12,
-    Smithing = 13,
-    Mining = 14,
-    Herblore = 15,
-    Agility = 16,
-    Thieving = 17,
-    Slayer = 18,
-    Farming = 19,
-    Runecraft = 20,
-    Hunter = 21,
-    Construction = 22,
-    Summoning = 23,
+    Attack = (0, 4732, 1, 123, 1, 10),
+    Defence = (1, 4734, 5, 125, 5, 40),
+    Strength = (2, 4733, 2, 124, 2, 20),
+    Hitpoints = (3, 4738, 6, 131, 6, 50),
+    Ranged = (4, 4735, 3, 126, 3, 30),
+    Prayer = (5, 4736, 7, 127, 7, 60),
+    Magic = (6, 4737, 4, 128, 4, 33),
+    Cooking = (7, 4747, 16, 142, 16, 641),
+    Woodcutting = (8, 4749, 18, 144, 18, 660),
+    Fletching = (9, 4743, 19, 136, 19, 665),
+    Fishing = (10, 4746, 15, 141, 15, 120),
+    Firemaking = (11, 4748, 17, 143, 17, 649),
+    Crafting = (12, 4742, 11, 135, 11, 90),
+    Smithing = (13, 4745, 14, 140, 14, 115),
+    Mining = (14, 4744, 13, 139, 13, 110),
+    Herblore = (15, 4740, 9, 133, 9, 75),
+    Agility = (16, 4739, 8, 132, 8, 65),
+    Thieving = (17, 4741, 10, 134, 10, 80),
+    Slayer = (18, 4751, 20, 137, 20, 673),
+    Farming = (19, 4752, 21, 145, 21, 681),
+    Runecraft = (20, 4750, 12, 129, 12, 100),
+    Hunter = (21, 4754, 23, 138, 23, 689),
+    Construction = (22, 4753, 22, 130, 22, 698),
+    Summoning = (23, 4755, 24, 146, 24, 705),
 }
 
 impl Stat {
@@ -48,61 +49,24 @@ impl Stat {
     }
 
     pub fn flash_varbit(self) -> u32 {
-        match self {
-            Self::Attack => 4732,
-            Self::Strength => 4733,
-            Self::Defence => 4734,
-            Self::Ranged => 4735,
-            Self::Prayer => 4736,
-            Self::Magic => 4737,
-            Self::Hitpoints => 4738,
-            Self::Agility => 4739,
-            Self::Herblore => 4740,
-            Self::Thieving => 4741,
-            Self::Crafting => 4742,
-            Self::Fletching => 4743,
-            Self::Mining => 4744,
-            Self::Smithing => 4745,
-            Self::Fishing => 4746,
-            Self::Cooking => 4747,
-            Self::Firemaking => 4748,
-            Self::Woodcutting => 4749,
-            Self::Runecraft => 4750,
-            Self::Slayer => 4751,
-            Self::Farming => 4752,
-            Self::Construction => 4753,
-            Self::Hunter => 4754,
-            Self::Summoning => 4755,
-        }
+        self.data().0
     }
-
     pub fn level_up_icon(self) -> i32 {
-        match self {
-            Self::Attack => 1,
-            Self::Strength => 2,
-            Self::Ranged => 3,
-            Self::Magic => 4,
-            Self::Defence => 5,
-            Self::Hitpoints => 6,
-            Self::Prayer => 7,
-            Self::Agility => 8,
-            Self::Herblore => 9,
-            Self::Thieving => 10,
-            Self::Crafting => 11,
-            Self::Runecraft => 12,
-            Self::Mining => 13,
-            Self::Smithing => 14,
-            Self::Fishing => 15,
-            Self::Cooking => 16,
-            Self::Firemaking => 17,
-            Self::Woodcutting => 18,
-            Self::Fletching => 19,
-            Self::Slayer => 20,
-            Self::Farming => 21,
-            Self::Construction => 22,
-            Self::Hunter => 23,
-            Self::Summoning => 24,
-        }
+        self.data().1
+    }
+    pub fn skill_component(self) -> u16 {
+        self.data().2
+    }
+    pub fn skill_menu(self) -> i32 {
+        self.data().3
+    }
+    pub fn lvlup_varbit(self) -> i32 {
+        self.data().4
+    }
+    pub fn from_skill_component(component: u16) -> Option<Self> {
+        (0..NUM_STATS)
+            .filter_map(|i| Self::try_from(i).ok())
+            .find(|s| s.skill_component() == component)
     }
 }
 
@@ -164,7 +128,7 @@ impl StatManager {
         self.player.spot_anim(199);
         self.player
             .dialogue_mut()
-            .chatbox(&chatbox::LEVEL_UP, &[&line1, &line2])
+            .chatbox(chatbox::LEVEL_UP, &[&line1, &line2])
             .await;
 
         self.player.varp_mut().send_varbit(4757, stat.level_up_icon()).await;

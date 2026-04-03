@@ -153,7 +153,7 @@ struct SystemEntry {
 }
 
 pub struct SystemStore {
-    systems: Box<HashMap<TypeId, SystemEntry>>,
+    systems: HashMap<TypeId, SystemEntry>,
     login_order: Vec<TypeId>,
     tick_order: Vec<TypeId>,
 }
@@ -161,7 +161,7 @@ pub struct SystemStore {
 impl SystemStore {
     pub fn empty() -> Self {
         Self {
-            systems: Box::new(HashMap::new()),
+            systems: HashMap::new(),
             login_order: Vec::new(),
             tick_order: Vec::new(),
         }
@@ -175,6 +175,7 @@ impl SystemStore {
             .iter()
             .map(|r| ((r.type_id)(), (r.tick_phase)()))
             .collect();
+
         tick_order.sort_by_key(|(_, phase)| *phase);
         self.tick_order = tick_order.into_iter().map(|(id, _)| id).collect();
 

@@ -8,6 +8,7 @@ use crate::{
     player::{
         Clientbound, Obj, PlayerSnapshot,
         system::{PlayerHandle, PlayerInitContext, PlayerSystem},
+        ui::tabs,
     },
     provider,
     world::World,
@@ -135,7 +136,7 @@ impl Inv {
     async fn send_if_set_events(&mut self) {
         self.player
             .if_set_events(if_set_events!(
-                interface_id: 149,
+                interface_id: tabs::INVENTORY,
                 component_id: 0,
                 slots: [0 => 27],
                 right_click[0,1,2,6,7,8],
@@ -147,7 +148,7 @@ impl Inv {
 
         self.player
             .if_set_events(if_set_events!(
-                interface_id: 149, component_id: 0, slots: [28 => 55], can_drag_onto
+                interface_id: tabs::INVENTORY, component_id: 0, slots: [28 => 55], can_drag_onto
             ))
             .await;
     }

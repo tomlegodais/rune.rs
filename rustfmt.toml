@@ -5,5 +5,5 @@ edition = "2021"
 imports_granularity = "Crate"
 group_imports = "StdExternalCrate"
 
-single_line_if_else_max_width = 120
-single_line_let_else_max_width = 120
+single_line_if_else_max_width = 115
+single_line_let_else_max_width = 115

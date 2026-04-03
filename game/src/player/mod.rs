@@ -39,7 +39,7 @@ pub use dialogue::{DialogueEntity, OPTIONS_BASE, OPTIONS_FIRST_COMPONENT};
 pub use gpi::encode_player_info;
 pub use info::PlayerInfo;
 pub use interaction::{InteractionTarget, resolve as resolve_interaction};
-pub use interface::SubInterface;
+pub use interface::InterfaceSlot;
 pub use inv::SIZE as INV_SIZE;
 pub use mask::{ChatMask, FaceDirectionMask, MoveTypeMask, SeqMask, SpotAnim1Mask, SpotAnim2Mask, TempMoveTypeMask};
 use net::{Inbox, Outbox};
@@ -51,7 +51,7 @@ use persistence::{
 pub use stat::Stat;
 use system::{PlayerHandle, PlayerInitContext, SystemStore};
 use tracing::info;
-pub use ui::*;
+pub use ui::{chatbox, equipment};
 pub use varp::VarpManager;
 pub use viewport::Viewport;
 pub use worn::{SIZE as WORN_SIZE, WornSlots};
@@ -216,9 +216,13 @@ impl Player {
             .sync(npc_snapshots, |pos| viewport.is_within_view(player_pos, pos));
     }
 
-    pub async fn cancel_action(&mut self) {
+    pub async fn cancel_action(&mut self, close_interfaces: bool) {
         self.world().action_states.lock().remove(&self.index);
         self.dialogue_mut().close().await;
+        if close_interfaces {
+            self.interface_mut().close_slot(InterfaceSlot::Modal).await;
+            self.interface_mut().close_slot(InterfaceSlot::Inventory).await;
+        }
     }
 
     pub fn seq(&mut self, id: u16) -> SeqBuilder<impl FnOnce(Seq) + '_> {

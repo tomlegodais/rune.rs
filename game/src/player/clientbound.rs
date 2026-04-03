@@ -1,7 +1,8 @@
 use net::{
     IfCloseSub, IfOpenSub, IfOpenTop, IfSetAnim, IfSetEvents, IfSetNpcHead, IfSetPlayerHead, IfSetText, InvEntry,
     InvType, LocAddChange, LocDel, Logout, MessageGame, MidiJingle, MinimapToggle, ObjAdd, ObjDel, OutboxExt,
-    SetPlayerOp, UpdateInvFull, UpdateRunEnergy, UpdateStat, VarbitLarge, VarbitSmall, VarpLarge, VarpSmall, ZoneFrame,
+    RunClientScript, ScriptArg, SetPlayerOp, UpdateInvFull, UpdateRunEnergy, UpdateStat, VarbitLarge, VarbitSmall,
+    VarpLarge, VarpSmall, ZoneFrame,
 };
 
 use super::Player;
@@ -21,6 +22,8 @@ pub trait Clientbound {
     async fn if_set_npc_head(&mut self, interface_id: u16, component: u16, npc_id: u16);
     async fn if_set_player_head(&mut self, interface_id: u16, component: u16);
     async fn if_set_events(&mut self, events: IfSetEvents);
+    async fn run_client_script(&mut self, id: u32, args: Vec<ScriptArg>);
+    async fn set_items_options(&mut self, interface: u16, component: u16, inv_key: u16, width: i32, height: i32, options: &[&str]);
 
     async fn varp_small(&mut self, id: u16, value: u8);
     async fn varp_large(&mut self, id: u16, value: u32);
@@ -88,6 +91,23 @@ impl Clientbound for Player {
 
     async fn if_set_events(&mut self, events: IfSetEvents) {
         self.outbox.write(events).await;
+    }
+
+    async fn run_client_script(&mut self, id: u32, args: Vec<ScriptArg>) {
+        self.outbox.write(RunClientScript { id, args }).await;
+    }
+
+    async fn set_items_options(&mut self, interface: u16, component: u16, inv_key: u16, width: i32, height: i32, options: &[&str]) {
+        let mut args: Vec<ScriptArg> = options.iter().rev().map(|s| ScriptArg::Str(s.to_string())).collect();
+        args.extend([
+            ScriptArg::Int(-1),
+            ScriptArg::Int(0),
+            ScriptArg::Int(height),
+            ScriptArg::Int(width),
+            ScriptArg::Int(inv_key as i32),
+            ScriptArg::Int((interface as i32) << 16 | component as i32),
+        ]);
+        self.outbox.write(RunClientScript { id: 150, args }).await;
     }
 
     async fn varp_small(&mut self, id: u16, value: u8) {

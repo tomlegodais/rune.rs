@@ -1,51 +1,42 @@
 pub mod tabs {
-    use crate::player::SubInterface;
-
-    interface_group! {
-        pub const ATTACK: SubInterface = SubInterface::new(884, 152, 33);
-        pub const SKILLS: SubInterface = SubInterface::new(320, 153, 34);
-        pub const QUESTS: SubInterface = SubInterface::new(190, 154, 35);
-        pub const ACHIEVEMENTS: SubInterface = SubInterface::new(259, 155, 36);
-        pub const INVENTORY: SubInterface = SubInterface::new(149, 156, 37);
-        pub const EQUIPMENT: SubInterface = SubInterface::new(387, 157, 38);
-        pub const PRAYER: SubInterface = SubInterface::new(271, 158, 39);
-        pub const MAGIC: SubInterface = SubInterface::new(192, 159, 40);
-        pub const OBJECTIVE: SubInterface = SubInterface::new(891, 160, 41);
-        pub const FRIENDS: SubInterface = SubInterface::new(550, 161, 42);
-        pub const IGNORES: SubInterface = SubInterface::new(551, 162, 43);
-        pub const CLAN: SubInterface = SubInterface::new(589, 163, 44);
-        pub const SETTINGS: SubInterface = SubInterface::new(261, 164, 45);
-        pub const EMOTES: SubInterface = SubInterface::new(464, 165, 46);
-        pub const MUSIC: SubInterface = SubInterface::new(187, 166, 47);
-        pub const NOTES: SubInterface = SubInterface::new(34, 167, 48);
-        pub const LOGOUT: SubInterface = SubInterface::new(182, 170, 51);
-    }
+    pub const ATTACK: u16 = 884;
+    pub const SKILLS: u16 = 320;
+    pub const QUESTS: u16 = 190;
+    pub const ACHIEVEMENTS: u16 = 259;
+    pub const INVENTORY: u16 = 149;
+    pub const EQUIPMENT: u16 = 387;
+    pub const PRAYER: u16 = 271;
+    pub const MAGIC: u16 = 192;
+    pub const OBJECTIVE: u16 = 891;
+    pub const FRIENDS: u16 = 550;
+    pub const IGNORES: u16 = 551;
+    pub const CLAN: u16 = 589;
+    pub const SETTINGS: u16 = 261;
+    pub const EMOTES: u16 = 464;
+    pub const MUSIC: u16 = 187;
+    pub const NOTES: u16 = 34;
+    pub const LOGOUT: u16 = 182;
 }
 
 pub mod orbs {
-    use crate::player::SubInterface;
-
-    interface_group! {
-        pub const SUMMONING: SubInterface = SubInterface::new(747, 139, 172);
-        pub const HITPOINTS: SubInterface = SubInterface::new(748, 134, 169);
-        pub const PRAYER: SubInterface = SubInterface::new(749, 136, 170);
-        pub const RUN_ENERGY: SubInterface = SubInterface::new(750, 137, 171);
-    }
+    pub const SUMMONING: u16 = 747;
+    pub const HITPOINTS: u16 = 748;
+    pub const PRAYER: u16 = 749;
+    pub const RUN_ENERGY: u16 = 750;
 }
 
 pub mod chat {
-    use crate::player::SubInterface;
-
-    interface_group! {
-        pub const CHAT_FRAME: SubInterface = SubInterface::new(752, 142, 18);
-        pub const CHAT_AREA: SubInterface = SubInterface::chatbox_split(137, 9);
-        pub const CHAT_OPTIONS: SubInterface = SubInterface::new(751, 20, 15);
-        pub const PRIVATE_CHAT_AREA: SubInterface = SubInterface::new(754, 14, 19);
-    }
+    pub const FRAME: u16 = 752;
+    pub const AREA: u16 = 137;
+    pub const OPTIONS: u16 = 751;
+    pub const PRIVATE_AREA: u16 = 754;
 }
 
 pub mod chatbox {
-    use crate::player::SubInterface;
+    pub const LEVEL_UP: u16 = 740;
+}
 
-    pub const LEVEL_UP: SubInterface = SubInterface::chatbox(740);
+pub mod equipment {
+    pub const STATS: u16 = 667;
+    pub const INV: u16 = 670;
 }

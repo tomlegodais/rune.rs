@@ -29,6 +29,13 @@ impl VarpManager {
         }
     }
 
+    pub fn get_varbit(&self, id: u32) -> i32 {
+        let Some(varbit) = provider::get_varbit_type(id) else {
+            return 0;
+        };
+        (self.get(varbit.varp) >> varbit.low_bit) & varbit.mask() as i32
+    }
+
     pub async fn send_varbit(&mut self, id: u32, value: i32) {
         let Some(varbit) = provider::get_varbit_type(id) else {
             return;

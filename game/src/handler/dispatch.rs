@@ -59,6 +59,9 @@ pub fn dispatch(
     match CONTENT_HANDLERS.get(&content_target) {
         Some(handler) => Some(handler(target)),
         None => {
+            if let InteractionTarget::Loc { id, x, y } = &target {
+                tracing::debug!(loc_id = id, x, y, op = ?op, "unhandled loc interaction");
+            }
             send_message!(player, "Nothing interesting happens.");
             None
         }

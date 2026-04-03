@@ -2,6 +2,7 @@ mod client_cheat;
 mod dialogue;
 mod dispatch;
 mod ifmoveslot;
+mod ifsubclosed;
 mod interaction;
 mod message_public;
 mod moveclick;

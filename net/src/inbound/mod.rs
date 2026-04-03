@@ -1,7 +1,9 @@
 mod client_cheat;
+mod examloc;
 mod ifbutton;
 mod ifdialogcontinue;
 mod ifmoveslot;
+mod ifsubclosed;
 mod message_public;
 mod moveclick;
 mod oploc;
@@ -12,9 +14,11 @@ mod opplayer;
 use std::any::Any;
 
 pub use client_cheat::ClientCheat;
+pub use examloc::ExamLoc;
 pub use ifbutton::IfButton;
 pub use ifdialogcontinue::IfDialogContinue;
 pub use ifmoveslot::IfMoveSlot;
+pub use ifsubclosed::IfSubClosed;
 pub use message_public::MessagePublic;
 pub use moveclick::MoveClick;
 pub use oploc::OpLoc;

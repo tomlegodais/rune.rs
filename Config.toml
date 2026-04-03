@@ -1,5 +1,5 @@
 [log]
-level = "INFO"
+level = "DEBUG"
 
 [tcp]
 bind_addr = "127.0.0.1:43594"

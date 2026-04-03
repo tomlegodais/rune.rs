@@ -28,9 +28,10 @@ struct Section {
 }
 
 fn peek_keyword(input: ParseStream, name: &str) -> bool {
-    input.cursor().ident().map_or(false, |(id, rest)| {
-        id == name && rest.punct().map_or(false, |(p, _)| p.as_char() == '!')
-    })
+    input
+        .cursor()
+        .ident()
+        .is_some_and(|(id, rest)| id == name && rest.punct().is_some_and(|(p, _)| p.as_char() == '!'))
 }
 
 fn parse_goto_target(input: ParseStream) -> syn::Result<Ident> {

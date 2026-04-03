@@ -5,7 +5,7 @@ use macros::player_system;
 use crate::{
     player::{
         Clientbound, PlayerSnapshot,
-        interface::SubInterface,
+        interface::InterfaceSlot,
         system::{PlayerHandle, PlayerInitContext, PlayerSystem},
     },
     world::World,
@@ -40,7 +40,7 @@ impl DialogueEntity {
 
 enum State {
     Idle,
-    Active(SubInterface),
+    Active,
     Responded(u8),
 }
 
@@ -53,53 +53,58 @@ impl Dialogue {
     #[rustfmt::skip]
     pub async fn entity_dialogue(&mut self, entity: DialogueEntity, name: &str, text: &str) {
         let lines = word_wrap(text, 55);
-        let interface_id = entity.base_interface() + lines.len() as u16;
-        let sub = SubInterface::chatbox(interface_id).opaque();
+        let interface = entity.base_interface() + lines.len() as u16;
         let anim_id = entity.anim().unwrap_or(9827);
-        self.state = State::Active(sub);
 
-        self.player.interface_mut().open_sub(&sub).await;
+        self.state = State::Active;
+        self.player.interface_mut().open_slot(InterfaceSlot::Chatbox, interface).await;
 
         match entity {
-            DialogueEntity::Npc(npc_id, _) => self.player.if_set_npc_head(interface_id, 2, npc_id).await,
-            DialogueEntity::Player(_) => self.player.if_set_player_head(interface_id, 2).await,
+            DialogueEntity::Npc(npc_id, _) => self.player.if_set_npc_head(interface, 2, npc_id).await,
+            DialogueEntity::Player(_) => self.player.if_set_player_head(interface, 2).await,
         }
 
-        self.player.if_set_anim(interface_id, 2, anim_id).await;
-        self.player.interface_mut().set_text(&sub, 3, name).await;
-
+        self.player.if_set_anim(interface, 2, anim_id).await;
+        self.player.interface_mut().set_text(InterfaceSlot::Chatbox, 3, name).await;
         for (i, line) in lines.iter().enumerate() {
-            self.player.interface_mut().set_text(&sub, 4 + i as u16, line).await;
+            self.player.interface_mut().set_text(InterfaceSlot::Chatbox, 4 + i as u16, line).await;
         }
     }
 
     pub async fn option_dialogue(&mut self, options: &[&str]) {
         let count = options.len().clamp(2, 5);
-        let interface_id = OPTIONS_BASE + (count as u16 * 2);
-        let sub = SubInterface::chatbox(interface_id).opaque();
-        self.state = State::Active(sub);
+        let interface = OPTIONS_BASE + (count as u16 * 2);
+        self.state = State::Active;
 
-        self.player.interface_mut().open_sub(&sub).await;
         self.player
             .interface_mut()
-            .set_text(&sub, OPTIONS_TITLE_COMPONENT, OPTIONS_TITLE)
+            .open_slot(InterfaceSlot::Chatbox, interface)
+            .await;
+        self.player
+            .interface_mut()
+            .set_text(InterfaceSlot::Chatbox, OPTIONS_TITLE_COMPONENT, OPTIONS_TITLE)
             .await;
 
         for (i, &opt) in options.iter().take(5).enumerate() {
             self.player
                 .interface_mut()
-                .set_text(&sub, OPTIONS_FIRST_COMPONENT + i as u16, opt)
+                .set_text(InterfaceSlot::Chatbox, OPTIONS_FIRST_COMPONENT + i as u16, opt)
                 .await;
         }
     }
 
-    pub async fn chatbox(&mut self, sub: &SubInterface, texts: &[&str]) {
-        let sub = SubInterface::chatbox(sub.interface);
-        self.state = State::Active(sub);
+    pub async fn chatbox(&mut self, interface: u16, texts: &[&str]) {
+        self.state = State::Active;
+        self.player
+            .interface_mut()
+            .open_slot(InterfaceSlot::Chatbox, interface)
+            .await;
 
-        self.player.interface_mut().open_sub(&sub).await;
         for (i, &text) in texts.iter().enumerate() {
-            self.player.interface_mut().set_text(&sub, i as u16, text).await;
+            self.player
+                .interface_mut()
+                .set_text(InterfaceSlot::Chatbox, i as u16, text)
+                .await;
         }
     }
 
@@ -109,8 +114,8 @@ impl Dialogue {
     }
 
     pub async fn close(&mut self) {
-        if let State::Active(sub) = &self.state {
-            self.player.interface_mut().close_sub(sub).await;
+        if matches!(self.state, State::Active) {
+            self.player.interface_mut().close_slot(InterfaceSlot::Chatbox).await;
         }
         self.state = State::Idle;
     }

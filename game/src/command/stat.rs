@@ -1,10 +1,22 @@
 use macros::command;
+use num_enum::TryFromPrimitive;
 
 use super::CommandEntry;
 use crate::{
     player::{Clientbound, Player, Stat},
     send_message,
 };
+
+#[command(name = "addxp")]
+async fn add_xp(player: &mut Player, stat_id: usize, xp: f64) {
+    if let Ok(stat) = Stat::try_from_primitive(stat_id) {
+        player.stat_mut().add_xp(stat, xp).await;
+        player.send_message(format!("Added {} xp to {:?}.", xp, stat)).await;
+        return;
+    }
+
+    player.send_message("Invalid stat id (0-23)").await;
+}
 
 #[command(name = "setlevel")]
 async fn handle(player: &mut Player, stat_id: usize, level: u8) {

@@ -12,7 +12,7 @@ async fn handle_op_obj(player: &mut Player, msg: OpObj) {
         return;
     }
 
-    player.cancel_action().await;
+    player.cancel_action(true).await;
 
     let (id, position) = {
         let world = player.world();

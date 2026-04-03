@@ -11,7 +11,7 @@ async fn mine_gold_rock() {
         requires!(loc);
         requires!(inv, slots = 1);
 
-        if !successful!(chance = 0.20) {
+        if failed!(success_chance = 0.20) {
             continue;
         }
 

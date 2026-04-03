@@ -13,7 +13,7 @@ async fn handle(player: &mut Player, msg: MoveClick) {
         return;
     }
 
-    player.cancel_action().await;
+    player.cancel_action(true).await;
     player.interaction_mut().clear();
 
     let dest = Position::new(msg.x as i32, msg.y as i32, player.position.plane);

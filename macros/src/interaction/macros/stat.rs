@@ -38,9 +38,9 @@ pub fn macros() -> proc_macro2::TokenStream {
                 crate::player::active_player().stat_mut().add_xp(crate::player::Stat::$stat, $xp).await;
             };
         }
-        macro_rules! successful {
-            (chance = $chance:expr) => {
-                rand::random::<f64>() < $chance
+        macro_rules! failed {
+            (success_chance = $chance:expr) => {
+                rand::random::<f64>() >= $chance
             };
         }
         macro_rules! depleted {

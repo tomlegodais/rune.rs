@@ -1,12 +1,12 @@
 use macros::message_handler;
-use net::{IfButton, Op, OpLoc, OpNpc, OpPlayer};
+use net::{ExamLoc, IfButton, Op, OpLoc, OpNpc, OpPlayer};
 
 use super::{
     MessageHandler,
     dispatch::{CONTENT_HANDLERS, ContentTarget, run_action},
 };
 use crate::{
-    player::{InteractionTarget, Player, is_action_locked},
+    player::{Clientbound, InteractionTarget, Player, is_action_locked},
     world::Position,
 };
 
@@ -16,7 +16,7 @@ async fn handle_oploc(player: &mut Player, msg: OpLoc) {
         return;
     }
 
-    player.cancel_action().await;
+    player.cancel_action(true).await;
 
     let dest = Position::new(msg.x as i32, msg.y as i32, player.position.plane);
     player.interaction_mut().set(
@@ -38,7 +38,7 @@ async fn handle_opnpc(player: &mut Player, msg: OpNpc) {
         return;
     }
 
-    player.cancel_action().await;
+    player.cancel_action(true).await;
 
     let index = msg.npc_index as usize;
     let world = player.world();
@@ -70,7 +70,7 @@ async fn handle_opplayer(player: &mut Player, msg: OpPlayer) {
         return;
     }
 
-    player.cancel_action().await;
+    player.cancel_action(true).await;
 
     let index = msg.player_index as usize;
     let world = player.world();
@@ -90,6 +90,15 @@ async fn handle_opplayer(player: &mut Player, msg: OpPlayer) {
 }
 
 #[message_handler]
+async fn handle_examloc(player: &mut Player, msg: ExamLoc) {
+    let name = crate::provider::get_loc_type(msg.id as u32)
+        .map(|d| d.name.as_str())
+        .unwrap_or("null");
+
+    player.send_message(format!("It's a {}.", name)).await;
+}
+
+#[message_handler]
 async fn handle_ifbutton(player: &mut Player, msg: IfButton) {
     let handler = [Some(msg.op), None]
         .into_iter()
@@ -97,7 +106,7 @@ async fn handle_ifbutton(player: &mut Player, msg: IfButton) {
         .find_map(|(o, c)| CONTENT_HANDLERS.get(&ContentTarget::Button(o, msg.interface, c)));
 
     let Some(handler) = handler else {
-        tracing::trace!("Unhandled IfButton: {:?}", msg);
+        tracing::debug!("Unhandled IfButton: {:?}", msg);
         return;
     };
 
@@ -105,7 +114,7 @@ async fn handle_ifbutton(player: &mut Player, msg: IfButton) {
         return;
     }
 
-    player.cancel_action().await;
+    player.cancel_action(false).await;
 
     let target = InteractionTarget::Button {
         interface: msg.interface,
