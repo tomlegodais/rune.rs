@@ -1,8 +1,13 @@
 use crate::{
     entity::Entity,
     provider,
-    world::{Direction, Position, find_path, find_path_adjacent_rect},
+    world::{Direction, LocParams, Position, find_path, find_path_adjacent_rect, find_path_to_loc},
 };
+
+pub enum WalkTarget {
+    Loc(LocParams),
+    Rect { width: i32, height: i32, access: u8 },
+}
 
 impl Entity {
     pub fn step(&mut self) -> Option<Direction> {
@@ -34,9 +39,12 @@ impl Entity {
         self.face_direction = run_dir;
     }
 
-    pub fn walk_to(&mut self, dest: Position, target: Option<(i32, i32, u8)>) {
+    pub fn walk_to(&mut self, dest: Position, target: Option<WalkTarget>) {
         self.walk_queue = match target {
-            Some((w, h, access)) => find_path_adjacent_rect(self.position, dest, w, h, access),
+            Some(WalkTarget::Loc(params)) => find_path_to_loc(self.position, dest, &params),
+            Some(WalkTarget::Rect { width, height, access }) => {
+                find_path_adjacent_rect(self.position, dest, width, height, access)
+            }
             None => find_path(self.position, dest),
         };
     }

@@ -4,7 +4,7 @@ use macros::player_system;
 use persistence::player::PlayerData;
 
 use crate::{
-    entity::MoveStep,
+    entity::{MoveStep, WalkTarget},
     player::{
         Clientbound, FaceDirectionMask, MoveTypeMask, PlayerSnapshot, TempMoveTypeMask, VarpManager,
         system::{PlayerHandle, PlayerInitContext, PlayerSystem},
@@ -36,7 +36,7 @@ impl Movement {
         player.entity.face_direction = Direction::South;
     }
 
-    pub async fn walk_to(&mut self, dest: Position, force_run: bool, target: Option<(i32, i32, u8)>) {
+    pub async fn walk_to(&mut self, dest: Position, force_run: bool, target: Option<WalkTarget>) {
         if force_run && !self.running {
             self.set_run(true).await;
         }

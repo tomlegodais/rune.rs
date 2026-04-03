@@ -6,6 +6,7 @@ use super::{
     dispatch::{CONTENT_HANDLERS, ContentTarget, run_action},
 };
 use crate::{
+    entity::WalkTarget,
     player::{Clientbound, InteractionTarget, Player, is_action_locked},
     world::Position,
 };
@@ -29,7 +30,10 @@ async fn handle_oploc(player: &mut Player, msg: OpLoc) {
     );
 
     let params = crate::provider::get_collision().resolve_loc_params(dest, msg.id as u32);
-    player.movement_mut().walk_to(dest, msg.ctrl_run, Some(params)).await;
+    player
+        .movement_mut()
+        .walk_to(dest, msg.ctrl_run, Some(WalkTarget::Loc(params)))
+        .await;
 }
 
 #[message_handler]
@@ -60,7 +64,15 @@ async fn handle_opnpc(player: &mut Player, msg: OpNpc) {
     player.interaction_mut().set(InteractionTarget::Npc { index }, msg.op);
     player
         .movement_mut()
-        .walk_to(npc_pos, msg.ctrl_run, Some((size, size, 0)))
+        .walk_to(
+            npc_pos,
+            msg.ctrl_run,
+            Some(WalkTarget::Rect {
+                width: size,
+                height: size,
+                access: 0,
+            }),
+        )
         .await;
 }
 
@@ -85,7 +97,15 @@ async fn handle_opplayer(player: &mut Player, msg: OpPlayer) {
 
     player
         .movement_mut()
-        .walk_to(target_pos, msg.ctrl_run, Some((1, 1, 0)))
+        .walk_to(
+            target_pos,
+            msg.ctrl_run,
+            Some(WalkTarget::Rect {
+                width: 1,
+                height: 1,
+                access: 0,
+            }),
+        )
         .await;
 }
 

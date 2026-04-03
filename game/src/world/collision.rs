@@ -27,6 +27,21 @@ const CORNER_NE: u32 = 0x4;
 const CORNER_SE: u32 = 0x10;
 const CORNER_SW: u32 = 0x40;
 
+#[derive(Clone, Copy)]
+pub struct LocParams {
+    pub width: i32,
+    pub height: i32,
+    pub access: u8,
+    pub loc_type: u8,
+    pub rotation: u8,
+}
+
+impl LocParams {
+    pub fn is_wall(&self) -> bool {
+        self.loc_type <= 3
+    }
+}
+
 const REGION_SIZE: usize = 64;
 const PLANES: usize = 4;
 
@@ -176,13 +191,15 @@ impl CollisionMap {
             .cloned()
     }
 
-    pub fn resolve_loc_params(&self, pos: Position, id: u32) -> (i32, i32, u8) {
+    pub fn resolve_loc_params(&self, pos: Position, id: u32) -> LocParams {
         let loc = provider::get_loc_type(id);
         let (base_w, base_h, base_access) = loc
             .map(|d| (d.size_x as i32, d.size_y as i32, d.access_block_flag))
             .unwrap_or((1, 1, 0));
 
-        let rotation = self.get_loc(pos, id).map(|obj| obj.rotation).unwrap_or(0);
+        let placed = self.get_loc(pos, id);
+        let rotation = placed.map(|o| o.rotation).unwrap_or(0);
+        let loc_type = placed.map(|o| o.loc_type).unwrap_or(10);
 
         let (w, h) = if rotation & 1 == 1 { (base_h, base_w) } else { (base_w, base_h) };
 
@@ -192,7 +209,13 @@ impl CollisionMap {
             base_access
         };
 
-        (w, h, access)
+        LocParams {
+            width: w,
+            height: h,
+            access,
+            loc_type,
+            rotation,
+        }
     }
 
     pub fn clip_loc(&self, pos: Position, loc_id: u32, loc_type: u8, rotation: u8) {

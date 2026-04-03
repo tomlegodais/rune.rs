@@ -11,12 +11,14 @@ use std::{
     sync::{Arc, OnceLock, Weak},
 };
 
-pub use collision::CollisionMap;
+pub use collision::{CollisionMap, LocParams};
 pub use loc::{LocStore, TempLoc, TempLocSnapshot};
 use net::{Frame, IncomingMessage};
 pub use objstack::ObjStackStore;
 use parking_lot::Mutex;
-pub use pathfinding::{can_interact_rect, find_path, find_path_adjacent_rect};
+pub use pathfinding::{
+    can_interact_loc, can_interact_rect, find_path, find_path_adjacent_rect, find_path_to_loc, wall_face_direction,
+};
 use persistence::{account::Account, player::PlayerData};
 pub use position::{Direction, Position, RegionId, Teleport, running_direction};
 pub use slab::WorldSlab;

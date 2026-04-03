@@ -11,7 +11,7 @@ use crate::{
         mask::FaceEntityMask as PlayerFaceEntityMask,
         system::{PlayerInitContext, PlayerSystem},
     },
-    world::{Position, World, can_interact_rect},
+    world::{Position, World, can_interact_loc, can_interact_rect, wall_face_direction},
 };
 
 pub struct Interaction {
@@ -123,8 +123,8 @@ pub fn resolve(player: &mut Player, world: &World) {
     let collision = crate::provider::get_collision();
     let is_adjacent = match &pending.target {
         InteractionTarget::Loc { id, .. } => {
-            let (w, h, access) = collision.resolve_loc_params(target_pos, *id as u32);
-            can_interact_rect(collision, player.position, target_pos, w, h, access)
+            let params = collision.resolve_loc_params(target_pos, *id as u32);
+            can_interact_loc(collision, player.position, target_pos, &params)
         }
         InteractionTarget::Npc { index } => {
             let npc_id = world.npc(*index).npc_id;
@@ -182,7 +182,14 @@ fn face_target(player: &mut Player, world: &World, target: &InteractionTarget, t
             player.entity.face_target = Some(client_index);
             player.player_info.add_mask(PlayerFaceEntityMask(client_index));
         }
-        InteractionTarget::Loc { .. } => {
+        InteractionTarget::Loc { id, .. } => {
+            let collision = crate::provider::get_collision();
+            let params = collision.resolve_loc_params(target_pos, *id as u32);
+            if params.is_wall() {
+                if let Some(dir) = wall_face_direction(player.position, target_pos, params.loc_type, params.rotation) {
+                    player.entity.face_direction = dir;
+                }
+            }
             player
                 .player_info
                 .add_mask(crate::player::FaceDirectionMask(player.entity.face_direction));

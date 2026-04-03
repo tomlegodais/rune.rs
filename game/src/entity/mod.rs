@@ -9,6 +9,7 @@ use std::{
 };
 
 pub use mask::{Mask, MaskBlock, MaskConfig, MaskFlags};
+pub use movement::WalkTarget;
 pub use seq::{Seq, SeqBuilder};
 pub use spotanim::{SpotAnim, SpotAnimBuilder};
 
