@@ -185,10 +185,10 @@ fn face_target(player: &mut Player, world: &World, target: &InteractionTarget, t
         InteractionTarget::Loc { id, .. } => {
             let collision = crate::provider::get_collision();
             let params = collision.resolve_loc_params(target_pos, *id as u32);
-            if params.is_wall() {
-                if let Some(dir) = wall_face_direction(player.position, target_pos, params.loc_type, params.rotation) {
-                    player.entity.face_direction = dir;
-                }
+            if params.is_wall()
+                && let Some(dir) = wall_face_direction(player.position, target_pos, params.loc_type, params.rotation)
+            {
+                player.entity.face_direction = dir;
             }
             player
                 .player_info

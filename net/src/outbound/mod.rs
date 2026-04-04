@@ -18,6 +18,7 @@ mod rebuild;
 mod runenergy;
 mod runscript;
 mod stat;
+mod varclient;
 mod varp;
 mod zone;
 
@@ -42,6 +43,7 @@ pub use runenergy::UpdateRunEnergy;
 pub use runscript::{RunClientScript, ScriptArg};
 pub use stat::UpdateStat;
 use tokio::sync::mpsc;
+pub use varclient::{VarcLarge, VarcSmall};
 pub use varp::{VarbitLarge, VarbitSmall, VarpLarge, VarpSmall};
 pub use zone::ZoneFrame;
 

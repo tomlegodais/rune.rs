@@ -20,6 +20,6 @@ pub use outbound::{
     IfCloseSub, IfEvents, IfOpenSub, IfOpenTop, IfSetAnim, IfSetEvents, IfSetNpcHead, IfSetPlayerHead, IfSetText,
     InvEntry, InvType, LocAddChange, LocDel, Logout, MessageGame, MidiJingle, MinimapToggle, ObjAdd, ObjDel, Outbox,
     OutboxExt, RebuildNormal, RunClientScript, ScriptArg, SetPlayerOp, UpdateInvFull, UpdateRunEnergy, UpdateStat,
-    VarbitLarge, VarbitSmall, VarpLarge, VarpSmall, ZoneFrame,
+    VarbitLarge, VarbitSmall, VarcLarge, VarcSmall, VarpLarge, VarpSmall, ZoneFrame,
 };
 pub use service::{LoginService, TcpService};

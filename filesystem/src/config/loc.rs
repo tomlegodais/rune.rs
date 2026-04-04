@@ -15,6 +15,9 @@ pub struct LocType {
     pub unclipped: bool,
     pub interact_type: u8,
     pub options: [Option<String>; 5],
+    pub models: Vec<u16>,
+    pub recolor_src: Vec<u16>,
+    pub recolor_dst: Vec<u16>,
 }
 
 impl Default for LocType {
@@ -32,6 +35,9 @@ impl Default for LocType {
             unclipped: false,
             interact_type: 0,
             options: [None, None, None, None, None],
+            models: Vec::new(),
+            recolor_src: Vec::new(),
+            recolor_dst: Vec::new(),
         }
     }
 }
@@ -63,9 +69,11 @@ impl LocType {
             1 | 5 => {
                 let count = buf.get_u8() as usize;
                 for _ in 0..count {
-                    buf.advance(1);
+                    buf.advance(1); // loc type
                     let inner = buf.get_u8() as usize;
-                    buf.advance(inner * 2);
+                    for _ in 0..inner {
+                        self.models.push(buf.get_u16());
+                    }
                 }
                 if opcode == 5 {
                     let extra = buf.get_u8() as usize;
@@ -116,7 +124,10 @@ impl LocType {
             }
             40 => {
                 let count = buf.get_u8() as usize;
-                buf.advance(count * 4);
+                for _ in 0..count {
+                    self.recolor_src.push(buf.get_u16());
+                    self.recolor_dst.push(buf.get_u16());
+                }
             }
             41 => {
                 let count = buf.get_u8() as usize;

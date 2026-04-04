@@ -2,7 +2,7 @@ use net::{
     IfCloseSub, IfOpenSub, IfOpenTop, IfSetAnim, IfSetEvents, IfSetNpcHead, IfSetPlayerHead, IfSetText, InvEntry,
     InvType, LocAddChange, LocDel, Logout, MessageGame, MidiJingle, MinimapToggle, ObjAdd, ObjDel, OutboxExt,
     RunClientScript, ScriptArg, SetPlayerOp, UpdateInvFull, UpdateRunEnergy, UpdateStat, VarbitLarge, VarbitSmall,
-    VarpLarge, VarpSmall, ZoneFrame,
+    VarcLarge, VarcSmall, VarpLarge, VarpSmall, ZoneFrame,
 };
 
 use super::Player;
@@ -14,7 +14,7 @@ pub trait Clientbound {
     async fn logout(&mut self);
     async fn play_jingle(&mut self, id: u16);
 
-    async fn if_open_top(&mut self, interface: u16);
+    async fn if_open_top(&mut self, interface: u16, sub: u8);
     async fn if_open_sub(&mut self, parent: u16, component: u16, interface: u16, transparent: bool);
     async fn if_close_sub(&mut self, parent: u16, component: u16);
     async fn if_set_text(&mut self, parent: u16, component: u16, text: impl Into<String> + Send);
@@ -29,6 +29,8 @@ pub trait Clientbound {
     async fn varp_large(&mut self, id: u16, value: u32);
     async fn varbit_small(&mut self, id: u16, value: u8);
     async fn varbit_large(&mut self, id: u16, value: u32);
+    async fn varc_small(&mut self, id: u16, value: u8);
+    async fn varc_large(&mut self, id: u16, value: u32);
 
     async fn update_inv(&mut self, inv_type: InvType, negative_key: bool, objs: Vec<Option<InvEntry>>);
     async fn update_stat(&mut self, id: u8, level: u8, xp: u32);
@@ -61,8 +63,8 @@ impl Clientbound for Player {
         self.outbox.write(MidiJingle { id, delay: 0, volume: 255 }).await;
     }
 
-    async fn if_open_top(&mut self, interface: u16) {
-        self.outbox.write(IfOpenTop(interface)).await;
+    async fn if_open_top(&mut self, interface: u16, sub: u8) {
+        self.outbox.write(IfOpenTop { interface, sub }).await;
     }
 
     async fn if_open_sub(&mut self, parent: u16, component: u16, interface: u16, transparent: bool) {
@@ -124,6 +126,14 @@ impl Clientbound for Player {
 
     async fn varbit_large(&mut self, id: u16, value: u32) {
         self.outbox.write(VarbitLarge { id, value }).await;
+    }
+
+    async fn varc_small(&mut self, id: u16, value: u8) {
+        self.outbox.write(VarcSmall { id, value }).await;
+    }
+
+    async fn varc_large(&mut self, id: u16, value: u32) {
+        self.outbox.write(VarcLarge { id, value }).await;
     }
 
     async fn update_inv(&mut self, inv_type: InvType, negative_key: bool, objs: Vec<Option<InvEntry>>) {

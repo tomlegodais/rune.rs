@@ -14,6 +14,7 @@ macros = { path = "../macros" }
 net = { path = "../net" }
 num_enum = { workspace = true }
 once_cell = { workspace = true }
+paste = "1"
 parking_lot = { version = "0.12.5", features = ["send_guard"] }
 persistence = { path = "../persistence" }
 rand = { workspace = true }

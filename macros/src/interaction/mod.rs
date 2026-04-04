@@ -92,7 +92,7 @@ pub fn emit_content_handler(
     func_body: &syn::Block,
 ) -> TokenStream {
     quote! {
-        #[allow(unused_macros, unused_variables)]
+        #[allow(unused_macros, unused_variables, unreachable_code)]
         fn #wrapper_name(
             target: crate::player::InteractionTarget,
         ) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'static>> {

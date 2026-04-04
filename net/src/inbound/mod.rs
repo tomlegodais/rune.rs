@@ -80,10 +80,17 @@ static DECODERS: std::sync::LazyLock<[Option<DecodeFn>; 256]> = std::sync::LazyL
     table
 });
 
-const IGNORED_OPCODES: [u8; 3] = [
+const IGNORED_OPCODES: [u8; 10] = [
     74, // Keep Alive
     42, // Mouse Movement
     49, // Mouse Click
+    58, // Screen
+    17, // Region Loaded
+    51, // Move Camera
+    71, // Packet Count
+    19, // AFK
+    21, // Key Typed
+    48, // Window Focus
 ];
 
 pub fn decode(frame: Frame) -> Option<IncomingMessage> {

@@ -32,6 +32,18 @@ impl LocLoader {
         self.types.get(&id)
     }
 
+    pub fn search(&self, query: &str) -> Vec<(u32, &LocType)> {
+        let query = query.to_lowercase();
+        let mut results: Vec<_> = self
+            .types
+            .iter()
+            .filter(|(_, t)| t.name.to_lowercase().contains(&query))
+            .map(|(&id, t)| (id, t))
+            .collect();
+        results.sort_by_key(|(id, _)| *id);
+        results
+    }
+
     pub fn len(&self) -> usize {
         self.types.len()
     }

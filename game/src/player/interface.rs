@@ -210,7 +210,7 @@ impl InterfaceManager {
         if self.top != top {
             self.top = top;
         }
-        self.player.if_open_top(top.0).await;
+        self.player.if_open_top(top.0, 0).await;
     }
 
     pub async fn open_slot(&mut self, slot: InterfaceSlot, interface: u16) {
@@ -232,6 +232,10 @@ impl InterfaceManager {
 
     pub fn get_slot(&self, slot: InterfaceSlot) -> Option<u16> {
         self.slots.get(&slot).copied()
+    }
+
+    pub async fn restore_top(&mut self, sub: u8) {
+        self.player.if_open_top(self.top.0, sub).await;
     }
 
     pub async fn set_text(&mut self, slot: InterfaceSlot, component: u16, text: impl Into<String> + Send) {
