@@ -8,14 +8,16 @@ version = "0.1.0"
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 config = { workspace = true }
+enable-ansi-support = "0.2"
 filesystem = { path = "../filesystem" }
 inventory = "0.3"
 macros = { path = "../macros" }
 net = { path = "../net" }
 num_enum = { workspace = true }
 once_cell = { workspace = true }
-paste = "1"
+owo-colors = "4"
 parking_lot = { version = "0.12.5", features = ["send_guard"] }
+paste = "1"
 persistence = { path = "../persistence" }
 rand = { workspace = true }
 serde = { workspace = true }
@@ -25,7 +27,7 @@ strum = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true }
 tracing = { workspace = true }
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "ansi"] }
 util = { path = "../util" }
 
 [lints.rust]

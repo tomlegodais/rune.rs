@@ -5,7 +5,6 @@ use filesystem::CacheBuilder;
 use net::TcpService;
 use persistence::PersistenceModuleInterface;
 use shaku::{HasComponent, module};
-use tracing::info;
 use tracing_subscriber::EnvFilter;
 
 use crate::{
@@ -19,6 +18,7 @@ mod command;
 mod config;
 mod content;
 mod entity;
+mod fmt;
 mod handler;
 mod npc;
 mod player;
@@ -56,7 +56,11 @@ async fn main() -> anyhow::Result<()> {
         .add_directive("sqlx=warn".parse()?)
         .add_directive("sea_orm_migration=warn".parse()?);
 
-    tracing_subscriber::fmt().with_env_filter(filter).init();
+    let _ = enable_ansi_support::enable_ansi_support();
+    tracing_subscriber::fmt()
+        .event_format(fmt::Formatter)
+        .with_env_filter(filter)
+        .init();
 
     let mut service_manager = ServiceManager::new();
     let cache = Arc::new(CacheBuilder::new("cache/").open()?);
@@ -97,7 +101,7 @@ async fn main() -> anyhow::Result<()> {
     service_manager
         .monitor()
         .on_ready(|| {
-            info!("Ready to accept connections");
+            tracing::info!("Ready to accept connections");
         })
         .await?;
 

@@ -27,7 +27,6 @@ pub use opobj::OpObj;
 pub use opplayer::OpPlayer;
 use tokio::sync::mpsc;
 use tokio_util::bytes::Bytes;
-use tracing::debug;
 
 use crate::Frame;
 
@@ -98,7 +97,7 @@ pub fn decode(frame: Frame) -> Option<IncomingMessage> {
         Some(decode) => Some(decode(frame.payload)),
         None if IGNORED_OPCODES.contains(&frame.opcode) => None,
         None => {
-            debug!("Unhandled message opcode: {}", frame.opcode);
+            tracing::debug!(opcode = frame.opcode, "Unhandled Frame");
             None
         }
     }

@@ -1,6 +1,5 @@
 use tokio::{sync::oneshot, task::JoinSet};
 use tokio_util::sync::CancellationToken;
-use tracing::{error, info};
 
 use crate::service::monitor::ServiceMonitor;
 
@@ -39,12 +38,12 @@ impl ServiceManager {
         self.set.spawn(async move {
             match factory(token, tx).await {
                 Ok(_) => {
-                    info!("Service '{}' stopped gracefully", name);
+                    tracing::info!(name, "Service stopped gracefully");
                     Ok(())
                 }
 
                 Err(e) => {
-                    error!("Service '{}' failed: {:?}", name, e);
+                    tracing::error!(name, error = ?e, "Service failed");
                     Err(e)
                 }
             }
@@ -59,15 +58,14 @@ impl ServiceManager {
     }
 
     pub(super) async fn await_ready(&mut self) -> anyhow::Result<()> {
-        info!("Waiting for services to initialize");
+        tracing::info!("Waiting for services to initialize");
 
         for (name, rx) in self.start_checks.drain(..) {
             match rx.await {
-                Ok(_) => info!("Service '{}' is ready", name),
+                Ok(_) => tracing::info!(name, "Service is ready"),
                 Err(_) => {
-                    let msg = format!("Service '{}' failed to start (channel closed)!", name);
-                    error!("{}", msg);
-                    return Err(anyhow::anyhow!(msg));
+                    tracing::error!(name, "Service failed to start (channel closed)");
+                    return Err(anyhow::anyhow!("Service '{name}' failed to start (channel closed)!"));
                 }
             }
         }

@@ -5,7 +5,6 @@ use tokio::{
     net::TcpListener,
     sync::{Semaphore, oneshot},
 };
-use tracing::{error, info};
 
 use crate::{LoginService, config::TcpConfig, service::cache::CacheService, session::Session};
 
@@ -30,7 +29,7 @@ impl TcpService {
         let cache_service = Arc::new(CacheService::new(self.cache.clone())?);
         let login_service = Arc::clone(&self.login_service);
 
-        info!("Listening on {}", self.config.bind_addr);
+        tracing::info!(addr = %self.config.bind_addr, "Listening");
 
         if let Some(tx) = on_ready {
             let _ = tx.send(());
@@ -43,7 +42,7 @@ impl TcpService {
 
             tokio::spawn(async move {
                 if let Some(e) = session.run().await.err().filter(|err| !err.is_disconnect()) {
-                    error!("{e}");
+                    tracing::error!(error = %e, "Session Error");
                 }
 
                 drop(permit);

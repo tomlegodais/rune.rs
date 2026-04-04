@@ -7,7 +7,6 @@ use persistence::{
     player::{PlayerData, PlayerRepository},
 };
 use shaku::{Component, Interface};
-use tracing::warn;
 
 use crate::{config::GameConfig, world::World};
 
@@ -108,7 +107,7 @@ impl LoginService for WorldLoginService {
         if let Some(data) = self.world.unregister_player(player_index)
             && let Err(e) = self.players.save(&data).await
         {
-            warn!("Failed to save player data: {}", e);
+            tracing::warn!(error = %e, "Failed to Save Player Data");
         }
     }
 }
