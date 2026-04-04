@@ -6,6 +6,9 @@ use super::{InteractionAttr, emit_content_handler};
 
 pub fn on_npc(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as InteractionAttr);
+    if let Err(e) = attr.validate_keys(&["op", "npc_id"]) {
+        return e.to_compile_error().into();
+    }
     let func = parse_macro_input!(item as syn::ItemFn);
     let wrapper_name = format_ident!("__{}_content_wrapper", func.sig.ident);
     let npc_id = match attr.require_int("npc_id") {

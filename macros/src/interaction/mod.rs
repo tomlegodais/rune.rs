@@ -24,7 +24,7 @@ impl Parse for AttrValue {
 }
 
 pub struct InteractionAttr {
-    pub pairs: Vec<(String, AttrValue)>,
+    pub pairs: Vec<(syn::Ident, AttrValue)>,
 }
 
 impl Parse for InteractionAttr {
@@ -34,7 +34,7 @@ impl Parse for InteractionAttr {
             let ident: syn::Ident = input.parse()?;
             input.parse::<Token![=]>()?;
             let value: AttrValue = input.parse()?;
-            pairs.push((ident.to_string(), value));
+            pairs.push((ident, value));
             if !input.is_empty() {
                 input.parse::<Token![,]>()?;
             }
@@ -44,8 +44,21 @@ impl Parse for InteractionAttr {
 }
 
 impl InteractionAttr {
+    pub fn validate_keys(&self, allowed: &[&str]) -> syn::Result<()> {
+        self.pairs
+            .iter()
+            .filter(|(k, _)| !allowed.contains(&k.to_string().as_str()))
+            .try_fold((), |_, (k, _)| {
+                Err(syn::Error::new(
+                    k.span(),
+                    format!("unknown key `{k}`, expected one of: {}", allowed.join(", ")),
+                ))
+            })
+    }
+
     fn get_value<T>(&self, key: &str, f: impl Fn(&AttrValue) -> Option<&T>) -> Option<&T> {
         self.pairs.iter().find_map(|(k, v)| (k == key).then(|| f(v)).flatten())
+        // syn::Ident implements PartialEq<str>, so k == key compares by name
     }
 
     pub fn get_int(&self, key: &str) -> Option<&syn::LitInt> {
