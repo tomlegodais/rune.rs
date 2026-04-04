@@ -1,9 +1,10 @@
 use macros::command;
 use num_enum::TryFromPrimitive;
+use rand::Rng;
 
 use super::CommandEntry;
 use crate::{
-    player::{Clientbound, Player, Stat},
+    player::{Clientbound, NUM_STATS, Player, Stat},
     send_message,
 };
 
@@ -19,7 +20,7 @@ async fn add_xp(player: &mut Player, stat_id: usize, xp: f64) {
 }
 
 #[command(name = "setlevel")]
-async fn handle(player: &mut Player, stat_id: usize, level: u8) {
+async fn setlevel(player: &mut Player, stat_id: usize, level: u8) {
     let stat = match Stat::try_from(stat_id) {
         Ok(s) => s,
         Err(_) => {
@@ -35,6 +36,25 @@ async fn handle(player: &mut Player, stat_id: usize, level: u8) {
 
     player.stat_mut().set_level(stat, level);
     player.stat_mut().flush().await;
+    player.appearance_mut().flush();
 
     send_message!(player, "Set {:?} to level {}", stat, level);
+}
+
+#[command(name = "random_stats")]
+async fn random_stats(player: &mut Player) {
+    let levels: Vec<_> = {
+        let mut rng = rand::rng();
+        (0..NUM_STATS)
+            .filter_map(|i| Stat::try_from(i).ok())
+            .map(|stat| (stat, rng.random_range(60u8..=99)))
+            .collect()
+    };
+
+    for (stat, level) in levels {
+        player.stat_mut().set_level(stat, level);
+    }
+
+    player.appearance_mut().flush();
+    player.stat_mut().flush().await;
 }

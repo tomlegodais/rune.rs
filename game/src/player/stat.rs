@@ -70,7 +70,7 @@ impl Stat {
     }
 }
 
-const NUM_STATS: usize = 24;
+pub const NUM_STATS: usize = 24;
 
 pub struct StatManager {
     player: PlayerHandle,
@@ -140,10 +140,17 @@ impl StatManager {
                 article, name, new_level
             ))
             .await;
+
+        self.player.appearance_mut().flush();
     }
 
     pub fn combat_level(&self) -> u8 {
-        126
+        let l = |stat: Stat| self.levels[stat as usize] as u32;
+        let base = (l(Stat::Defence) + l(Stat::Hitpoints) + l(Stat::Prayer) / 2 + l(Stat::Summoning) / 2) * 10;
+        let melee = (l(Stat::Attack) + l(Stat::Strength)) * 13;
+        let ranged = l(Stat::Ranged) * 3 / 2 * 13;
+        let magic = l(Stat::Magic) * 3 / 2 * 13;
+        ((base + melee.max(ranged).max(magic)) / 40) as u8
     }
 
     pub async fn flush(&mut self) {
