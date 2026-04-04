@@ -126,7 +126,14 @@ async fn handle_ifbutton(player: &mut Player, msg: IfButton) {
         .find_map(|(o, c)| CONTENT_HANDLERS.get(&ContentTarget::Button(o, msg.interface, c)));
 
     let Some(handler) = handler else {
-        tracing::debug!("Unhandled IfButton: {:?}", msg);
+        tracing::debug!(
+            op = ?msg.op,
+            interface = msg.interface,
+            component = msg.component,
+            slot1 = msg.slot1,
+            slot2 = msg.slot2,
+            "Unhandled IfButton"
+        );
         return;
     };
 

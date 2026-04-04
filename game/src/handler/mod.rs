@@ -14,7 +14,6 @@ pub use dispatch::{ContentHandler, ContentTarget, dispatch, run_action};
 pub use interaction::try_dispatch_obj;
 use net::IncomingMessage;
 pub use objstack::pickup_obj_stack;
-use tracing::debug;
 
 use crate::player::Player;
 
@@ -39,6 +38,6 @@ pub async fn handle_incoming_message(player: &mut Player, msg: IncomingMessage) 
     let type_id = (*msg).type_id();
     match HANDLERS.get(&type_id) {
         Some(handler) => handler(player, msg).await,
-        None => debug!("Unhandled incoming message: {:?}", type_id),
+        None => tracing::warn!(?type_id, "Unhandled Incoming Message"),
     }
 }

@@ -60,7 +60,7 @@ pub fn dispatch(
         Some(handler) => Some(handler(target)),
         None => {
             if let InteractionTarget::Loc { id, x, y } = &target {
-                tracing::debug!(loc_id = id, x, y, op = ?op, "unhandled loc interaction");
+                tracing::debug!(loc_id = id, x, y, op = ?op, "Unhandled Loc");
             }
             send_message!(player, "Nothing interesting happens.");
             None
