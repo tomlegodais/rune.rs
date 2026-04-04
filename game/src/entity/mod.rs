@@ -1,3 +1,4 @@
+mod hit;
 mod mask;
 mod movement;
 mod seq;
@@ -8,6 +9,7 @@ use std::{
     sync::{Arc, Weak},
 };
 
+pub use hit::{Hit, HitType};
 pub use mask::{Mask, MaskBlock, MaskConfig, MaskFlags};
 pub use movement::WalkTarget;
 pub use seq::{Seq, SeqBuilder};

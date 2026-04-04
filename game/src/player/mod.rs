@@ -6,6 +6,7 @@ mod appearance;
 mod clientbound;
 mod dialogue;
 mod gpi;
+mod hitpoints;
 mod info;
 mod interaction;
 mod interface;
@@ -31,7 +32,7 @@ use std::{
 
 pub use action::{
     ActionShared, ActionState, PlayerRef, SeqResetGuard, active_player, active_shared, await_dialogue,
-    clear_action_context, delay, is_action_locked, poll_action, send_message, set_action_context,
+    clear_action_context, delay, is_action_locked, lock, poll_action, send_message, set_action_context, unlock,
 };
 pub use appearance::{Appearance, DEFAULT_READYANIM};
 pub use clientbound::Clientbound;
@@ -41,16 +42,18 @@ pub use info::PlayerInfo;
 pub use interaction::{InteractionTarget, resolve as resolve_interaction};
 pub use interface::InterfaceSlot;
 pub use inv::SIZE as INV_SIZE;
-pub use mask::{ChatMask, FaceDirectionMask, MoveTypeMask, SeqMask, SpotAnim1Mask, SpotAnim2Mask, TempMoveTypeMask};
+pub use mask::{
+    ChatMask, FaceDirectionMask, Hit1Mask, Hit2Mask, MoveTypeMask, SeqMask, SpotAnim1Mask, SpotAnim2Mask,
+    TempMoveTypeMask,
+};
 use net::{Inbox, Outbox};
 pub use obj::Obj;
 use persistence::{
     account::{Account, Rights},
     player::PlayerData,
 };
-pub use stat::Stat;
+pub use stat::{NUM_STATS, Stat};
 use system::{PlayerHandle, PlayerInitContext, SystemStore};
-use tracing::info;
 pub use ui::{chatbox, equipment};
 pub use varp::VarpManager;
 pub use viewport::Viewport;
@@ -185,7 +188,7 @@ impl Player {
 
         self.send_message("Welcome to RuneScape.").await;
 
-        info!("Player (index={}, username={}) logged in", self.index, self.username);
+        tracing::info!(index = self.index, username = self.username, "Player Logged In");
     }
 
     pub async fn tick_systems(&mut self, world: &Arc<World>) {
@@ -222,6 +225,14 @@ impl Player {
         if close_interfaces {
             self.interface_mut().close_slot(InterfaceSlot::Modal).await;
             self.interface_mut().close_slot(InterfaceSlot::Inventory).await;
+        }
+    }
+
+    pub fn hit(&mut self, hit: crate::entity::Hit) {
+        if self.player_info.self_state().masks.has(mask::PlayerMask::HIT_1) {
+            self.player_info.add_mask(Hit2Mask(hit));
+        } else {
+            self.player_info.add_mask(Hit1Mask(hit));
         }
     }
 

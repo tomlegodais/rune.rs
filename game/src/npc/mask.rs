@@ -1,7 +1,7 @@
 use tokio_util::bytes::{BufMut, BytesMut};
 use util::BytesMutExt;
 
-use crate::entity::{Mask, MaskConfig, MaskFlags, Seq, SpotAnim};
+use crate::entity::{Hit, Mask, MaskConfig, MaskFlags, Seq, SpotAnim};
 
 pub struct NpcMask;
 
@@ -99,5 +99,32 @@ impl Mask for ForceTalkMask {
 
     fn encode(&self, out: &mut BytesMut) {
         out.put_string(&self.0);
+    }
+}
+
+pub struct Hit1Mask(pub Hit);
+
+impl Mask for Hit1Mask {
+    fn flag(&self) -> MaskFlags {
+        NpcMask::HIT_1
+    }
+
+    fn encode(&self, out: &mut BytesMut) {
+        out.put_smart(self.0.damage);
+        out.put_u8_add(self.0.hit_type.into());
+        out.put_u8_add(self.0.hp_ratio);
+    }
+}
+
+pub struct Hit2Mask(pub Hit);
+
+impl Mask for Hit2Mask {
+    fn flag(&self) -> MaskFlags {
+        NpcMask::HIT_2
+    }
+
+    fn encode(&self, out: &mut BytesMut) {
+        out.put_smart(self.0.damage);
+        out.put_u8_add(self.0.hit_type.into());
     }
 }

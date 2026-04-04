@@ -5,7 +5,7 @@ use tokio_util::bytes::{BufMut, BytesMut};
 use util::BytesMutExt;
 
 use crate::{
-    entity::{Mask, MaskConfig, MaskFlags, Seq, SpotAnim},
+    entity::{Hit, Mask, MaskConfig, MaskFlags, Seq, SpotAnim},
     player::{DEFAULT_READYANIM, WornSlots, worn::WearPos},
     provider,
     world::Direction,
@@ -271,5 +271,32 @@ impl Mask for ChatMask {
         out.put_u8_add(total as u8);
         out.put_smart(self.message.len() as u16);
         out.put_slice(&encoded);
+    }
+}
+
+pub struct Hit1Mask(pub Hit);
+
+impl Mask for Hit1Mask {
+    fn flag(&self) -> MaskFlags {
+        PlayerMask::HIT_1
+    }
+
+    fn encode(&self, out: &mut BytesMut) {
+        out.put_smart(self.0.damage);
+        out.put_u8_add(self.0.hit_type.into());
+        out.put_u8_add(self.0.hp_ratio);
+    }
+}
+
+pub struct Hit2Mask(pub Hit);
+
+impl Mask for Hit2Mask {
+    fn flag(&self) -> MaskFlags {
+        PlayerMask::HIT_2
+    }
+
+    fn encode(&self, out: &mut BytesMut) {
+        out.put_smart(self.0.damage);
+        out.put_u8_sub(self.0.hit_type.into());
     }
 }

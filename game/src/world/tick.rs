@@ -82,6 +82,9 @@ impl TickPhase<Npc> for Tick {
     fn context(&self, _: &World) -> Self::Context {}
 
     async fn execute(&self, _world: &World, npc: &mut Npc, _: &()) {
+        if npc.tick_death() {
+            return;
+        }
         npc.wander();
         npc.process_movement();
     }
@@ -136,6 +139,8 @@ impl WorldTickPhase for WorldTick {
     async fn execute(&self, world: &World) {
         world.decay_obj_stacks().await;
         world.respawn_locs().await;
+        world.process_npc_deaths();
+        world.tick_npc_respawns();
     }
 }
 

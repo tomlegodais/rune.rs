@@ -11,10 +11,13 @@ use rand::Rng;
 use strum::IntoEnumIterator;
 
 use crate::{
-    entity::{Entity, MaskBlock, MoveStep, Seq, SeqBuilder, SpotAnim, SpotAnimBuilder},
+    entity::{Entity, Hit, MaskBlock, MoveStep, Seq, SeqBuilder, SpotAnim, SpotAnimBuilder},
     provider,
     world::{Direction, Position, Teleport},
 };
+
+const DEATH_SEQ: u16 = 836;
+const DEATH_TICKS: u16 = 5;
 
 #[derive(Clone)]
 pub struct NpcSnapshot {
@@ -37,10 +40,13 @@ pub struct Npc {
     pub move_step: MoveStep,
     pub teleport: Option<Teleport>,
     pub masks: MaskBlock,
+    pub current_hp: u32,
+    pub max_hp: u32,
+    death_timer: Option<u16>,
 }
 
 impl Npc {
-    pub fn new(index: usize, npc_id: u16, position: Position, wander_radius: u8) -> Self {
+    pub fn new(index: usize, npc_id: u16, position: Position, wander_radius: u8, max_hp: u32) -> Self {
         Self {
             npc_id,
             spawn_position: position,
@@ -50,7 +56,55 @@ impl Npc {
             masks: MaskBlock::new(&mask::NPC_MASKS),
             teleport: None,
             running: false,
+            current_hp: max_hp,
+            max_hp,
+            death_timer: None,
         }
+    }
+
+    pub fn is_dying(&self) -> bool {
+        self.death_timer.is_some()
+    }
+
+    pub fn is_dead(&self) -> bool {
+        matches!(self.death_timer, Some(0))
+    }
+
+    pub fn damage(&mut self, mut hit: Hit) -> bool {
+        if self.death_timer.is_some() {
+            return false;
+        }
+        hit.damage = hit.damage.min(self.current_hp as u16);
+        self.current_hp -= hit.damage as u32;
+        hit.hp_ratio = (self.current_hp * 255 / self.max_hp) as u8;
+        self.add_hit(hit);
+        let dead = self.current_hp == 0;
+        if dead {
+            self.on_death();
+        }
+        dead
+    }
+
+    fn add_hit(&mut self, hit: Hit) {
+        if self.masks.has(mask::NpcMask::HIT_1) {
+            self.masks.add(mask::Hit2Mask(hit));
+        } else {
+            self.masks.add(mask::Hit1Mask(hit));
+        }
+    }
+
+    fn on_death(&mut self) {
+        self.death_timer = Some(DEATH_TICKS);
+        self.entity.stop();
+        self.seq(DEATH_SEQ);
+    }
+
+    pub fn tick_death(&mut self) -> bool {
+        let Some(ref mut timer) = self.death_timer else {
+            return false;
+        };
+        *timer = timer.saturating_sub(1);
+        true
     }
 
     pub fn wander(&mut self) {

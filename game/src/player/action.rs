@@ -155,6 +155,21 @@ impl Drop for SeqResetGuard {
     }
 }
 
+/// Fire a self-contained action on `player`, interrupting any currently active action.
+///
+/// Use with functions annotated `#[player_action]`, which generate the required boxed future.
+pub fn fire_action(player: &mut Player, action: Pin<Box<dyn Future<Output = ()> + Send + 'static>>) {
+    player.world().action_states.lock().remove(&player.index);
+    let shared = Arc::new(ActionShared::new());
+    set_action_context(player as *mut Player, shared.clone());
+    let mut state = ActionState { active: action, shared };
+    let poll_result = poll_action(&mut state);
+    clear_action_context();
+    if poll_result.is_pending() {
+        player.world().action_states.lock().insert(player.index, state);
+    }
+}
+
 pub fn is_action_locked(player: &Player) -> bool {
     let world = player.world();
     world

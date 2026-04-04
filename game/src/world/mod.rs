@@ -23,13 +23,22 @@ use persistence::{account::Account, player::PlayerData};
 pub use position::{Direction, Position, RegionId, Teleport, running_direction};
 pub use slab::WorldSlab;
 use tokio::sync::mpsc;
-use tracing::info;
 
 use crate::{
     npc::{Npc, NpcSnapshot},
     player::{ActionState, Player, PlayerSnapshot},
     world::slab::{SlabReadGuard, SlabWriteGuard},
 };
+
+struct NpcRespawn {
+    npc_id: u16,
+    position: Position,
+    wander_radius: u8,
+    max_hp: u32,
+    timer: u16,
+}
+
+const NPC_RESPAWN_TICKS: u16 = 30;
 
 pub struct World {
     self_ref: OnceLock<Weak<World>>,
@@ -38,6 +47,7 @@ pub struct World {
     pub obj_stacks: ObjStackStore,
     pub locs: LocStore,
     pub action_states: Mutex<HashMap<usize, ActionState>>,
+    npc_respawns: Mutex<Vec<NpcRespawn>>,
 }
 
 impl Default for World {
@@ -49,6 +59,7 @@ impl Default for World {
             obj_stacks: ObjStackStore::default(),
             locs: LocStore::default(),
             action_states: Mutex::new(HashMap::new()),
+            npc_respawns: Mutex::new(Vec::new()),
         }
     }
 }
@@ -56,7 +67,7 @@ impl Default for World {
 impl World {
     pub fn init(self: &Arc<Self>) {
         let _ = self.self_ref.set(Arc::downgrade(self));
-        self.spawn_npc(2, Position::new(3093, 3495, 0), 4);
+        self.spawn_npc(2, Position::new(3093, 3495, 0), 4, 10);
     }
 
     pub fn register_player(
@@ -87,7 +98,7 @@ impl World {
         self.action_states.lock().remove(&player_index);
         let player = self.players.remove(player_index);
 
-        info!("Player (id={}, username={}) logged out", player.index, player.username);
+        tracing::info!(index = player.index, username = player.username, "Player Logged Out");
 
         Some(player.to_player_data())
     }
@@ -112,9 +123,42 @@ impl World {
         }
     }
 
-    pub fn spawn_npc(&self, npc_id: u16, position: Position, wander_radius: u8) -> usize {
+    pub(super) fn process_npc_deaths(&self) {
+        let dead: Vec<usize> = self
+            .npcs
+            .keys()
+            .into_iter()
+            .filter(|&i| self.npcs.get(i).is_dead())
+            .collect();
+        let mut respawns = self.npc_respawns.lock();
+        for idx in dead {
+            let npc = self.npcs.remove(idx);
+            respawns.push(NpcRespawn {
+                npc_id: npc.npc_id,
+                position: npc.spawn_position,
+                wander_radius: npc.wander_radius,
+                max_hp: npc.max_hp,
+                timer: NPC_RESPAWN_TICKS,
+            });
+        }
+    }
+
+    pub(super) fn tick_npc_respawns(&self) {
+        let ready: Vec<NpcRespawn> = {
+            let mut respawns = self.npc_respawns.lock();
+            respawns.iter_mut().for_each(|r| r.timer -= 1);
+            let (ready, pending): (Vec<_>, Vec<_>) = respawns.drain(..).partition(|r| r.timer == 0);
+            *respawns = pending;
+            ready
+        };
+        for r in ready {
+            self.spawn_npc(r.npc_id, r.position, r.wander_radius, r.max_hp);
+        }
+    }
+
+    pub fn spawn_npc(&self, npc_id: u16, position: Position, wander_radius: u8, max_hp: u32) -> usize {
         let index = self.npcs.vacant_index();
-        let npc = Npc::new(index, npc_id, position, wander_radius);
+        let npc = Npc::new(index, npc_id, position, wander_radius, max_hp);
 
         self.npcs.insert(npc);
         self.npcs.get_mut(index).set_world(&self.arc());

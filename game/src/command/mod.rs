@@ -1,10 +1,9 @@
+mod damage;
 mod inv;
-mod loc;
 mod pos;
 mod seq;
 mod stat;
 mod tele;
-mod test;
 
 use std::{collections::HashMap, future::Future, pin::Pin};
 

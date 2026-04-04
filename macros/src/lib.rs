@@ -6,6 +6,7 @@ mod dialogue_tree;
 mod enum_data;
 mod interaction;
 mod message;
+mod player_action;
 mod player_system;
 
 #[proc_macro_attribute]
@@ -21,6 +22,11 @@ pub fn message_handler(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn command(attr: TokenStream, item: TokenStream) -> TokenStream {
     command::command(attr, item)
+}
+
+#[proc_macro_attribute]
+pub fn player_action(attr: TokenStream, item: TokenStream) -> TokenStream {
+    player_action::player_action(attr, item)
 }
 
 #[proc_macro_attribute]
