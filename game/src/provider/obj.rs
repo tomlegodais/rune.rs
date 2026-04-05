@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use filesystem::{
-    config::{ObjType, WearFlag, WearPos},
-    loader::ObjLoader,
+use filesystem::config::{
+    EquipBonuses, ObjType, WearFlag, WearPos, WeaponCategory,
 };
+use filesystem::loader::ObjLoader;
 use macros::data_provider;
 use once_cell::sync::OnceCell;
 use persistence::obj::{self, ObjConfigRepository};
@@ -41,6 +41,41 @@ fn map_wearflag(flag: obj::WearFlag) -> WearFlag {
     }
 }
 
+fn map_weapon_category(cat: obj::WeaponCategory) -> WeaponCategory {
+    match cat {
+        obj::WeaponCategory::TwoHandedSword => WeaponCategory::TwoHandedSword,
+        obj::WeaponCategory::Axe => WeaponCategory::Axe,
+        obj::WeaponCategory::Banner => WeaponCategory::Banner,
+        obj::WeaponCategory::Blunt => WeaponCategory::Blunt,
+        obj::WeaponCategory::Bludgeon => WeaponCategory::Bludgeon,
+        obj::WeaponCategory::Bulwark => WeaponCategory::Bulwark,
+        obj::WeaponCategory::Claw => WeaponCategory::Claw,
+        obj::WeaponCategory::Egg => WeaponCategory::Egg,
+        obj::WeaponCategory::Partisan => WeaponCategory::Partisan,
+        obj::WeaponCategory::Pickaxe => WeaponCategory::Pickaxe,
+        obj::WeaponCategory::Polearm => WeaponCategory::Polearm,
+        obj::WeaponCategory::Polestaff => WeaponCategory::Polestaff,
+        obj::WeaponCategory::Scythe => WeaponCategory::Scythe,
+        obj::WeaponCategory::SlashSword => WeaponCategory::SlashSword,
+        obj::WeaponCategory::Spear => WeaponCategory::Spear,
+        obj::WeaponCategory::Spiked => WeaponCategory::Spiked,
+        obj::WeaponCategory::StabSword => WeaponCategory::StabSword,
+        obj::WeaponCategory::Unarmed => WeaponCategory::Unarmed,
+        obj::WeaponCategory::Whip => WeaponCategory::Whip,
+        obj::WeaponCategory::Bow => WeaponCategory::Bow,
+        obj::WeaponCategory::Blaster => WeaponCategory::Blaster,
+        obj::WeaponCategory::Chinchompa => WeaponCategory::Chinchompa,
+        obj::WeaponCategory::Crossbow => WeaponCategory::Crossbow,
+        obj::WeaponCategory::Gun => WeaponCategory::Gun,
+        obj::WeaponCategory::Thrown => WeaponCategory::Thrown,
+        obj::WeaponCategory::BladedStaff => WeaponCategory::BladedStaff,
+        obj::WeaponCategory::PoweredStaff => WeaponCategory::PoweredStaff,
+        obj::WeaponCategory::Staff => WeaponCategory::Staff,
+        obj::WeaponCategory::Salamander => WeaponCategory::Salamander,
+        obj::WeaponCategory::MultiStyle => WeaponCategory::MultiStyle,
+    }
+}
+
 #[data_provider]
 async fn load_obj_types(ctx: &ProviderContext) -> anyhow::Result<()> {
     let mut loader = ObjLoader::load(&ctx.cache)?;
@@ -52,6 +87,25 @@ async fn load_obj_types(ctx: &ProviderContext) -> anyhow::Result<()> {
         if let Some(t) = loader.get_mut(config.obj_id) {
             t.wearpos = config.wearpos.map(map_wearpos);
             t.wearflag = config.wearflag.map(map_wearflag).unwrap_or_default();
+            t.weapon_category = config.weapon_category.map(map_weapon_category);
+            t.atk_speed = config.atk_speed;
+            t.weight = config.weight;
+            t.equip = EquipBonuses {
+                atk_stab: config.atk_stab,
+                atk_slash: config.atk_slash,
+                atk_crush: config.atk_crush,
+                atk_magic: config.atk_magic,
+                atk_ranged: config.atk_ranged,
+                def_stab: config.def_stab,
+                def_slash: config.def_slash,
+                def_crush: config.def_crush,
+                def_magic: config.def_magic,
+                def_ranged: config.def_ranged,
+                str_bonus: config.str_bonus,
+                ranged_str: config.ranged_str,
+                magic_dmg: config.magic_dmg,
+                prayer: config.prayer,
+            };
         }
     }
 

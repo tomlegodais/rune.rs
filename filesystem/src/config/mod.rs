@@ -8,7 +8,10 @@ mod varbit;
 pub use enums::{EnumType, EnumValue};
 pub use loc::LocType;
 pub use npc::NpcType;
-pub use obj::{ObjType, TransformKind, WearFlag, WearPos};
+pub use obj::{
+    AttackType, CombatStyle, EquipBonuses, ObjType, StyleName, TransformKind, WearFlag, WearPos,
+    WeaponCategory, WeaponStance, XpType,
+};
 pub use structs::StructType;
 pub use varbit::VarbitType;
 

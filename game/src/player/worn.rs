@@ -4,8 +4,8 @@ use std::{
     pin::Pin,
 };
 
-use filesystem::config::WearFlag;
 pub use filesystem::config::WearPos;
+use filesystem::config::{EquipBonuses, WeaponCategory, WearFlag};
 use macros::player_system;
 use net::{InvEntry, InvType, if_events, if_set_events};
 use persistence::player::PlayerData;
@@ -63,6 +63,35 @@ impl Worn {
 
     pub fn slots(&self) -> &WornSlots {
         &self.slots
+    }
+
+    pub fn bonuses(&self) -> EquipBonuses {
+        let mut total = EquipBonuses::default();
+        for obj in self.slots.0.iter().flatten() {
+            let Some(t) = crate::provider::get_obj_type(obj.id as u32) else { continue };
+            let b = &t.equip;
+            total.atk_stab = total.atk_stab.saturating_add(b.atk_stab);
+            total.atk_slash = total.atk_slash.saturating_add(b.atk_slash);
+            total.atk_crush = total.atk_crush.saturating_add(b.atk_crush);
+            total.atk_magic = total.atk_magic.saturating_add(b.atk_magic);
+            total.atk_ranged = total.atk_ranged.saturating_add(b.atk_ranged);
+            total.def_stab = total.def_stab.saturating_add(b.def_stab);
+            total.def_slash = total.def_slash.saturating_add(b.def_slash);
+            total.def_crush = total.def_crush.saturating_add(b.def_crush);
+            total.def_magic = total.def_magic.saturating_add(b.def_magic);
+            total.def_ranged = total.def_ranged.saturating_add(b.def_ranged);
+            total.str_bonus = total.str_bonus.saturating_add(b.str_bonus);
+            total.ranged_str = total.ranged_str.saturating_add(b.ranged_str);
+            total.magic_dmg = total.magic_dmg.saturating_add(b.magic_dmg);
+            total.prayer = total.prayer.saturating_add(b.prayer);
+        }
+        total
+    }
+
+    pub fn weapon_category(&self) -> Option<WeaponCategory> {
+        self.slots[WearPos::Weapon]
+            .and_then(|obj| crate::provider::get_obj_type(obj.id as u32))
+            .and_then(|t| t.weapon_category)
     }
 
     pub fn displace(&self, slot: WearPos, flag: WearFlag) -> Vec<Obj> {

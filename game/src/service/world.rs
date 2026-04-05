@@ -34,5 +34,7 @@ impl WorldService {
                 }
             }
         }
+
+        self.world.signal_logout_all().await;
     }
 }

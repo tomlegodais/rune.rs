@@ -8,6 +8,8 @@ mod m005_add_run_energy;
 mod m006_create_inv;
 mod m007_create_obj_configs;
 mod m008_create_player_worn;
+mod m009_add_obj_combat_stats;
+mod m010_add_obj_weight;
 
 pub struct Migrator;
 
@@ -23,6 +25,8 @@ impl MigratorTrait for Migrator {
             Box::new(m006_create_inv::Migration),
             Box::new(m007_create_obj_configs::Migration),
             Box::new(m008_create_player_worn::Migration),
+            Box::new(m009_add_obj_combat_stats::Migration),
+            Box::new(m010_add_obj_weight::Migration),
         ]
     }
 }

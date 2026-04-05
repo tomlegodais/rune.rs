@@ -11,6 +11,365 @@ pub enum TransformKind {
     Lent,
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+pub struct EquipBonuses {
+    pub atk_stab: i16,
+    pub atk_slash: i16,
+    pub atk_crush: i16,
+    pub atk_magic: i16,
+    pub atk_ranged: i16,
+    pub def_stab: i16,
+    pub def_slash: i16,
+    pub def_crush: i16,
+    pub def_magic: i16,
+    pub def_ranged: i16,
+    pub str_bonus: i16,
+    pub ranged_str: i16,
+    pub magic_dmg: i16,
+    pub prayer: i16,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AttackType {
+    Stab,
+    Slash,
+    Crush,
+    Magic,
+    Ranged,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WeaponStance {
+    Accurate,
+    Aggressive,
+    Controlled,
+    Defensive,
+    Rapid,
+    Longrange,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum XpType {
+    Attack,
+    Strength,
+    Defence,
+    Ranged,
+    RangedAndDefence,
+    Magic,
+    MagicAndDefence,
+    Shared,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StyleName {
+    Accurate,
+    Bash,
+    Blaze,
+    Block,
+    Chop,
+    Deflect,
+    Explosive,
+    Fend,
+    Flamer,
+    Flare,
+    Flick,
+    Focus,
+    Hack,
+    Impale,
+    Jab,
+    Kick,
+    Lash,
+    Longrange,
+    LongFuse,
+    Lunge,
+    MediumFuse,
+    Pound,
+    Pummel,
+    Punch,
+    Rapid,
+    Reap,
+    Scorch,
+    ShortFuse,
+    Slash,
+    Smash,
+    Spell,
+    Spike,
+    Stab,
+    Swipe,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct CombatStyle {
+    pub name: StyleName,
+    pub atk_type: Option<AttackType>,
+    pub stance: Option<WeaponStance>,
+    pub xp_type: Option<XpType>,
+}
+
+impl CombatStyle {
+    const fn new(name: StyleName, atk_type: AttackType, stance: WeaponStance, xp_type: XpType) -> Self {
+        Self { name, atk_type: Some(atk_type), stance: Some(stance), xp_type: Some(xp_type) }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WeaponCategory {
+    TwoHandedSword,
+    Axe,
+    Banner,
+    Blunt,
+    Bludgeon,
+    Bulwark,
+    Claw,
+    Egg,
+    Partisan,
+    Pickaxe,
+    Polearm,
+    Polestaff,
+    Scythe,
+    SlashSword,
+    Spear,
+    Spiked,
+    StabSword,
+    Unarmed,
+    Whip,
+    Bow,
+    Blaster,
+    Chinchompa,
+    Crossbow,
+    Gun,
+    Thrown,
+    BladedStaff,
+    PoweredStaff,
+    Staff,
+    Salamander,
+    MultiStyle,
+}
+
+impl WeaponCategory {
+    pub fn combat_styles(self) -> &'static [CombatStyle] {
+        use AttackType as A;
+        use StyleName as S;
+        use WeaponStance as St;
+        use XpType as X;
+        match self {
+            Self::TwoHandedSword => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Chop, A::Slash, St::Accurate, X::Attack),
+                    CombatStyle::new(S::Slash, A::Slash, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Smash, A::Crush, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Block, A::Slash, St::Defensive, X::Defence),
+                ];
+                V
+            }
+            Self::Axe => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Chop, A::Slash, St::Accurate, X::Attack),
+                    CombatStyle::new(S::Hack, A::Slash, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Smash, A::Crush, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Block, A::Slash, St::Defensive, X::Defence),
+                ];
+                V
+            }
+            Self::Banner => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Lunge, A::Stab, St::Accurate, X::Attack),
+                    CombatStyle::new(S::Swipe, A::Slash, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Pound, A::Crush, St::Controlled, X::Shared),
+                    CombatStyle::new(S::Block, A::Stab, St::Defensive, X::Defence),
+                ];
+                V
+            }
+            Self::Blunt | Self::Egg => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Pound, A::Crush, St::Accurate, X::Attack),
+                    CombatStyle::new(S::Pummel, A::Crush, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Block, A::Crush, St::Defensive, X::Defence),
+                ];
+                V
+            }
+            Self::Bludgeon => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Pound, A::Crush, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Pummel, A::Crush, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Smash, A::Crush, St::Aggressive, X::Strength),
+                ];
+                V
+            }
+            Self::Bulwark => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Pummel, A::Crush, St::Accurate, X::Attack),
+                    CombatStyle { name: S::Block, atk_type: None, stance: None, xp_type: None },
+                ];
+                V
+            }
+            Self::Claw => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Chop, A::Slash, St::Accurate, X::Attack),
+                    CombatStyle::new(S::Slash, A::Slash, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Lunge, A::Stab, St::Controlled, X::Shared),
+                    CombatStyle::new(S::Block, A::Slash, St::Defensive, X::Defence),
+                ];
+                V
+            }
+            Self::Partisan => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Stab, A::Stab, St::Accurate, X::Attack),
+                    CombatStyle::new(S::Lunge, A::Stab, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Pound, A::Crush, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Block, A::Stab, St::Defensive, X::Defence),
+                ];
+                V
+            }
+            Self::Pickaxe => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Spike, A::Stab, St::Accurate, X::Attack),
+                    CombatStyle::new(S::Impale, A::Stab, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Smash, A::Crush, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Block, A::Stab, St::Defensive, X::Defence),
+                ];
+                V
+            }
+            Self::Polearm => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Jab, A::Stab, St::Controlled, X::Shared),
+                    CombatStyle::new(S::Swipe, A::Slash, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Fend, A::Stab, St::Defensive, X::Defence),
+                ];
+                V
+            }
+            Self::Polestaff => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Bash, A::Crush, St::Accurate, X::Attack),
+                    CombatStyle::new(S::Pound, A::Crush, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Block, A::Crush, St::Defensive, X::Defence),
+                ];
+                V
+            }
+            Self::Scythe => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Reap, A::Slash, St::Accurate, X::Attack),
+                    CombatStyle::new(S::Chop, A::Slash, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Jab, A::Crush, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Block, A::Slash, St::Defensive, X::Defence),
+                ];
+                V
+            }
+            Self::SlashSword => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Chop, A::Slash, St::Accurate, X::Attack),
+                    CombatStyle::new(S::Slash, A::Slash, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Lunge, A::Stab, St::Controlled, X::Shared),
+                    CombatStyle::new(S::Block, A::Slash, St::Defensive, X::Defence),
+                ];
+                V
+            }
+            Self::Spear => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Lunge, A::Stab, St::Controlled, X::Shared),
+                    CombatStyle::new(S::Swipe, A::Slash, St::Controlled, X::Shared),
+                    CombatStyle::new(S::Pound, A::Crush, St::Controlled, X::Shared),
+                    CombatStyle::new(S::Block, A::Stab, St::Defensive, X::Defence),
+                ];
+                V
+            }
+            Self::Spiked => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Pound, A::Crush, St::Accurate, X::Attack),
+                    CombatStyle::new(S::Pummel, A::Crush, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Spike, A::Stab, St::Controlled, X::Shared),
+                    CombatStyle::new(S::Block, A::Crush, St::Defensive, X::Defence),
+                ];
+                V
+            }
+            Self::StabSword => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Stab, A::Stab, St::Accurate, X::Attack),
+                    CombatStyle::new(S::Lunge, A::Stab, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Slash, A::Slash, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Block, A::Stab, St::Defensive, X::Defence),
+                ];
+                V
+            }
+            Self::Unarmed => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Punch, A::Crush, St::Accurate, X::Attack),
+                    CombatStyle::new(S::Kick, A::Crush, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Block, A::Crush, St::Defensive, X::Defence),
+                ];
+                V
+            }
+            Self::Whip => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Flick, A::Slash, St::Accurate, X::Attack),
+                    CombatStyle::new(S::Lash, A::Slash, St::Controlled, X::Shared),
+                    CombatStyle::new(S::Deflect, A::Slash, St::Defensive, X::Defence),
+                ];
+                V
+            }
+            Self::Bow | Self::Crossbow | Self::Thrown | Self::Gun | Self::MultiStyle => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Accurate, A::Ranged, St::Accurate, X::Ranged),
+                    CombatStyle::new(S::Rapid, A::Ranged, St::Rapid, X::Ranged),
+                    CombatStyle::new(S::Longrange, A::Ranged, St::Longrange, X::RangedAndDefence),
+                ];
+                V
+            }
+            Self::Chinchompa => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::ShortFuse, A::Ranged, St::Accurate, X::Ranged),
+                    CombatStyle::new(S::MediumFuse, A::Ranged, St::Rapid, X::Ranged),
+                    CombatStyle::new(S::LongFuse, A::Ranged, St::Longrange, X::RangedAndDefence),
+                ];
+                V
+            }
+            Self::Blaster => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Explosive, A::Ranged, St::Accurate, X::Ranged),
+                    CombatStyle::new(S::Flamer, A::Ranged, St::Rapid, X::Ranged),
+                ];
+                V
+            }
+            Self::Staff => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Bash, A::Crush, St::Accurate, X::Attack),
+                    CombatStyle::new(S::Pound, A::Crush, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Focus, A::Crush, St::Defensive, X::Defence),
+                    CombatStyle::new(S::Spell, A::Magic, St::Accurate, X::Magic),
+                    CombatStyle::new(S::Spell, A::Magic, St::Defensive, X::MagicAndDefence),
+                ];
+                V
+            }
+            Self::BladedStaff => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Jab, A::Stab, St::Accurate, X::Attack),
+                    CombatStyle::new(S::Swipe, A::Slash, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Fend, A::Crush, St::Defensive, X::Defence),
+                    CombatStyle::new(S::Spell, A::Magic, St::Accurate, X::Magic),
+                    CombatStyle::new(S::Spell, A::Magic, St::Defensive, X::MagicAndDefence),
+                ];
+                V
+            }
+            Self::PoweredStaff => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Accurate, A::Magic, St::Accurate, X::Magic),
+                    CombatStyle::new(S::Accurate, A::Magic, St::Accurate, X::Magic),
+                    CombatStyle::new(S::Longrange, A::Magic, St::Longrange, X::MagicAndDefence),
+                ];
+                V
+            }
+            Self::Salamander => {
+                const V: &[CombatStyle] = &[
+                    CombatStyle::new(S::Scorch, A::Slash, St::Aggressive, X::Strength),
+                    CombatStyle::new(S::Flare, A::Ranged, St::Accurate, X::Ranged),
+                    CombatStyle::new(S::Blaze, A::Magic, St::Defensive, X::Defence),
+                ];
+                V
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, TryFromPrimitive)]
 #[repr(usize)]
 pub enum WearPos {
@@ -72,6 +431,9 @@ pub struct ObjType {
     pub weight: i32,
     pub wearpos: Option<WearPos>,
     pub wearflag: WearFlag,
+    pub equip: EquipBonuses,
+    pub atk_speed: Option<i16>,
+    pub weapon_category: Option<WeaponCategory>,
     pub lent_id: Option<u32>,
     pub lent_template: Option<u32>,
     pub params: HashMap<u32, ParamValue>,
@@ -110,6 +472,9 @@ impl Default for ObjType {
             weight: 0,
             wearpos: None,
             wearflag: WearFlag::None,
+            equip: EquipBonuses::default(),
+            atk_speed: None,
+            weapon_category: None,
             lent_id: None,
             lent_template: None,
             params: HashMap::new(),

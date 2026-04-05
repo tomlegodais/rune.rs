@@ -128,9 +128,8 @@ impl Movement {
     }
 
     fn drain_rate(&self, agility: u8) -> u16 {
-        let weight = self.weight().clamp(0, 64);
-        let base = 60 + (67 * weight / 64);
-        (base as f64 * (1.0 - agility as f64 / 300.0)) as u16
+        let weight = self.weight().clamp(0, 64) as f64;
+        ((60.0 + 67.0 * weight / 64.0) * (1.0 - agility as f64 / 300.0)) as u16
     }
 
     fn restore_rate(&self, agility: u8) -> u16 {
@@ -138,7 +137,17 @@ impl Movement {
     }
 
     fn weight(&self) -> i32 {
-        0
+        let grams: i32 = self
+            .player
+            .worn()
+            .slots()
+            .0
+            .iter()
+            .flatten()
+            .filter_map(|obj| crate::provider::get_obj_type(obj.id as u32))
+            .map(|t| t.weight)
+            .sum();
+        grams / 1000
     }
 
     async fn send_run_energy(&mut self) {

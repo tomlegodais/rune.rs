@@ -75,6 +75,9 @@ async fn wear_slot(player: &mut Player, inv_slot: usize, obj: Obj) {
 
     player.worn_mut().flush().await;
     player.appearance_mut().flush();
+    if player.interface().get_slot(InterfaceSlot::Modal) == Some(equipment::STATS) {
+        send_equip_bonuses(player).await;
+    }
 }
 
 async fn unwear_slot(player: &mut Player, slot: WearPos) {
@@ -87,6 +90,52 @@ async fn unwear_slot(player: &mut Player, slot: WearPos) {
     player.inv_mut().add(obj.id, obj.amount).await;
     player.worn_mut().flush().await;
     player.appearance_mut().flush();
+    if player.interface().get_slot(InterfaceSlot::Modal) == Some(equipment::STATS) {
+        send_equip_bonuses(player).await;
+    }
+}
+
+async fn send_equip_bonuses(player: &mut Player) {
+    let b = player.worn().bonuses();
+    let fmt = |label: &str, value: i16| -> String {
+        if value < 0 { format!("{}{}", label.replace('+', ""), value) } else { format!("{}{}", label, value) }
+    };
+
+    const S: u16 = equipment::STATS;
+    let lines: [(u16, String); 15] = [
+        (36, fmt("Stab: +", b.atk_stab)),
+        (37, fmt("Slash: +", b.atk_slash)),
+        (38, fmt("Crush: +", b.atk_crush)),
+        (39, fmt("Magic: +", b.atk_magic)),
+        (40, fmt("Ranged: +", b.atk_ranged)),
+        (41, fmt("Stab: +", b.def_stab)),
+        (42, fmt("Slash: +", b.def_slash)),
+        (43, fmt("Crush: +", b.def_crush)),
+        (44, fmt("Magic: +", b.def_magic)),
+        (45, fmt("Range: +", b.def_ranged)),
+        (46, "Summoning: +0".into()),
+        (48, fmt("Strength: +", b.str_bonus)),
+        (49, fmt("Ranged Str: +", b.ranged_str)),
+        (50, fmt("Prayer: +", b.prayer)),
+        (51, format!("Magic Damage: +{}%", b.magic_dmg)),
+    ];
+
+    for (component, text) in lines {
+        player.if_set_text(S, component, text).await;
+    }
+
+    let weight_kg = player
+        .worn()
+        .slots()
+        .0
+        .iter()
+        .flatten()
+        .filter_map(|obj| crate::provider::get_obj_type(obj.id as u32))
+        .map(|t| t.weight)
+        .sum::<i32>();
+
+    let weight_display = weight_kg as f64 / 1000.0;
+    player.if_set_text(S, 32, format!("{:.1} kg", weight_display)).await;
 }
 
 async fn open_equipment_stats(player: &mut Player) {
@@ -123,4 +172,6 @@ async fn open_equipment_stats(player: &mut Player) {
             right_click[0, 9]
         ))
         .await;
+
+    send_equip_bonuses(player).await;
 }

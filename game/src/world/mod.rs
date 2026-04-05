@@ -13,7 +13,7 @@ use std::{
 
 pub use collision::{CollisionMap, LocParams};
 pub use loc::{LocStore, TempLoc, TempLocSnapshot};
-use net::{Frame, IncomingMessage};
+use net::{Frame, IncomingMessage, Logout, OutboxExt};
 pub use objstack::ObjStackStore;
 use parking_lot::Mutex;
 pub use pathfinding::{
@@ -101,6 +101,13 @@ impl World {
         tracing::info!(index = player.index, username = player.username, "Player Logged Out");
 
         Some(player.to_player_data())
+    }
+
+    pub async fn signal_logout_all(&self) {
+        let outboxes: Vec<_> = self.players.map(|p| p.outbox.clone());
+        for mut outbox in outboxes {
+            outbox.write(Logout).await;
+        }
     }
 
     pub(super) async fn decay_obj_stacks(&self) {

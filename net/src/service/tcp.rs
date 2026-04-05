@@ -5,6 +5,7 @@ use tokio::{
     net::TcpListener,
     sync::{Semaphore, oneshot},
 };
+use tokio_util::task::TaskTracker;
 
 use crate::{LoginService, config::TcpConfig, service::cache::CacheService, session::Session};
 
@@ -23,7 +24,7 @@ impl TcpService {
         })
     }
 
-    async fn run(&self, on_ready: Option<oneshot::Sender<()>>) -> anyhow::Result<()> {
+    async fn run(&self, on_ready: Option<oneshot::Sender<()>>, tracker: TaskTracker) -> anyhow::Result<()> {
         let listener = TcpListener::bind(self.config.bind_addr).await?;
         let semaphore = Arc::new(Semaphore::new(self.config.max_connections));
         let cache_service = Arc::new(CacheService::new(self.cache.clone())?);
@@ -40,7 +41,7 @@ impl TcpService {
             let (socket, _) = listener.accept().await?;
             let session = Session::new(socket, Arc::clone(&cache_service), Arc::clone(&login_service));
 
-            tokio::spawn(async move {
+            tracker.spawn(async move {
                 if let Some(e) = session.run().await.err().filter(|err| !err.is_disconnect()) {
                     tracing::error!(error = %e, "Session Error");
                 }
@@ -54,9 +55,20 @@ impl TcpService {
     where
         F: Future<Output = ()>,
     {
+        let tracker = TaskTracker::new();
+
         tokio::select! {
-            result = self.run(on_ready) => result,
-            _ = shutdown => Ok(())
+            result = self.run(on_ready, tracker.clone()) => result?,
+            _ = shutdown => {}
         }
+
+        tracker.close();
+
+        if !tracker.is_empty() {
+            tracing::info!(count = tracker.len(), "Waiting for active sessions to disconnect");
+            tracker.wait().await;
+        }
+
+        Ok(())
     }
 }
