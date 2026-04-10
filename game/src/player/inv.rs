@@ -2,7 +2,7 @@ use std::{future::Future, pin::Pin};
 
 use macros::player_system;
 use net::{InvEntry, InvType, if_events, if_set_events};
-use persistence::player::PlayerData;
+use persistence::PlayerData;
 
 use crate::{
     player::{

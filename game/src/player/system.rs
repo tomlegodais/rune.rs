@@ -7,7 +7,7 @@ use std::{
     sync::Arc,
 };
 
-use persistence::player::PlayerData;
+use persistence::PlayerData;
 
 use crate::world::World;
 

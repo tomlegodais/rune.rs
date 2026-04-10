@@ -1,78 +1,75 @@
 use std::sync::Arc;
 
-use filesystem::{
-    config::{EquipBonuses, ObjType, WeaponCategory, WearFlag, WearPos},
-    loader::ObjLoader,
-};
+use filesystem::{EquipBonuses, ObjLoader, ObjType, WeaponCategory, WearFlag, WearPos};
 use macros::data_provider;
 use once_cell::sync::OnceCell;
-use persistence::obj::{self, ObjConfigRepository};
+use persistence::{DbWeaponCategory, DbWearFlag, DbWearPos, ObjConfigRepository};
 use shaku::HasComponent;
 
 use crate::provider::ProviderContext;
 
 static INSTANCE: OnceCell<ObjLoader> = OnceCell::new();
 
-fn map_wearpos(slot: obj::WearPos) -> WearPos {
+fn map_wearpos(slot: DbWearPos) -> WearPos {
     match slot {
-        obj::WearPos::Head => WearPos::Head,
-        obj::WearPos::Cape => WearPos::Cape,
-        obj::WearPos::Amulet => WearPos::Amulet,
-        obj::WearPos::Weapon => WearPos::Weapon,
-        obj::WearPos::Body => WearPos::Body,
-        obj::WearPos::Shield => WearPos::Shield,
-        obj::WearPos::Legs => WearPos::Legs,
-        obj::WearPos::Gloves => WearPos::Gloves,
-        obj::WearPos::Boots => WearPos::Boots,
-        obj::WearPos::Ring => WearPos::Ring,
-        obj::WearPos::Ammo => WearPos::Ammo,
+        DbWearPos::Head => WearPos::Head,
+        DbWearPos::Cape => WearPos::Cape,
+        DbWearPos::Amulet => WearPos::Amulet,
+        DbWearPos::Weapon => WearPos::Weapon,
+        DbWearPos::Body => WearPos::Body,
+        DbWearPos::Shield => WearPos::Shield,
+        DbWearPos::Legs => WearPos::Legs,
+        DbWearPos::Gloves => WearPos::Gloves,
+        DbWearPos::Boots => WearPos::Boots,
+        DbWearPos::Ring => WearPos::Ring,
+        DbWearPos::Ammo => WearPos::Ammo,
     }
 }
 
-fn map_wearflag(flag: obj::WearFlag) -> WearFlag {
+fn map_wearflag(flag: DbWearFlag) -> WearFlag {
     match flag {
-        obj::WearFlag::TwoHanded => WearFlag::TwoHanded,
-        obj::WearFlag::Sleeveless => WearFlag::Sleeveless,
-        obj::WearFlag::Hair => WearFlag::Hair,
-        obj::WearFlag::HairMid => WearFlag::HairMid,
-        obj::WearFlag::HairLow => WearFlag::HairLow,
-        obj::WearFlag::FullFace => WearFlag::FullFace,
-        obj::WearFlag::Mask => WearFlag::Mask,
+        DbWearFlag::TwoHanded => WearFlag::TwoHanded,
+        DbWearFlag::Sleeveless => WearFlag::Sleeveless,
+        DbWearFlag::Hair => WearFlag::Hair,
+        DbWearFlag::HairMid => WearFlag::HairMid,
+        DbWearFlag::HairLow => WearFlag::HairLow,
+        DbWearFlag::FullFace => WearFlag::FullFace,
+        DbWearFlag::Mask => WearFlag::Mask,
     }
 }
 
-fn map_weapon_category(cat: obj::WeaponCategory) -> WeaponCategory {
+fn map_weapon_category(cat: DbWeaponCategory) -> WeaponCategory {
     match cat {
-        obj::WeaponCategory::TwoHandedSword => WeaponCategory::TwoHandedSword,
-        obj::WeaponCategory::Axe => WeaponCategory::Axe,
-        obj::WeaponCategory::Banner => WeaponCategory::Banner,
-        obj::WeaponCategory::Blunt => WeaponCategory::Blunt,
-        obj::WeaponCategory::Bludgeon => WeaponCategory::Bludgeon,
-        obj::WeaponCategory::Bulwark => WeaponCategory::Bulwark,
-        obj::WeaponCategory::Claw => WeaponCategory::Claw,
-        obj::WeaponCategory::Egg => WeaponCategory::Egg,
-        obj::WeaponCategory::Partisan => WeaponCategory::Partisan,
-        obj::WeaponCategory::Pickaxe => WeaponCategory::Pickaxe,
-        obj::WeaponCategory::Polearm => WeaponCategory::Polearm,
-        obj::WeaponCategory::Polestaff => WeaponCategory::Polestaff,
-        obj::WeaponCategory::Scythe => WeaponCategory::Scythe,
-        obj::WeaponCategory::SlashSword => WeaponCategory::SlashSword,
-        obj::WeaponCategory::Spear => WeaponCategory::Spear,
-        obj::WeaponCategory::Spiked => WeaponCategory::Spiked,
-        obj::WeaponCategory::StabSword => WeaponCategory::StabSword,
-        obj::WeaponCategory::Unarmed => WeaponCategory::Unarmed,
-        obj::WeaponCategory::Whip => WeaponCategory::Whip,
-        obj::WeaponCategory::Bow => WeaponCategory::Bow,
-        obj::WeaponCategory::Blaster => WeaponCategory::Blaster,
-        obj::WeaponCategory::Chinchompa => WeaponCategory::Chinchompa,
-        obj::WeaponCategory::Crossbow => WeaponCategory::Crossbow,
-        obj::WeaponCategory::Gun => WeaponCategory::Gun,
-        obj::WeaponCategory::Thrown => WeaponCategory::Thrown,
-        obj::WeaponCategory::BladedStaff => WeaponCategory::BladedStaff,
-        obj::WeaponCategory::PoweredStaff => WeaponCategory::PoweredStaff,
-        obj::WeaponCategory::Staff => WeaponCategory::Staff,
-        obj::WeaponCategory::Salamander => WeaponCategory::Salamander,
-        obj::WeaponCategory::MultiStyle => WeaponCategory::MultiStyle,
+        DbWeaponCategory::TwoHandedSword => WeaponCategory::TwoHandedSword,
+        DbWeaponCategory::Axe => WeaponCategory::Axe,
+        DbWeaponCategory::Banner => WeaponCategory::Banner,
+        DbWeaponCategory::Blunt => WeaponCategory::Blunt,
+        DbWeaponCategory::Bludgeon => WeaponCategory::Bludgeon,
+        DbWeaponCategory::Bulwark => WeaponCategory::Bulwark,
+        DbWeaponCategory::Claw => WeaponCategory::Claw,
+        DbWeaponCategory::Egg => WeaponCategory::Egg,
+        DbWeaponCategory::Partisan => WeaponCategory::Partisan,
+        DbWeaponCategory::Pickaxe => WeaponCategory::Pickaxe,
+        DbWeaponCategory::Polearm => WeaponCategory::Polearm,
+        DbWeaponCategory::Polestaff => WeaponCategory::Polestaff,
+        DbWeaponCategory::Scythe => WeaponCategory::Scythe,
+        DbWeaponCategory::SlashSword => WeaponCategory::SlashSword,
+        DbWeaponCategory::Spear => WeaponCategory::Spear,
+        DbWeaponCategory::Spiked => WeaponCategory::Spiked,
+        DbWeaponCategory::StabSword => WeaponCategory::StabSword,
+        DbWeaponCategory::Unarmed => WeaponCategory::Unarmed,
+        DbWeaponCategory::Whip => WeaponCategory::Whip,
+        DbWeaponCategory::Bow => WeaponCategory::Bow,
+        DbWeaponCategory::Blaster => WeaponCategory::Blaster,
+        DbWeaponCategory::Chinchompa => WeaponCategory::Chinchompa,
+        DbWeaponCategory::Crossbow => WeaponCategory::Crossbow,
+        DbWeaponCategory::Gun => WeaponCategory::Gun,
+        DbWeaponCategory::Thrown => WeaponCategory::Thrown,
+        DbWeaponCategory::BladedStaff => WeaponCategory::BladedStaff,
+        DbWeaponCategory::PoweredStaff => WeaponCategory::PoweredStaff,
+        DbWeaponCategory::Staff => WeaponCategory::Staff,
+        DbWeaponCategory::Salamander => WeaponCategory::Salamander,
+        DbWeaponCategory::MultiStyle => WeaponCategory::MultiStyle,
     }
 }
 

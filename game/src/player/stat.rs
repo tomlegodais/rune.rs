@@ -2,7 +2,7 @@ use std::{future::Future, pin::Pin};
 
 use macros::{enum_data, player_system};
 use num_enum::{IntoPrimitive, TryFromPrimitive};
-use persistence::player::PlayerData;
+use persistence::PlayerData;
 
 use crate::{
     player::{

@@ -1,4 +1,4 @@
-use filesystem::config::{AttackType, WeaponCategory, WeaponStance, XpType};
+use filesystem::{AttackType, WeaponCategory, WeaponStance, XpType};
 
 use super::formula::{MeleeAttack, MeleeDefence, atk_bonus_for_type, def_bonus_for_type};
 use crate::{
@@ -29,7 +29,7 @@ pub fn resolve_style(player: &crate::player::Player) -> ResolvedStyle {
 pub fn weapon_atk_speed(player: &crate::player::Player) -> u16 {
     player
         .worn()
-        .slot(filesystem::config::WearPos::Weapon)
+        .slot(filesystem::WearPos::Weapon)
         .and_then(|obj| provider::get_obj_type(obj.id as u32))
         .and_then(|t| t.atk_speed)
         .unwrap_or(DEFAULT_ATK_SPEED as i16) as u16

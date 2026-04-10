@@ -2,10 +2,10 @@ use std::{future::Future, pin::Pin, sync::Arc};
 
 use macros::player_system;
 use net::Op;
-use persistence::player::PlayerData;
+use persistence::PlayerData;
 
 use crate::{
-    content::combat::CombatTarget,
+    content::{CombatTarget, npc_size},
     entity::WalkTarget,
     player::{
         InteractionTarget, PlayerSnapshot,
@@ -188,7 +188,7 @@ impl PlayerSystem for CombatManager {
                     }
                     let npc = world.npc(i);
                     let pos = npc.position;
-                    let size = crate::content::combat::npc::npc_size(npc.npc_id);
+                    let size = npc_size(npc.npc_id);
                     (InteractionTarget::Npc { index: i }, pos, size)
                 }
                 CombatTarget::Player(i) => {

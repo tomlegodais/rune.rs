@@ -1,11 +1,11 @@
-pub mod action;
+mod action;
 mod gni;
 mod info;
 mod mask;
 
 use std::ops::{Deref, DerefMut};
 
-pub use action::{NpcActionState, fire_action, resolve as resolve_action};
+pub use action::{NpcActionState, NpcRef, active_shared, delay, fire_action, resolve as resolve_action};
 pub use gni::encode_npc_info;
 pub use info::NpcInfo;
 pub use mask::{FaceEntityMask, SeqMask, SpotAnim1Mask, SpotAnim2Mask};

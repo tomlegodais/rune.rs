@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use filesystem::{config::NpcType, loader::NpcLoader};
+use filesystem::{NpcLoader, NpcType};
 use macros::data_provider;
 use once_cell::sync::OnceCell;
-use persistence::npc::{FaceDirection, NpcConfigRepository};
+use persistence::{FaceDirection, NpcConfigRepository};
 use shaku::HasComponent;
 
 use crate::{npc::NpcCombat, provider::ProviderContext, world::Direction};

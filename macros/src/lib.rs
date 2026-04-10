@@ -63,25 +63,25 @@ pub fn dialogue_tree(input: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn on_loc(attr: TokenStream, item: TokenStream) -> TokenStream {
-    interaction::loc::on_loc(attr, item)
+    interaction::on_loc(attr, item)
 }
 
 #[proc_macro_attribute]
 pub fn on_npc(attr: TokenStream, item: TokenStream) -> TokenStream {
-    interaction::npc::on_npc(attr, item)
+    interaction::on_npc(attr, item)
 }
 
 #[proc_macro_attribute]
 pub fn on_obj(attr: TokenStream, item: TokenStream) -> TokenStream {
-    interaction::obj::on_obj(attr, item)
+    interaction::on_obj(attr, item)
 }
 
 #[proc_macro_attribute]
 pub fn on_player(attr: TokenStream, item: TokenStream) -> TokenStream {
-    interaction::player::on_player(attr, item)
+    interaction::on_player(attr, item)
 }
 
 #[proc_macro_attribute]
 pub fn on_interface(attr: TokenStream, item: TokenStream) -> TokenStream {
-    interaction::interface::on_interface(attr, item)
+    interaction::on_interface(attr, item)
 }

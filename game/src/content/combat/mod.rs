@@ -1,18 +1,29 @@
-pub mod anim;
-pub mod formula;
-pub mod npc;
-pub mod player;
-pub mod special;
+mod anim;
+mod formula;
+mod npc;
+mod player;
+mod special;
 mod specials;
 
-use formula::{MeleeAttack, MeleeDefence, accuracy, max_hit, roll_damage};
+pub use formula::{MeleeAttack, MeleeDefence, max_hit};
+use formula::{accuracy, roll_damage};
+pub use npc::npc_size;
+pub use player::melee_atk;
 
 use crate::{
     entity::{Hit, HitType},
-    player::FaceEntityMask as PlayerFaceEntityMask,
+    player::{Clientbound, FaceEntityMask as PlayerFaceEntityMask},
     provider,
-    world::{World, can_interact_rect, find_path_adjacent_rect},
+    world::{Position, World, can_interact_rect, find_path_adjacent_rect},
 };
+
+pub struct PendingHit {
+    pub target: CombatTarget,
+    pub attacker: CombatTarget,
+    pub damage: u16,
+    pub hit_type: HitType,
+    pub delay: u16,
+}
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum CombatTarget {
@@ -49,7 +60,7 @@ impl CombatTarget {
         }
     }
 
-    fn melee_def(self, world: &World, atk_type: filesystem::config::AttackType) -> MeleeDefence {
+    fn melee_def(self, world: &World, atk_type: filesystem::AttackType) -> MeleeDefence {
         match self {
             Self::Npc(i) => npc::melee_def(&world.npc(i).combat, atk_type),
             Self::Player(i) => player::melee_def(&world.player(i), atk_type),
@@ -64,7 +75,84 @@ impl CombatTarget {
     }
 }
 
-fn roll_hit(atk: &MeleeAttack, def: &MeleeDefence, atk_type: filesystem::config::AttackType) -> (HitType, u16) {
+pub fn queue_hit(world: &World, hit: PendingHit) {
+    world.pending_hits.lock().push(hit);
+}
+
+pub struct Projectile {
+    pub graphic_id: u16,
+    pub src: Position,
+    pub dst: Position,
+    pub target: CombatTarget,
+    pub start_height: u8,
+    pub end_height: u8,
+    pub start_cycle: u16,
+    pub end_cycle: u16,
+    pub slope: u8,
+    pub angle: u8,
+}
+
+fn proj_target_index(target: CombatTarget) -> i16 {
+    match target {
+        CombatTarget::Npc(i) => (i + 1) as i16,
+        CombatTarget::Player(i) => -((i + 1) as i16),
+    }
+}
+
+fn build_projanim(proj: &Projectile, region_base: Position) -> net::MapProjAnim {
+    let (zone_x, zone_y, _) = proj.src.zone_coords(region_base);
+    net::MapProjAnim {
+        zone_frame: net::ZoneFrame::new(zone_x, zone_y, proj.src.plane as u8),
+        packed_pos: (((proj.src.x & 7) << 3) | (proj.src.y & 7)) as u8,
+        dst_dx: (proj.dst.x - proj.src.x) as i8,
+        dst_dy: (proj.dst.y - proj.src.y) as i8,
+        target: proj_target_index(proj.target),
+        graphic_id: proj.graphic_id,
+        start_height: proj.start_height,
+        end_height: proj.end_height,
+        start_cycle: proj.start_cycle,
+        end_cycle: proj.end_cycle,
+        slope: proj.slope,
+        angle: proj.angle,
+    }
+}
+
+pub async fn send_projectile(player: &mut crate::player::Player, world: &World, proj: &Projectile) {
+    player
+        .map_projanim(build_projanim(proj, player.viewport.region_base))
+        .await;
+
+    for index in world.players.keys() {
+        if index == player.index {
+            continue;
+        }
+        let mut other = world.players.get_mut(index);
+        if !other.viewport.is_within_view(other.position, proj.src) {
+            continue;
+        }
+        let frame = build_projanim(proj, other.viewport.region_base);
+        other.map_projanim(frame).await;
+    }
+}
+
+pub fn process_pending_hits(world: &World) {
+    let ready: Vec<PendingHit> = {
+        let mut queue = world.pending_hits.lock();
+        queue.iter_mut().for_each(|h| h.delay = h.delay.saturating_sub(1));
+        let (ready, pending): (Vec<_>, Vec<_>) = queue.drain(..).partition(|h| h.delay == 0);
+        *queue = pending;
+        ready
+    };
+
+    for hit in ready {
+        if !hit.target.alive(world) {
+            continue;
+        }
+        hit.target.apply_hit(world, hit.damage, hit.hit_type, hit.attacker);
+    }
+}
+
+fn roll_hit(atk: &MeleeAttack, def: &MeleeDefence, atk_type: filesystem::AttackType) -> (HitType, u16) {
     if accuracy(atk, def, atk_type) {
         let max = max_hit(atk);
         let dmg = roll_damage(max);
@@ -160,6 +248,7 @@ pub async fn start_melee_combat(target: CombatTarget) {
             let (atk, style) = player::melee_atk(&player);
             let def = target.melee_def(&player.world(), style.atk_type);
 
+            let attacker = CombatTarget::Player(player.index);
             if let Some(result) = special::try_execute(&mut player, target, &atk, &def, style.atk_type) {
                 special::apply_result(&mut player, target, &result);
                 player::award_melee_xp(style.xp_type, special::total_damage(&result)).await;
@@ -168,8 +257,16 @@ pub async fn start_melee_combat(target: CombatTarget) {
                 player.seq(anim);
 
                 let (hit_type, damage) = roll_hit(&atk, &def, style.atk_type);
-                let attacker = CombatTarget::Player(player.index);
-                target.apply_hit(&player.world(), damage, hit_type, attacker);
+                queue_hit(
+                    &player.world(),
+                    PendingHit {
+                        target,
+                        attacker,
+                        damage,
+                        hit_type,
+                        delay: 0,
+                    },
+                );
                 player::award_melee_xp(style.xp_type, damage).await;
             }
 

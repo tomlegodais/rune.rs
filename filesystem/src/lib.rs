@@ -2,10 +2,16 @@ mod archive;
 mod cache;
 mod checksum_table;
 mod codec;
-pub mod config;
+mod config;
 mod error;
 mod id;
-pub mod loader;
+mod loader;
+
+pub use config::{
+    AttackType, CombatStyle, EnumType, EnumValue, EquipBonuses, LocType, NpcType, ObjType, ParamMap, ParamValue,
+    StructType, StyleName, TransformKind, VarbitType, WeaponCategory, WeaponStance, WearFlag, WearPos, XpType,
+};
+pub use loader::{EnumLoader, LocLoader, NpcLoader, ObjLoader, StructLoader, VarbitLoader};
 mod reference;
 mod store;
 
@@ -15,12 +21,6 @@ pub use codec::Compression;
 pub use error::{CacheError, CacheResult};
 pub use id::{ArchiveId, FileId, IndexId, REFERENCE_INDEX};
 pub use reference::{ArchiveEntry, FileEntry, ReferenceTable, name_hash};
-
-pub mod prelude {
-    pub use crate::{
-        ArchiveId, Cache, CacheBuilder, CacheError, CacheResult, FileId, IndexId, REFERENCE_INDEX, ReferenceTable,
-    };
-}
 
 fn crc32(data: &[u8]) -> u32 {
     let mut crc: u32 = 0xFFFFFFFF;

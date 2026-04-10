@@ -23,7 +23,7 @@ pub fn on_obj(attr: TokenStream, item: TokenStream) -> TokenStream {
     };
 
     let base = super::macros::base();
-    let obj = super::macros::obj::macros();
+    let obj = super::macros::obj_macros();
 
     emit_content_handler(
         &wrapper_name,

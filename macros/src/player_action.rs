@@ -8,7 +8,7 @@ pub fn player_action(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let func_body = &func.block;
     let vis = &func.vis;
     let params = &func.sig.inputs;
-    let macros = crate::interaction::macros::base();
+    let macros = crate::interaction::base_macros();
 
     quote! {
         #[allow(unused_macros, unused_variables)]

@@ -145,7 +145,7 @@ impl PlayerSystem for HitpointsManager {
         Box::pin(self.tick_inner())
     }
 
-    fn persist(&self, data: &mut persistence::player::PlayerData) {
+    fn persist(&self, data: &mut persistence::PlayerData) {
         data.current_hp = self.current;
     }
 }

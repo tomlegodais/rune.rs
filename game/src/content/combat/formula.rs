@@ -1,4 +1,4 @@
-use filesystem::config::{AttackType, WeaponStance};
+use filesystem::{AttackType, WeaponStance};
 use rand::Rng;
 
 pub struct MeleeAttack {

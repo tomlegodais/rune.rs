@@ -1,4 +1,4 @@
-use filesystem::{config::LocType, loader::LocLoader};
+use filesystem::{LocLoader, LocType};
 use macros::data_provider;
 use once_cell::sync::OnceCell;
 

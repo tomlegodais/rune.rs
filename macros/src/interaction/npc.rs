@@ -22,7 +22,7 @@ pub fn on_npc(attr: TokenStream, item: TokenStream) -> TokenStream {
     };
 
     let base = super::macros::base();
-    let npc = super::macros::npc::macros();
+    let npc = super::macros::npc_macros();
 
     emit_content_handler(
         &wrapper_name,

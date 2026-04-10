@@ -2,10 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use net::{LoginOutcome, LoginRequest, LoginService, LoginSuccess, SessionError};
-use persistence::{
-    account::AccountRepository,
-    player::{PlayerData, PlayerRepository},
-};
+use persistence::{AccountRepository, PlayerData, PlayerRepository};
 use shaku::{Component, Interface};
 
 use crate::{config::GameConfig, world::World};

@@ -5,8 +5,11 @@ mod dialogue;
 mod inv;
 mod loc;
 mod messaging;
-pub mod npc;
-pub mod obj;
+mod npc;
+mod obj;
+
+pub use npc::macros as npc_macros;
+pub use obj::macros as obj_macros;
 mod seq;
 mod stat;
 

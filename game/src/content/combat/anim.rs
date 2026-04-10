@@ -1,10 +1,10 @@
-use filesystem::config::{WeaponCategory, WearPos};
+use filesystem::{WeaponCategory, WearPos};
 
 use crate::provider;
 
 const SHIELD_BLOCK_ANIM: u16 = 1156;
 
-fn weapon_type(player: &crate::player::Player) -> Option<&'static filesystem::config::ObjType> {
+fn weapon_type(player: &crate::player::Player) -> Option<&'static filesystem::ObjType> {
     player
         .worn()
         .slot(WearPos::Weapon)

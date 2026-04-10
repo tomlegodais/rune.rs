@@ -5,12 +5,21 @@ use syn::{
     parse::{Parse, ParseStream},
 };
 
-pub mod interface;
-pub mod loc;
-pub mod macros;
-pub mod npc;
-pub mod obj;
-pub mod player;
+mod interface;
+mod loc;
+mod npc;
+mod obj;
+mod player;
+
+pub use interface::on_interface;
+pub use loc::on_loc;
+pub use npc::on_npc;
+pub use obj::on_obj;
+pub use player::on_player;
+
+mod macros;
+
+pub use macros::base as base_macros;
 
 pub enum AttrValue {
     Int(syn::LitInt),

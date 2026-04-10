@@ -1,4 +1,4 @@
-use filesystem::config::{ParamMap, WearFlag};
+use filesystem::{ParamMap, WearFlag};
 use num_enum::IntoPrimitive;
 use persistence::Rights;
 use tokio_util::bytes::{BufMut, BytesMut};

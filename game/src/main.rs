@@ -33,8 +33,8 @@ module! {
 
         use dyn PersistenceModuleInterface {
             components = [
-                dyn persistence::account::AccountRepository,
-                dyn persistence::player::PlayerRepository,
+                dyn persistence::AccountRepository,
+                dyn persistence::PlayerRepository,
             ],
             providers = []
         }

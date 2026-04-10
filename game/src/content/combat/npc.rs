@@ -1,9 +1,9 @@
-use filesystem::config::{AttackType, WeaponStance};
+use filesystem::{AttackType, WeaponStance};
 
 use super::{
-    apply_hit_player,
+    CombatTarget, PendingHit,
     formula::{MeleeAttack, MeleeDefence, def_bonus_for_type},
-    roll_hit,
+    queue_hit, roll_hit,
 };
 use crate::{
     provider,
@@ -119,12 +119,15 @@ pub async fn start_combat(target_index: usize) {
             drop(world);
 
             npc.seq(atk_seq);
-            apply_hit_player(
+            queue_hit(
                 &npc.entity.world(),
-                target_index,
-                damage,
-                hit_type,
-                super::CombatTarget::Npc(npc.index),
+                PendingHit {
+                    target: CombatTarget::Player(target_index),
+                    attacker: CombatTarget::Npc(npc.index),
+                    damage,
+                    hit_type,
+                    delay: 0,
+                },
             );
 
             cd = atk_speed;

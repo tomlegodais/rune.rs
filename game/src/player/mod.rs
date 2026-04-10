@@ -49,10 +49,7 @@ pub use mask::{
 };
 use net::{Inbox, Outbox};
 pub use obj::Obj;
-use persistence::{
-    account::{Account, Rights},
-    player::PlayerData,
-};
+use persistence::{Account, PlayerData, Rights};
 pub use stat::{NUM_STATS, Stat};
 use system::{PlayerHandle, PlayerInitContext, SystemStore};
 pub use ui::{chatbox, equipment};

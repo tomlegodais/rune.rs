@@ -1,10 +1,8 @@
-use crate::{
-    content::combat::{
-        formula::{MeleeAttack, accuracy, max_hit, roll_damage},
-        special::{SpecialHit, SpecialResult},
-    },
-    entity::HitType,
+use super::super::{
+    formula::{accuracy, max_hit, roll_damage},
+    special::{SpecialHit, SpecialResult},
 };
+use crate::{content::MeleeAttack, entity::HitType};
 
 #[macros::special_attack(obj_id = 11694, energy = 500)]
 fn ags_spec() {

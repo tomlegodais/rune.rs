@@ -1,7 +1,7 @@
 use std::{future::Future, pin::Pin, sync::Arc};
 
 use macros::player_system;
-use persistence::player::PlayerData;
+use persistence::PlayerData;
 
 use crate::{
     player::{

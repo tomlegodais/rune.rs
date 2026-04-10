@@ -4,6 +4,7 @@ use net::{InboxExt, IncomingMessage};
 use parking_lot::Mutex;
 
 use crate::{
+    content::process_pending_hits,
     handler::handle_incoming_message,
     npc::{Npc, NpcSnapshot},
     player::{Player, PlayerSnapshot, resolve_interaction},
@@ -144,6 +145,8 @@ impl TickPhase<Npc> for Reset {
 
 impl WorldTickPhase for WorldTick {
     async fn execute(&self, world: &World) {
+        process_pending_hits(world);
+
         world.decay_obj_stacks().await;
         world.respawn_locs().await;
         world.process_npc_deaths();

@@ -13,9 +13,9 @@ pub fn npc_action(_attr: TokenStream, item: TokenStream) -> TokenStream {
         #[allow(unused_macros, unused_variables)]
         #vis fn #func_name(#params) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'static>> {
             Box::pin(async move {
-                let __shared = crate::npc::action::active_shared();
-                let mut npc = crate::npc::action::NpcRef;
-                macro_rules! delay { ($t:expr) => { crate::npc::action::delay(&__shared, $t).await }; }
+                let __shared = crate::npc::active_shared();
+                let mut npc = crate::npc::NpcRef;
+                macro_rules! delay { ($t:expr) => { crate::npc::delay(&__shared, $t).await }; }
                 #func_body
             })
         }

@@ -1,4 +1,4 @@
-use filesystem::config::{WearFlag, WearPos};
+use filesystem::{WearFlag, WearPos};
 use net::{ScriptArg, if_events, if_set_events};
 use num_enum::TryFromPrimitive;
 

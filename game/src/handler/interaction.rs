@@ -6,6 +6,7 @@ use super::{
     dispatch::{CONTENT_HANDLERS, ContentTarget, run_action},
 };
 use crate::{
+    content::CombatTarget,
     entity::WalkTarget,
     player::{Clientbound, InteractionTarget, Player, is_action_locked},
     world::Position,
@@ -82,7 +83,7 @@ async fn handle_opnpct(player: &mut Player, msg: OpNpcT) {
         return;
     }
 
-    let target = crate::content::combat::CombatTarget::Npc(msg.npc_index as usize);
+    let target = CombatTarget::Npc(msg.npc_index as usize);
     if player.combat().combat_target() == Some(target) {
         return;
     }
@@ -128,7 +129,7 @@ async fn handle_opplayer(player: &mut Player, msg: OpPlayer) {
 
     let index = msg.player_index as usize;
     if msg.op == Op::Op1 {
-        let target = crate::content::combat::CombatTarget::Player(index);
+        let target = CombatTarget::Player(index);
         if player.combat().combat_target() == Some(target) {
             return;
         }

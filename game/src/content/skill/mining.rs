@@ -1,6 +1,6 @@
 #![cfg_attr(rustfmt, rustfmt::skip)]
 
-use filesystem::config::WearPos;
+use filesystem::WearPos;
 
 struct Pickaxe {
     id: u16,

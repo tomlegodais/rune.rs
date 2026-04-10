@@ -1,13 +1,14 @@
 use std::collections::HashMap;
 
 use super::{
-    CombatTarget,
+    CombatTarget, PendingHit,
     formula::{MeleeAttack, MeleeDefence},
+    queue_hit,
 };
 use crate::{entity::HitType, player::Player};
 
 pub type SpecialExecuteFn =
-    fn(&mut Player, &MeleeAttack, &MeleeDefence, filesystem::config::AttackType, CombatTarget) -> SpecialResult;
+    fn(&mut Player, &MeleeAttack, &MeleeDefence, filesystem::AttackType, CombatTarget) -> SpecialResult;
 
 pub struct SpecialHit {
     pub hit_type: HitType,
@@ -44,9 +45,9 @@ pub fn try_execute(
     target: CombatTarget,
     atk: &MeleeAttack,
     def: &MeleeDefence,
-    atk_type: filesystem::config::AttackType,
+    atk_type: filesystem::AttackType,
 ) -> Option<SpecialResult> {
-    let weapon = player.worn().slot(filesystem::config::WearPos::Weapon)?;
+    let weapon = player.worn().slot(filesystem::WearPos::Weapon)?;
     let entry = get(weapon.id)?;
 
     if !player.combat().spec_enabled() {
@@ -73,7 +74,16 @@ pub fn apply_result(player: &mut Player, target: CombatTarget, result: &SpecialR
     let world = player.world();
     let attacker = CombatTarget::Player(player.index);
     for hit in &result.hits {
-        target.apply_hit(&world, hit.damage, hit.hit_type, attacker);
+        queue_hit(
+            &world,
+            PendingHit {
+                target,
+                attacker,
+                damage: hit.damage,
+                hit_type: hit.hit_type,
+                delay: 0,
+            },
+        );
     }
 }
 

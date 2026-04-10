@@ -30,7 +30,7 @@ pub fn special_attack(attr: TokenStream, item: TokenStream) -> TokenStream {
             player: &mut crate::player::Player,
             atk: &crate::content::combat::formula::MeleeAttack,
             def: &crate::content::combat::formula::MeleeDefence,
-            atk_type: filesystem::config::AttackType,
+            atk_type: filesystem::AttackType,
             target: crate::content::combat::CombatTarget,
         ) -> crate::content::combat::special::SpecialResult {
             #func_body

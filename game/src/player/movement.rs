@@ -1,7 +1,7 @@
 use std::{any::TypeId, future::Future, pin::Pin};
 
 use macros::player_system;
-use persistence::player::PlayerData;
+use persistence::PlayerData;
 
 use crate::{
     entity::{MoveStep, WalkTarget},

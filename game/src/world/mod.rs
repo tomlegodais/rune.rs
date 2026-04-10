@@ -19,12 +19,13 @@ use parking_lot::Mutex;
 pub use pathfinding::{
     can_interact_loc, can_interact_rect, find_path, find_path_adjacent_rect, find_path_to_loc, wall_face_direction,
 };
-use persistence::{account::Account, player::PlayerData};
+use persistence::{Account, PlayerData};
 pub use position::{Direction, Position, RegionId, Teleport, running_direction};
 pub use slab::WorldSlab;
 use tokio::sync::mpsc;
 
 use crate::{
+    content::PendingHit,
     npc::{Npc, NpcActionState, NpcCombat, NpcSnapshot},
     player::{ActionState, Player, PlayerSnapshot},
     world::slab::{SlabReadGuard, SlabWriteGuard},
@@ -48,6 +49,7 @@ pub struct World {
     pub locs: LocStore,
     pub action_states: Mutex<HashMap<usize, ActionState>>,
     pub npc_action_states: Mutex<HashMap<usize, NpcActionState>>,
+    pub pending_hits: Mutex<Vec<PendingHit>>,
     npc_respawns: Mutex<Vec<NpcRespawn>>,
 }
 
@@ -61,6 +63,7 @@ impl Default for World {
             locs: LocStore::default(),
             action_states: Mutex::new(HashMap::new()),
             npc_action_states: Mutex::new(HashMap::new()),
+            pending_hits: Mutex::new(Vec::new()),
             npc_respawns: Mutex::new(Vec::new()),
         }
     }

@@ -1,4 +1,4 @@
-use filesystem::{config::EnumType, loader::EnumLoader};
+use filesystem::{EnumLoader, EnumType};
 use macros::data_provider;
 use once_cell::sync::OnceCell;
 
