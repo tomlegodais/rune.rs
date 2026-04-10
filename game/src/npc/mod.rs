@@ -1,9 +1,11 @@
+pub mod action;
 mod gni;
 mod info;
 mod mask;
 
 use std::ops::{Deref, DerefMut};
 
+pub use action::{NpcActionState, fire_action, resolve as resolve_action};
 pub use gni::encode_npc_info;
 pub use info::NpcInfo;
 pub use mask::{FaceEntityMask, SeqMask, SpotAnim1Mask, SpotAnim2Mask};
@@ -16,8 +18,46 @@ use crate::{
     world::{Direction, Position, Teleport},
 };
 
-const DEATH_SEQ: u16 = 836;
 const DEATH_TICKS: u16 = 5;
+
+#[derive(Clone)]
+pub struct NpcCombat {
+    pub max_hp: u32,
+    pub atk_level: u16,
+    pub str_level: u16,
+    pub def_level: u16,
+    pub atk_bonus: i16,
+    pub str_bonus: i16,
+    pub def_stab: i16,
+    pub def_slash: i16,
+    pub def_crush: i16,
+    pub atk_speed: u16,
+    pub atk_seq: u16,
+    pub block_seq: u16,
+    pub death_seq: u16,
+    pub max_hit: u16,
+}
+
+impl Default for NpcCombat {
+    fn default() -> Self {
+        Self {
+            max_hp: 1,
+            atk_level: 1,
+            str_level: 1,
+            def_level: 1,
+            atk_bonus: 0,
+            str_bonus: 0,
+            def_stab: 0,
+            def_slash: 0,
+            def_crush: 0,
+            atk_speed: 4,
+            atk_seq: 422,
+            block_seq: 424,
+            death_seq: 836,
+            max_hit: 1,
+        }
+    }
+}
 
 #[derive(Clone)]
 pub struct NpcSnapshot {
@@ -36,21 +76,33 @@ pub struct Npc {
     pub npc_id: u16,
     pub spawn_position: Position,
     pub wander_radius: u8,
+    pub respawn_ticks: u16,
     pub running: bool,
     pub move_step: MoveStep,
     pub teleport: Option<Teleport>,
     pub masks: MaskBlock,
     pub current_hp: u32,
     pub max_hp: u32,
+    pub combat: NpcCombat,
+    pub combat_target: Option<usize>,
     death_timer: Option<u16>,
 }
 
 impl Npc {
-    pub fn new(index: usize, npc_id: u16, position: Position, wander_radius: u8, max_hp: u32) -> Self {
+    pub fn new(
+        index: usize,
+        npc_id: u16,
+        position: Position,
+        wander_radius: u8,
+        respawn_ticks: u16,
+        combat: NpcCombat,
+    ) -> Self {
+        let max_hp = combat.max_hp;
         Self {
             npc_id,
             spawn_position: position,
             wander_radius,
+            respawn_ticks,
             entity: Entity::new(index, position),
             move_step: MoveStep::None,
             masks: MaskBlock::new(&mask::NPC_MASKS),
@@ -58,8 +110,14 @@ impl Npc {
             running: false,
             current_hp: max_hp,
             max_hp,
+            combat,
+            combat_target: None,
             death_timer: None,
         }
+    }
+
+    pub fn has_seq(&self) -> bool {
+        self.masks.has(mask::NpcMask::SEQ)
     }
 
     pub fn is_dying(&self) -> bool {
@@ -95,8 +153,11 @@ impl Npc {
 
     fn on_death(&mut self) {
         self.death_timer = Some(DEATH_TICKS);
+        self.combat_target = None;
+        self.entity.face_target = None;
+        self.masks.add(FaceEntityMask(65535));
         self.entity.stop();
-        self.seq(DEATH_SEQ);
+        self.seq(self.combat.death_seq);
     }
 
     pub fn tick_death(&mut self) -> bool {
@@ -108,7 +169,7 @@ impl Npc {
     }
 
     pub fn wander(&mut self) {
-        if self.wander_radius == 0 || self.has_steps() || self.face_target.is_some() {
+        if self.wander_radius == 0 || self.has_steps() || self.face_target.is_some() || self.combat_target.is_some() {
             return;
         }
 

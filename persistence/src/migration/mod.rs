@@ -10,6 +10,10 @@ mod m007_create_obj_configs;
 mod m008_create_player_worn;
 mod m009_add_obj_combat_stats;
 mod m010_add_obj_weight;
+mod m011_add_combat_settings;
+mod m012_create_npc_configs;
+mod m013_add_current_hp;
+mod m014_add_obj_anim;
 
 pub struct Migrator;
 
@@ -27,6 +31,10 @@ impl MigratorTrait for Migrator {
             Box::new(m008_create_player_worn::Migration),
             Box::new(m009_add_obj_combat_stats::Migration),
             Box::new(m010_add_obj_weight::Migration),
+            Box::new(m011_add_combat_settings::Migration),
+            Box::new(m012_create_npc_configs::Migration),
+            Box::new(m013_add_current_hp::Migration),
+            Box::new(m014_add_obj_anim::Migration),
         ]
     }
 }

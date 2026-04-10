@@ -2,6 +2,7 @@ pub mod account;
 mod config;
 mod database;
 mod migration;
+pub mod npc;
 pub mod obj;
 pub mod player;
 

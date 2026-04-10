@@ -146,6 +146,7 @@ impl SystemSlot {
 
 struct SystemEntry {
     slot: SystemSlot,
+    phase: TickPhase,
     persist: fn(&dyn Any, &mut PlayerData),
     on_login: OnLoginFn,
     tick_context: TickContextFn,
@@ -186,6 +187,7 @@ impl SystemStore {
                 type_id,
                 SystemEntry {
                     slot: SystemSlot::new(value),
+                    phase: (reg.tick_phase)(),
                     persist: reg.persist,
                     on_login: reg.on_login,
                     tick_context: reg.tick_context,
@@ -222,10 +224,13 @@ impl SystemStore {
         }
     }
 
-    pub async fn tick(&mut self, world: &Arc<World>, player: &super::PlayerSnapshot) {
+    pub async fn tick_phase(&mut self, phase: TickPhase, world: &Arc<World>, player: &super::PlayerSnapshot) {
         for i in 0..self.tick_order.len() {
             let type_id = self.tick_order[i];
             let entry = self.systems.get_mut(&type_id).unwrap();
+            if entry.phase != phase {
+                continue;
+            }
             let ctx = (entry.tick_context)(world, player);
             let mut boxed = entry.slot.take_value();
             let tick = entry.tick;

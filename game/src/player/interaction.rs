@@ -11,7 +11,7 @@ use crate::{
         mask::FaceEntityMask as PlayerFaceEntityMask,
         system::{PlayerInitContext, PlayerSystem},
     },
-    world::{Position, World, can_interact_loc, can_interact_rect, wall_face_direction},
+    world::{Position, World, can_interact_loc, can_interact_rect, find_path_adjacent_rect, wall_face_direction},
 };
 
 pub struct Interaction {
@@ -140,7 +140,27 @@ pub fn resolve(player: &mut Player, world: &World) {
 
     if !is_adjacent {
         if !player.entity.has_steps() {
-            player.interaction_mut().clear();
+            match &pending.target {
+                InteractionTarget::Npc { index } => {
+                    let npc_id = world.npc(*index).npc_id;
+                    let size = crate::provider::get_npc_type(npc_id as u32)
+                        .map(|d| d.size as i32)
+                        .unwrap_or(1);
+                    player.entity.walk_queue = find_path_adjacent_rect(player.position, target_pos, size, size, 0);
+                    if player.entity.walk_queue.is_empty() {
+                        player.interaction_mut().clear();
+                    }
+                }
+                InteractionTarget::Player { .. } => {
+                    player.entity.walk_queue = find_path_adjacent_rect(player.position, target_pos, 1, 1, 0);
+                    if player.entity.walk_queue.is_empty() {
+                        player.interaction_mut().clear();
+                    }
+                }
+                _ => {
+                    player.interaction_mut().clear();
+                }
+            }
         }
         return;
     }

@@ -10,7 +10,7 @@ use crate::{
     world::World,
 };
 
-const NUM_OPTIONS: usize = 5;
+const NUM_OPTIONS: usize = 6;
 
 pub struct SetPlayerOps {
     player: PlayerHandle,
@@ -50,9 +50,10 @@ impl PlayerSystem for SetPlayerOps {
 
     fn create(ctx: &PlayerInitContext) -> Self {
         let mut options: [Option<(String, bool)>; NUM_OPTIONS] = Default::default();
-        options[1] = Some(("Follow".into(), false));
-        options[2] = Some(("Trade with".into(), false));
-        options[4] = Some(("Report".into(), false));
+        options[1] = Some(("Attack".into(), true));
+        options[2] = Some(("Follow".into(), false));
+        options[4] = Some(("Trade with".into(), false));
+        options[5] = Some(("Req Assist".into(), false));
         Self {
             player: ctx.player,
             options,

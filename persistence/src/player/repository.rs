@@ -25,6 +25,10 @@ pub struct PlayerData {
     pub xp: [u32; 24],
     pub inv: Vec<Option<(u16, u32)>>,
     pub worn: Vec<Option<(u16, u32)>>,
+    pub combat_style: u8,
+    pub auto_retaliate: bool,
+    pub spec_energy: u16,
+    pub current_hp: u8,
 }
 
 #[async_trait]
@@ -103,6 +107,10 @@ impl PlayerData {
             xp,
             inv,
             worn,
+            combat_style: player.combat_style as u8,
+            auto_retaliate: player.auto_retaliate,
+            spec_energy: player.spec_energy as u16,
+            current_hp: player.current_hp as u8,
         })
     }
 }
@@ -197,6 +205,10 @@ impl PlayerRepository for PgPlayerRepository {
             .col_expr(player::Column::Plane, Expr::value(data.plane))
             .col_expr(player::Column::Running, Expr::value(data.running))
             .col_expr(player::Column::RunEnergy, Expr::value(data.run_energy as i16))
+            .col_expr(player::Column::CombatStyle, Expr::value(data.combat_style as i16))
+            .col_expr(player::Column::AutoRetaliate, Expr::value(data.auto_retaliate))
+            .col_expr(player::Column::SpecEnergy, Expr::value(data.spec_energy as i16))
+            .col_expr(player::Column::CurrentHp, Expr::value(data.current_hp as i16))
             .exec(&self.db)
             .await?;
 

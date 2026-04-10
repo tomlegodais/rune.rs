@@ -9,8 +9,8 @@ pub use enums::{EnumType, EnumValue};
 pub use loc::LocType;
 pub use npc::NpcType;
 pub use obj::{
-    AttackType, CombatStyle, EquipBonuses, ObjType, StyleName, TransformKind, WearFlag, WearPos,
-    WeaponCategory, WeaponStance, XpType,
+    AttackType, CombatStyle, EquipBonuses, ObjType, StyleName, TransformKind, WeaponCategory, WeaponStance, WearFlag,
+    WearPos, XpType,
 };
 pub use structs::StructType;
 pub use varbit::VarbitType;

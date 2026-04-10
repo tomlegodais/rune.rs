@@ -8,6 +8,7 @@ mod message_public;
 mod moveclick;
 mod oploc;
 mod opnpc;
+mod opnpct;
 mod opobj;
 mod opplayer;
 
@@ -23,6 +24,7 @@ pub use message_public::MessagePublic;
 pub use moveclick::MoveClick;
 pub use oploc::OpLoc;
 pub use opnpc::OpNpc;
+pub use opnpct::OpNpcT;
 pub use opobj::OpObj;
 pub use opplayer::OpPlayer;
 use tokio::sync::mpsc;
@@ -42,6 +44,7 @@ pub enum Op {
     Op8,
     Op9,
     Op10,
+    OpT,
 }
 
 pub type IncomingMessage = Box<dyn Any + Send>;

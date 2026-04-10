@@ -1,6 +1,7 @@
 use std::{collections::HashMap, future::Future, pin::Pin};
 
 use macros::{enum_data, player_system};
+use net::{if_events, if_set_events};
 use num_enum::TryFromPrimitive;
 use strum::IntoEnumIterator;
 
@@ -285,6 +286,12 @@ impl PlayerSystem for InterfaceManager {
             }
             self.open_subs(OrbIndex::iter().map(OrbIndex::sub)).await;
             self.open_subs(ChatIndex::iter().map(ChatIndex::sub)).await;
+
+            for component in 11..=14 {
+                self.player
+                    .if_set_events(if_set_events!(interface_id: 884, component_id: component, slots: [0xFFFF => 0], right_click[0]))
+                    .await;
+            }
         })
     }
 

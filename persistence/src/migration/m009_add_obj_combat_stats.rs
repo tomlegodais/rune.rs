@@ -50,7 +50,11 @@ impl MigrationTrait for Migration {
             .alter_table(
                 Table::alter()
                     .table(ObjConfigs::Table)
-                    .add_column(ColumnDef::new(ObjConfigs::WeaponCategory).custom(WeaponCategory::Type).null())
+                    .add_column(
+                        ColumnDef::new(ObjConfigs::WeaponCategory)
+                            .custom(WeaponCategory::Type)
+                            .null(),
+                    )
                     .add_column(small_integer(ObjConfigs::AtkStab).not_null().default(0))
                     .add_column(small_integer(ObjConfigs::AtkSlash).not_null().default(0))
                     .add_column(small_integer(ObjConfigs::AtkCrush).not_null().default(0))
@@ -96,7 +100,9 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        manager.drop_type(Type::drop().name(WeaponCategory::Type).to_owned()).await
+        manager
+            .drop_type(Type::drop().name(WeaponCategory::Type).to_owned())
+            .await
     }
 }
 

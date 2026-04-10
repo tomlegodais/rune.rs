@@ -108,7 +108,12 @@ pub struct CombatStyle {
 
 impl CombatStyle {
     const fn new(name: StyleName, atk_type: AttackType, stance: WeaponStance, xp_type: XpType) -> Self {
-        Self { name, atk_type: Some(atk_type), stance: Some(stance), xp_type: Some(xp_type) }
+        Self {
+            name,
+            atk_type: Some(atk_type),
+            stance: Some(stance),
+            xp_type: Some(xp_type),
+        }
     }
 }
 
@@ -199,7 +204,12 @@ impl WeaponCategory {
             Self::Bulwark => {
                 const V: &[CombatStyle] = &[
                     CombatStyle::new(S::Pummel, A::Crush, St::Accurate, X::Attack),
-                    CombatStyle { name: S::Block, atk_type: None, stance: None, xp_type: None },
+                    CombatStyle {
+                        name: S::Block,
+                        atk_type: None,
+                        stance: None,
+                        xp_type: None,
+                    },
                 ];
                 V
             }
@@ -433,6 +443,8 @@ pub struct ObjType {
     pub wearflag: WearFlag,
     pub equip: EquipBonuses,
     pub atk_speed: Option<i16>,
+    pub atk_seq: Vec<u16>,
+    pub block_seq: Option<u16>,
     pub weapon_category: Option<WeaponCategory>,
     pub lent_id: Option<u32>,
     pub lent_template: Option<u32>,
@@ -474,6 +486,8 @@ impl Default for ObjType {
             wearflag: WearFlag::None,
             equip: EquipBonuses::default(),
             atk_speed: None,
+            atk_seq: Vec::new(),
+            block_seq: None,
             weapon_category: None,
             lent_id: None,
             lent_template: None,

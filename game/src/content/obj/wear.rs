@@ -67,6 +67,11 @@ async fn wear_slot(player: &mut Player, inv_slot: usize, obj: Obj) {
         player.worn_mut().set(WearPos::Weapon, None);
     }
 
+    let weapon_changed = target_slot == WearPos::Weapon
+        || displaced
+            .iter()
+            .any(|d| crate::provider::get_obj_type(d.id as u32).and_then(|t| t.wearpos) == Some(WearPos::Weapon));
+
     player.worn_mut().set(target_slot, Some(obj));
 
     for d in &displaced {
@@ -75,6 +80,11 @@ async fn wear_slot(player: &mut Player, inv_slot: usize, obj: Obj) {
 
     player.worn_mut().flush().await;
     player.appearance_mut().flush();
+
+    if weapon_changed {
+        player.combat_mut().set_combat_style(0);
+        player.varp_mut().send_varp(43, 0).await;
+    }
     if player.interface().get_slot(InterfaceSlot::Modal) == Some(equipment::STATS) {
         send_equip_bonuses(player).await;
     }
@@ -90,6 +100,10 @@ async fn unwear_slot(player: &mut Player, slot: WearPos) {
     player.inv_mut().add(obj.id, obj.amount).await;
     player.worn_mut().flush().await;
     player.appearance_mut().flush();
+    if slot == WearPos::Weapon {
+        player.combat_mut().set_combat_style(0);
+        player.varp_mut().send_varp(43, 0).await;
+    }
     if player.interface().get_slot(InterfaceSlot::Modal) == Some(equipment::STATS) {
         send_equip_bonuses(player).await;
     }

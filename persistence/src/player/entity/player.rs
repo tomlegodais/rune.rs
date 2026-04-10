@@ -11,6 +11,10 @@ pub struct Model {
     pub plane: i32,
     pub running: bool,
     pub run_energy: i16,
+    pub combat_style: i16,
+    pub auto_retaliate: bool,
+    pub spec_energy: i16,
+    pub current_hp: i16,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -88,7 +88,8 @@ impl RegionId {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, strum::EnumIter)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, strum::EnumIter, num_enum::TryFromPrimitive)]
+#[repr(usize)]
 pub enum Direction {
     SouthWest = 0,
     South = 1,

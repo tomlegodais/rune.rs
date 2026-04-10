@@ -16,7 +16,7 @@ use filesystem::Cache;
 pub use hair::{get_hair_low, get_hair_mid};
 pub use huffman::{decode_huffman, encode_huffman};
 pub use loc::get_loc_type;
-pub use npc::get_npc_type;
+pub use npc::{get_npc_combat, get_npc_spawns, get_npc_type};
 pub use obj::get_obj_type;
 use persistence::PersistenceModule;
 pub use structs::get_struct_type;

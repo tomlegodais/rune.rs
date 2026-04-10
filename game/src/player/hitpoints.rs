@@ -25,6 +25,10 @@ async fn death_action() {
     lock!();
 
     player.entity.stop();
+    player.entity.face_target = None;
+    player.player_info.add_mask(crate::player::FaceEntityMask(65535));
+    player.combat_mut().set_combat_target(None);
+
     seq!(DEATH_SEQ);
     delay!(DEATH_TICKS);
 
@@ -69,6 +73,10 @@ impl HitpointsManager {
         self.current == 0
     }
 
+    pub fn mark_dirty(&mut self) {
+        self.dirty = true;
+    }
+
     pub fn heal(&mut self, amount: u8) {
         let max = self.max();
         self.current = self.current.saturating_add(amount).min(max);
@@ -110,9 +118,15 @@ impl PlayerSystem for HitpointsManager {
     }
 
     fn create(ctx: &PlayerInitContext) -> Self {
+        let current = if ctx.player_data.current_hp > 0 {
+            ctx.player_data.current_hp
+        } else {
+            ctx.player_data.levels[Stat::Hitpoints as usize]
+        };
+
         Self {
             player: ctx.player,
-            current: ctx.player_data.levels[Stat::Hitpoints as usize],
+            current,
             dirty: false,
             dying: false,
         }
@@ -129,5 +143,9 @@ impl PlayerSystem for HitpointsManager {
 
     fn tick<'a>(&'a mut self, _ctx: &'a ()) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
         Box::pin(self.tick_inner())
+    }
+
+    fn persist(&self, data: &mut persistence::player::PlayerData) {
+        data.current_hp = self.current;
     }
 }

@@ -47,7 +47,7 @@ async fn random_stats(player: &mut Player) {
         let mut rng = rand::rng();
         (0..NUM_STATS)
             .filter_map(|i| Stat::try_from(i).ok())
-            .map(|stat| (stat, rng.random_range(60u8..=99)))
+            .map(|stat| (stat, rng.random_range(92u8..=99)))
             .collect()
     };
 

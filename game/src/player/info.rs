@@ -1,7 +1,4 @@
-use std::{
-    array,
-    ops::{Index, IndexMut},
-};
+use std::ops::{Index, IndexMut};
 
 use net::Outbox;
 
@@ -18,14 +15,19 @@ pub struct PlayerInfo {
     outbox: Outbox,
 
     pub self_index: usize,
-    pub players: [PlayerState; MAX_PLAYERS],
+    pub players: Vec<PlayerState>,
     pub pending_add: Vec<PlayerSnapshot>,
     pub pending_remove: Vec<usize>,
 }
 
 impl PlayerInfo {
-    pub fn new(outbox: Outbox, self_index: usize, snapshots: &[PlayerSnapshot], initial_masks: &[&dyn Mask]) -> Self {
-        let mut players: [PlayerState; MAX_PLAYERS] = array::from_fn(|_| PlayerState::default());
+    pub fn new(
+        outbox: Outbox,
+        self_index: usize,
+        snapshots: &[PlayerSnapshot],
+        initial_masks: &[&dyn Mask],
+    ) -> Box<Self> {
+        let mut players: Vec<PlayerState> = (0..MAX_PLAYERS).map(|_| PlayerState::default()).collect();
         players[self_index].local = true;
         players[self_index].masks.extend(initial_masks);
 
@@ -35,13 +37,13 @@ impl PlayerInfo {
             }
         }
 
-        Self {
+        Box::new(Self {
             outbox,
             self_index,
             players,
             pending_add: Vec::new(),
             pending_remove: Vec::new(),
-        }
+        })
     }
 
     pub fn sync(&mut self, others: &[PlayerSnapshot], is_within_view: impl Fn(Position) -> bool) {

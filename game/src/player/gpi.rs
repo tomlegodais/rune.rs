@@ -139,9 +139,9 @@ struct RegionUpdate {
 
 impl BitEncoder for RegionUpdate {
     fn encode(&self, bits: &mut BytesMut, bp: &mut usize, _masks: &mut BytesMut) {
-        let delta_plane = ((self.current_hash >> 16) - (self.cached_hash >> 16)) & 0x3;
-        let delta_x = ((self.current_hash >> 8 & 0xFF) - (self.cached_hash >> 8 & 0xFF)) & 0xFF;
-        let delta_y = ((self.current_hash & 0xFF) - (self.cached_hash & 0xFF)) & 0xFF;
+        let delta_plane = (self.current_hash >> 16).wrapping_sub(self.cached_hash >> 16) & 0x3;
+        let delta_x = (self.current_hash >> 8 & 0xFF).wrapping_sub(self.cached_hash >> 8 & 0xFF) & 0xFF;
+        let delta_y = (self.current_hash & 0xFF).wrapping_sub(self.cached_hash & 0xFF) & 0xFF;
         let delta = (delta_plane << 16) | (delta_x << 8) | delta_y;
         bits.put_bits(bp, 2, 3);
         bits.put_bits(bp, 18, delta);

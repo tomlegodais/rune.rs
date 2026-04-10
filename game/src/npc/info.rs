@@ -26,14 +26,13 @@ impl NpcInfo {
     pub fn sync(&mut self, snapshots: &[NpcSnapshot], is_within_view: impl Fn(Position) -> bool) {
         self.pending_add.clear();
         self.pending_remove.clear();
-        self.local_npcs
-            .retain(|&idx| match snapshots.iter().find(|s| s.index == idx) {
-                Some(s) if is_within_view(s.position) => true,
-                _ => {
-                    self.pending_remove.push(idx);
-                    false
-                }
-            });
+
+        for &idx in &self.local_npcs {
+            let alive = snapshots.iter().find(|s| s.index == idx);
+            if !alive.is_some_and(|s| is_within_view(s.position)) {
+                self.pending_remove.push(idx);
+            }
+        }
 
         for snapshot in snapshots {
             if !self.local_npcs.contains(&snapshot.index) && is_within_view(snapshot.position) {
@@ -48,6 +47,7 @@ impl NpcInfo {
     }
 
     pub fn reset(&mut self) {
+        self.local_npcs.retain(|idx| !self.pending_remove.contains(idx));
         for snapshot in self.pending_add.drain(..) {
             self.local_npcs.push(snapshot.index);
         }

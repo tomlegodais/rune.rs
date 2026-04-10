@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use filesystem::config::{
-    EquipBonuses, ObjType, WearFlag, WearPos, WeaponCategory,
+use filesystem::{
+    config::{EquipBonuses, ObjType, WeaponCategory, WearFlag, WearPos},
+    loader::ObjLoader,
 };
-use filesystem::loader::ObjLoader;
 use macros::data_provider;
 use once_cell::sync::OnceCell;
 use persistence::obj::{self, ObjConfigRepository};
@@ -89,6 +89,10 @@ async fn load_obj_types(ctx: &ProviderContext) -> anyhow::Result<()> {
             t.wearflag = config.wearflag.map(map_wearflag).unwrap_or_default();
             t.weapon_category = config.weapon_category.map(map_weapon_category);
             t.atk_speed = config.atk_speed;
+            if let Some(seq) = config.atk_seq {
+                t.atk_seq = seq;
+            }
+            t.block_seq = config.block_seq;
             t.weight = config.weight;
             t.equip = EquipBonuses {
                 atk_stab: config.atk_stab,

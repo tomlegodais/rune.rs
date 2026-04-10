@@ -1,3 +1,4 @@
+mod combat;
 mod inventory;
 mod logout;
 mod orbs;

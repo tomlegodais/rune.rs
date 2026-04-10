@@ -1,5 +1,5 @@
 use macros::message_handler;
-use net::{ExamLoc, IfButton, Op, OpLoc, OpNpc, OpPlayer};
+use net::{ExamLoc, IfButton, Op, OpLoc, OpNpc, OpNpcT, OpPlayer};
 
 use super::{
     MessageHandler,
@@ -77,23 +77,73 @@ async fn handle_opnpc(player: &mut Player, msg: OpNpc) {
 }
 
 #[message_handler]
+async fn handle_opnpct(player: &mut Player, msg: OpNpcT) {
+    if is_action_locked(player) {
+        return;
+    }
+
+    let target = crate::content::combat::CombatTarget::Npc(msg.npc_index as usize);
+    if player.combat().combat_target() == Some(target) {
+        return;
+    }
+
+    player.cancel_action(true).await;
+    player.entity.stop();
+
+    let index = msg.npc_index as usize;
+    let world = player.world();
+    if !world.npcs.contains(index) {
+        return;
+    }
+
+    let (npc_pos, npc_id) = {
+        let npc = world.npc(index);
+        (npc.position, npc.npc_id)
+    };
+
+    let size = crate::provider::get_npc_type(npc_id as u32)
+        .map(|d| d.size as i32)
+        .unwrap_or(1);
+
+    player.interaction_mut().set(InteractionTarget::Npc { index }, Op::OpT);
+    player
+        .movement_mut()
+        .walk_to(
+            npc_pos,
+            msg.ctrl_run,
+            Some(WalkTarget::Rect {
+                width: size,
+                height: size,
+                access: 0,
+            }),
+        )
+        .await;
+}
+
+#[message_handler]
 async fn handle_opplayer(player: &mut Player, msg: OpPlayer) {
     if is_action_locked(player) {
         return;
     }
 
+    let index = msg.player_index as usize;
+    if msg.op == Op::Op1 {
+        let target = crate::content::combat::CombatTarget::Player(index);
+        if player.combat().combat_target() == Some(target) {
+            return;
+        }
+    }
+
     player.cancel_action(true).await;
 
-    let index = msg.player_index as usize;
     let world = player.world();
     if !world.players.contains(index) || index == player.index {
         return;
     }
 
     let target_pos = world.player(index).position;
-    player
-        .interaction_mut()
-        .set(InteractionTarget::Player { index }, msg.op);
+    let op = if msg.op == Op::Op1 { Op::OpT } else { msg.op };
+    player.interaction_mut().set(InteractionTarget::Player { index }, op);
 
     player
         .movement_mut()
@@ -140,8 +190,6 @@ async fn handle_ifbutton(player: &mut Player, msg: IfButton) {
     if is_action_locked(player) {
         return;
     }
-
-    player.cancel_action(false).await;
 
     let target = InteractionTarget::Button {
         interface: msg.interface,

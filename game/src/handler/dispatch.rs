@@ -56,6 +56,18 @@ pub fn dispatch(
         }
     };
 
+    if op == Op::OpT {
+        return match target {
+            InteractionTarget::Npc { index } => Some(crate::content::combat::start_melee_combat(
+                crate::content::combat::CombatTarget::Npc(index),
+            )),
+            InteractionTarget::Player { index } => Some(crate::content::combat::start_melee_combat(
+                crate::content::combat::CombatTarget::Player(index),
+            )),
+            _ => None,
+        };
+    }
+
     match CONTENT_HANDLERS.get(&content_target) {
         Some(handler) => Some(handler(target)),
         None => {

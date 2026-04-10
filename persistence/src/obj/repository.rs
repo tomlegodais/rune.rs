@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-pub use entity::{WearFlag, WearPos, WeaponCategory};
+pub use entity::{WeaponCategory, WearFlag, WearPos};
 use sea_orm::*;
 use shaku::{Component, Interface};
 
@@ -26,6 +26,8 @@ pub struct ObjConfig {
     pub prayer: i16,
     pub atk_speed: Option<i16>,
     pub weight: i32,
+    pub atk_seq: Option<Vec<u16>>,
+    pub block_seq: Option<u16>,
 }
 
 #[async_trait]
@@ -67,6 +69,8 @@ impl ObjConfigRepository for PgObjConfigRepository {
                 prayer: m.prayer,
                 atk_speed: m.atk_speed,
                 weight: m.weight,
+                atk_seq: m.atk_seq.map(|v| v.into_iter().map(|s| s as u16).collect()),
+                block_seq: m.block_seq.map(|v| v as u16),
             })
             .collect())
     }

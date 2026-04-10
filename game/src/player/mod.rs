@@ -4,6 +4,7 @@ mod macros;
 mod action;
 mod appearance;
 mod clientbound;
+mod combat;
 mod dialogue;
 mod gpi;
 mod hitpoints;
@@ -43,8 +44,8 @@ pub use interaction::{InteractionTarget, resolve as resolve_interaction};
 pub use interface::InterfaceSlot;
 pub use inv::SIZE as INV_SIZE;
 pub use mask::{
-    ChatMask, FaceDirectionMask, Hit1Mask, Hit2Mask, MoveTypeMask, SeqMask, SpotAnim1Mask, SpotAnim2Mask,
-    TempMoveTypeMask,
+    ChatMask, FaceDirectionMask, FaceEntityMask, Hit1Mask, Hit2Mask, MoveTypeMask, SeqMask, SpotAnim1Mask,
+    SpotAnim2Mask, TempMoveTypeMask,
 };
 use net::{Inbox, Outbox};
 pub use obj::Obj;
@@ -108,12 +109,7 @@ impl Player {
         let position = Position::new(player_data.x, player_data.y, player_data.plane);
         let viewport = Viewport::new(position, 0);
         let npc_info = NpcInfo::new(outbox.clone());
-        let player_info = Box::new(PlayerInfo::new(
-            outbox.clone(),
-            index,
-            snapshots,
-            &[&MoveTypeMask(player_data.running)],
-        ));
+        let player_info = PlayerInfo::new(outbox.clone(), index, snapshots, &[&MoveTypeMask(player_data.running)]);
 
         Self {
             entity: Entity::new(index, position),
@@ -174,6 +170,10 @@ impl Player {
             xp: [0; 24],
             inv: vec![None; INV_SIZE],
             worn: vec![None; WORN_SIZE],
+            combat_style: 0,
+            auto_retaliate: true,
+            spec_energy: 1000,
+            current_hp: 10,
         };
 
         self.systems.for_each_persist(&mut data);
@@ -191,10 +191,20 @@ impl Player {
         tracing::info!(index = self.index, username = self.username, "Player Logged In");
     }
 
+    pub async fn tick_movement(&mut self, world: &Arc<World>) {
+        let snapshot = self.snapshot();
+        let systems = &mut self.systems as *mut SystemStore;
+        unsafe { &mut *systems }
+            .tick_phase(system::TickPhase::Movement, world, &snapshot)
+            .await;
+    }
+
     pub async fn tick_systems(&mut self, world: &Arc<World>) {
         let snapshot = self.snapshot();
         let systems = &mut self.systems as *mut SystemStore;
-        unsafe { &mut *systems }.tick(world, &snapshot).await;
+        unsafe { &mut *systems }
+            .tick_phase(system::TickPhase::Default, world, &snapshot)
+            .await;
     }
 
     pub async fn sync(
@@ -221,11 +231,16 @@ impl Player {
 
     pub async fn cancel_action(&mut self, close_interfaces: bool) {
         self.world().action_states.lock().remove(&self.index);
+        self.combat_mut().set_combat_target(None);
         self.dialogue_mut().close().await;
         if close_interfaces {
             self.interface_mut().close_slot(InterfaceSlot::Modal).await;
             self.interface_mut().close_slot(InterfaceSlot::Inventory).await;
         }
+    }
+
+    pub fn has_seq(&self) -> bool {
+        self.player_info.self_state().masks.has(mask::PlayerMask::SEQ)
     }
 
     pub fn hit(&mut self, hit: crate::entity::Hit) {

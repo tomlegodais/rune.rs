@@ -25,7 +25,7 @@ pub use slab::WorldSlab;
 use tokio::sync::mpsc;
 
 use crate::{
-    npc::{Npc, NpcSnapshot},
+    npc::{Npc, NpcActionState, NpcCombat, NpcSnapshot},
     player::{ActionState, Player, PlayerSnapshot},
     world::slab::{SlabReadGuard, SlabWriteGuard},
 };
@@ -34,11 +34,11 @@ struct NpcRespawn {
     npc_id: u16,
     position: Position,
     wander_radius: u8,
-    max_hp: u32,
+    face_direction: Direction,
+    respawn_ticks: u16,
+    combat: NpcCombat,
     timer: u16,
 }
-
-const NPC_RESPAWN_TICKS: u16 = 30;
 
 pub struct World {
     self_ref: OnceLock<Weak<World>>,
@@ -47,6 +47,7 @@ pub struct World {
     pub obj_stacks: ObjStackStore,
     pub locs: LocStore,
     pub action_states: Mutex<HashMap<usize, ActionState>>,
+    pub npc_action_states: Mutex<HashMap<usize, NpcActionState>>,
     npc_respawns: Mutex<Vec<NpcRespawn>>,
 }
 
@@ -59,6 +60,7 @@ impl Default for World {
             obj_stacks: ObjStackStore::default(),
             locs: LocStore::default(),
             action_states: Mutex::new(HashMap::new()),
+            npc_action_states: Mutex::new(HashMap::new()),
             npc_respawns: Mutex::new(Vec::new()),
         }
     }
@@ -67,7 +69,20 @@ impl Default for World {
 impl World {
     pub fn init(self: &Arc<Self>) {
         let _ = self.self_ref.set(Arc::downgrade(self));
-        self.spawn_npc(2, Position::new(3093, 3495, 0), 4, 10);
+
+        for spawn in crate::provider::get_npc_spawns() {
+            let combat = crate::provider::get_npc_combat(spawn.npc_id as u32)
+                .cloned()
+                .unwrap_or_default();
+            self.spawn_npc(
+                spawn.npc_id,
+                Position::new(spawn.x, spawn.y, spawn.plane),
+                spawn.wander_radius,
+                spawn.respawn_ticks,
+                spawn.face_direction,
+                combat,
+            );
+        }
     }
 
     pub fn register_player(
@@ -139,13 +154,16 @@ impl World {
             .collect();
         let mut respawns = self.npc_respawns.lock();
         for idx in dead {
+            self.npc_action_states.lock().remove(&idx);
             let npc = self.npcs.remove(idx);
             respawns.push(NpcRespawn {
                 npc_id: npc.npc_id,
                 position: npc.spawn_position,
                 wander_radius: npc.wander_radius,
-                max_hp: npc.max_hp,
-                timer: NPC_RESPAWN_TICKS,
+                face_direction: npc.entity.face_direction,
+                respawn_ticks: npc.respawn_ticks,
+                combat: npc.combat,
+                timer: npc.respawn_ticks,
             });
         }
     }
@@ -159,13 +177,29 @@ impl World {
             ready
         };
         for r in ready {
-            self.spawn_npc(r.npc_id, r.position, r.wander_radius, r.max_hp);
+            self.spawn_npc(
+                r.npc_id,
+                r.position,
+                r.wander_radius,
+                r.respawn_ticks,
+                r.face_direction,
+                r.combat,
+            );
         }
     }
 
-    pub fn spawn_npc(&self, npc_id: u16, position: Position, wander_radius: u8, max_hp: u32) -> usize {
+    pub fn spawn_npc(
+        &self,
+        npc_id: u16,
+        position: Position,
+        wander_radius: u8,
+        respawn_ticks: u16,
+        face_direction: Direction,
+        combat: NpcCombat,
+    ) -> usize {
         let index = self.npcs.vacant_index();
-        let npc = Npc::new(index, npc_id, position, wander_radius, max_hp);
+        let mut npc = Npc::new(index, npc_id, position, wander_radius, respawn_ticks, combat);
+        npc.entity.face_direction = face_direction;
 
         self.npcs.insert(npc);
         self.npcs.get_mut(index).set_world(&self.arc());

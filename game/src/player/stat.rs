@@ -112,7 +112,12 @@ impl StatManager {
         let old_level = self.levels[i];
         self.xp[i] = self.xp[i].saturating_add(xp as u32);
         self.levels[i] = level_for_xp(self.xp[i]);
-        self.send_stat(stat).await;
+
+        if stat == Stat::Hitpoints {
+            self.player.hitpoints_mut().mark_dirty();
+        } else {
+            self.send_stat(stat).await;
+        }
 
         if self.levels[i] > old_level {
             self.on_level_up(stat, self.levels[i]).await;
@@ -154,13 +159,19 @@ impl StatManager {
     }
 
     pub async fn flush(&mut self) {
-        let stats: Vec<_> = (0..NUM_STATS).filter_map(|i| Stat::try_from(i).ok()).collect();
-        for stat in stats {
+        for i in 0..NUM_STATS {
+            let Some(stat) = Stat::try_from(i).ok() else { continue };
+            if stat == Stat::Hitpoints {
+                continue;
+            }
             self.send_stat(stat).await;
         }
     }
 
     pub async fn send_stat(&mut self, stat: Stat) {
+        if stat == Stat::Hitpoints {
+            return;
+        }
         let i: usize = stat.into();
         self.player.update_stat(i as u8, self.levels[i], self.xp[i]).await;
     }

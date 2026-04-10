@@ -13,7 +13,7 @@ pub use config::TcpConfig;
 pub use error::SessionError;
 pub use inbound::{
     ClientCheat, ExamLoc, IfButton, IfDialogContinue, IfMoveSlot, IfSubClosed, Inbox, InboxExt, IncomingMessage,
-    MessagePublic, MoveClick, Op, OpLoc, OpNpc, OpObj, OpPlayer,
+    MessagePublic, MoveClick, Op, OpLoc, OpNpc, OpNpcT, OpObj, OpPlayer,
 };
 pub use message::{Encodable, Frame, LoginOutcome, LoginRequest, LoginSuccess, Prefix, StatusCode};
 pub use outbound::{

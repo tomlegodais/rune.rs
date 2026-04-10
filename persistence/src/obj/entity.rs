@@ -137,6 +137,8 @@ pub struct Model {
     pub prayer: i16,
     pub atk_speed: Option<i16>,
     pub weight: i32,
+    pub atk_seq: Option<Vec<i16>>,
+    pub block_seq: Option<i16>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

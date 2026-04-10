@@ -34,6 +34,7 @@ trait WorldTickPhase {
 }
 
 struct ProcessMessages;
+struct Move;
 struct Tick;
 struct Sync;
 struct Flush;
@@ -65,9 +66,17 @@ impl TickPhase<Player> for ProcessMessages {
     }
 }
 
+impl TickPhase<Player> for Move {
+    type Context = ();
+    fn context(&self, _: &World) -> Self::Context {}
+
+    async fn execute(&self, world: &World, player: &mut Player, _: &()) {
+        player.tick_movement(&world.arc()).await;
+    }
+}
+
 impl TickPhase<Player> for Tick {
     type Context = ();
-
     fn context(&self, _: &World) -> Self::Context {}
 
     async fn execute(&self, world: &World, player: &mut Player, _: &()) {
@@ -78,13 +87,13 @@ impl TickPhase<Player> for Tick {
 
 impl TickPhase<Npc> for Tick {
     type Context = ();
-
     fn context(&self, _: &World) -> Self::Context {}
 
     async fn execute(&self, _world: &World, npc: &mut Npc, _: &()) {
         if npc.tick_death() {
             return;
         }
+        crate::npc::resolve_action(npc);
         npc.wander();
         npc.process_movement();
     }
@@ -117,7 +126,6 @@ impl TickPhase<Player> for Flush {
 
 impl TickPhase<Player> for Reset {
     type Context = ();
-
     fn context(&self, _: &World) -> Self::Context {}
 
     async fn execute(&self, _world: &World, player: &mut Player, _: &()) {
@@ -127,7 +135,6 @@ impl TickPhase<Player> for Reset {
 
 impl TickPhase<Npc> for Reset {
     type Context = ();
-
     fn context(&self, _: &World) -> Self::Context {}
 
     async fn execute(&self, _world: &World, npc: &mut Npc, _: &()) {
@@ -149,6 +156,7 @@ impl World {
         tick!(self,
             player: ProcessMessages,
             npc:    Tick,
+            player: Move,
             player: Tick,
             world:  WorldTick,
             player: Sync,
