@@ -1,6 +1,6 @@
 use num_enum::IntoPrimitive;
 
-#[derive(Clone, Copy, IntoPrimitive)]
+#[derive(Clone, Copy, PartialEq, Eq, IntoPrimitive)]
 #[repr(u8)]
 pub enum HitType {
     Block = 0,

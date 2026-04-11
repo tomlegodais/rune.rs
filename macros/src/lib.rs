@@ -7,6 +7,7 @@ mod enum_data;
 mod interaction;
 mod message;
 mod npc_action;
+mod npc_combat;
 mod player_action;
 mod player_system;
 mod special_attack;
@@ -29,6 +30,11 @@ pub fn command(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn npc_action(attr: TokenStream, item: TokenStream) -> TokenStream {
     npc_action::npc_action(attr, item)
+}
+
+#[proc_macro_attribute]
+pub fn npc_combat(attr: TokenStream, item: TokenStream) -> TokenStream {
+    npc_combat::npc_combat(attr, item)
 }
 
 #[proc_macro_attribute]

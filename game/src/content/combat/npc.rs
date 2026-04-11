@@ -1,17 +1,52 @@
+use std::collections::HashMap;
+
 use filesystem::{AttackType, WeaponStance};
 
 use super::{
-    CombatTarget, PendingHit,
+    CombatTarget, PendingHit, Projectile,
     formula::{MeleeAttack, MeleeDefence, def_bonus_for_type},
     queue_hit, roll_hit,
 };
 use crate::{
+    npc::Npc,
     provider,
-    world::{Position, can_interact_rect, find_path},
+    world::{Position, World, can_interact_rect, find_path},
 };
 
 const MAX_CHASE_DISTANCE: i32 = 16;
 const HEAL_DELAY_TICKS: u16 = 50;
+
+pub struct NpcHit {
+    pub target: CombatTarget,
+    pub damage: u16,
+    pub hit_type: crate::entity::HitType,
+    pub delay: u16,
+    pub projectile: Option<Projectile>,
+}
+
+pub struct NpcAttackResult {
+    pub anim: u16,
+    pub hits: Vec<NpcHit>,
+}
+
+pub type NpcAttackFn = fn(&mut Npc, CombatTarget, &World) -> NpcAttackResult;
+
+pub struct NpcCombatScript {
+    pub npc_id: u16,
+    pub attack: NpcAttackFn,
+}
+
+inventory::collect!(NpcCombatScript);
+
+static SCRIPTS: std::sync::LazyLock<HashMap<u16, NpcAttackFn>> = std::sync::LazyLock::new(|| {
+    inventory::iter::<NpcCombatScript>()
+        .map(|e| (e.npc_id, e.attack))
+        .collect()
+});
+
+fn get_attack_fn(npc_id: u16) -> Option<NpcAttackFn> {
+    SCRIPTS.get(&npc_id).copied()
+}
 
 pub fn npc_size(npc_id: u16) -> i32 {
     provider::get_npc_type(npc_id as u32)
@@ -27,29 +62,59 @@ pub fn melee_def(combat: &crate::npc::NpcCombat, atk_type: AttackType) -> MeleeD
     }
 }
 
-fn is_adjacent(player_pos: Position, npc_pos: Position, size: i32) -> bool {
+pub fn npc_melee_atk(npc: &Npc) -> MeleeAttack {
+    let c = &npc.combat;
+    MeleeAttack {
+        atk_level: c.atk_level,
+        str_level: c.str_level,
+        atk_bonus: c.atk_bonus,
+        str_bonus: c.str_bonus,
+        stance: WeaponStance::Accurate,
+    }
+}
+
+pub fn player_def(world: &World, target: CombatTarget, atk_type: AttackType) -> MeleeDefence {
+    let CombatTarget::Player(idx) = target else { unreachable!() };
+    super::player::melee_def(&world.player(idx), atk_type)
+}
+
+pub fn roll_npc_hit(npc: &Npc, target: CombatTarget, world: &World, atk_type: AttackType, delay: u16) -> NpcHit {
+    let atk = npc_melee_atk(npc);
+    let def = player_def(world, target, atk_type);
+    let (hit_type, damage) = roll_hit(&atk, &def, atk_type);
+    NpcHit {
+        target,
+        damage,
+        hit_type,
+        delay,
+        projectile: None,
+    }
+}
+
+pub fn npc_center(npc: &Npc) -> Position {
+    let size = npc_size(npc.npc_id);
+    Position::new(npc.position.x + size / 2, npc.position.y + size / 2, npc.position.plane)
+}
+
+pub fn is_adjacent(player_pos: Position, npc_pos: Position, size: i32) -> bool {
     can_interact_rect(provider::get_collision(), player_pos, npc_pos, size, size, 0)
 }
 
-fn follow_target(npc: &mut crate::npc::Npc, target_pos: Position, size: i32) {
+pub fn follow_target(npc: &mut Npc, target_pos: Position, size: i32) {
     let (px, py) = (target_pos.x, target_pos.y);
     let plane = npc.position.plane;
 
     let mut candidates = Vec::with_capacity((size as usize) * 4);
 
-    // west edge: npc_x = px + 1, npc_y in [py - size + 1 .. py]
     for dy in (-size + 1)..=0 {
         candidates.push(Position::new(px + 1, py + dy, plane));
     }
-    // east edge: npc_x = px - size, npc_y in [py - size + 1 .. py]
     for dy in (-size + 1)..=0 {
         candidates.push(Position::new(px - size, py + dy, plane));
     }
-    // north edge: npc_y = py + 1, npc_x in [px - size + 1 .. px]
     for dx in (-size + 1)..=0 {
         candidates.push(Position::new(px + dx, py + 1, plane));
     }
-    // south edge: npc_y = py - size, npc_x in [px - size + 1 .. px]
     for dx in (-size + 1)..=0 {
         candidates.push(Position::new(px + dx, py - size, plane));
     }
@@ -65,6 +130,13 @@ fn follow_target(npc: &mut crate::npc::Npc, target_pos: Position, size: i32) {
     }
 }
 
+fn default_attack(npc: &mut Npc, target: CombatTarget, world: &World) -> NpcAttackResult {
+    NpcAttackResult {
+        anim: npc.combat.atk_seq,
+        hits: vec![roll_npc_hit(npc, target, world, AttackType::Crush, 0)],
+    }
+}
+
 #[macros::npc_action]
 pub async fn start_combat(target_index: usize) {
     let player_face = target_index as u16 + 32768;
@@ -74,6 +146,7 @@ pub async fn start_combat(target_index: usize) {
 
     let atk_speed = npc.combat.atk_speed;
     let spawn_pos = npc.spawn_position;
+    let attack_fn = get_attack_fn(npc.npc_id);
     let mut cd: u16 = (atk_speed / 2).saturating_sub(1);
 
     delay!(1);
@@ -104,31 +177,29 @@ pub async fn start_combat(target_index: usize) {
             npc.entity.stop();
 
             let world = npc.entity.world();
-            let combat = &npc.combat;
-            let atk = MeleeAttack {
-                atk_level: combat.atk_level,
-                str_level: combat.str_level,
-                atk_bonus: combat.atk_bonus,
-                str_bonus: combat.str_bonus,
-                stance: WeaponStance::Accurate,
+            let target = CombatTarget::Player(target_index);
+            let result = match attack_fn {
+                Some(f) => f(&mut npc, target, &world),
+                None => default_attack(&mut npc, target, &world),
             };
-            let atk_seq = combat.atk_seq;
 
-            let def = super::player::melee_def(&world.player(target_index), AttackType::Crush);
-            let (hit_type, damage) = roll_hit(&atk, &def, AttackType::Crush);
-            drop(world);
-
-            npc.seq(atk_seq);
-            queue_hit(
-                &npc.entity.world(),
-                PendingHit {
-                    target: CombatTarget::Player(target_index),
-                    attacker: CombatTarget::Npc(npc.index),
-                    damage,
-                    hit_type,
-                    delay: 0,
-                },
-            );
+            npc.seq(result.anim);
+            let attacker = CombatTarget::Npc(npc.index);
+            for hit in result.hits {
+                if let Some(proj) = &hit.projectile {
+                    super::broadcast_projectile(&world, proj).await;
+                }
+                queue_hit(
+                    &world,
+                    PendingHit {
+                        target: hit.target,
+                        attacker,
+                        damage: hit.damage,
+                        hit_type: hit.hit_type,
+                        delay: hit.delay,
+                    },
+                );
+            }
 
             cd = atk_speed;
         } else if !is_adjacent(target_pos, npc.position, size) {

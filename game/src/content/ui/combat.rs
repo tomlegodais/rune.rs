@@ -21,6 +21,23 @@ async fn toggle_auto_retaliate() {
 #[macros::on_interface(op = 1, interface = 884, component = 4)]
 async fn toggle_special_attack() {
     let current = player.combat().spec_enabled();
-    player.combat_mut().set_spec_enabled(!current);
-    player.varp_mut().send_varp(301, !current as i32).await;
+    if current {
+        player.combat_mut().set_spec_enabled(false);
+        player.varp_mut().send_varp(301, 0).await;
+        return;
+    }
+
+    let cost = player
+        .worn()
+        .slot(filesystem::WearPos::Weapon)
+        .and_then(|obj| crate::content::get_spec(obj.id))
+        .map(|e| e.energy_cost);
+
+    if cost.is_some_and(|c| player.combat().spec_energy() < c) {
+        send_message!("You don't have enough special attack energy.");
+        return;
+    }
+
+    player.combat_mut().set_spec_enabled(true);
+    player.varp_mut().send_varp(301, 1).await;
 }

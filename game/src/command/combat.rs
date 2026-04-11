@@ -22,6 +22,39 @@ async fn maxhit(player: &mut Player) {
     );
 }
 
+#[command(name = "spec")]
+async fn spec(player: &mut Player) {
+    let enabled = player.combat_mut().toggle_infinite_spec();
+    send_message!(player, "Infinite spec: {}.", if enabled { "ON" } else { "OFF" });
+}
+
+#[command(name = "god")]
+async fn god(player: &mut Player) {
+    let current = player.worn().bonuses();
+    let enabled = current.str_bonus < 500;
+    if enabled {
+        player.worn_mut().set_bonus_override(Some(filesystem::EquipBonuses {
+            atk_stab: 500,
+            atk_slash: 500,
+            atk_crush: 500,
+            atk_magic: 500,
+            atk_ranged: 500,
+            def_stab: 500,
+            def_slash: 500,
+            def_crush: 500,
+            def_magic: 500,
+            def_ranged: 500,
+            str_bonus: 500,
+            ranged_str: 500,
+            magic_dmg: 500,
+            prayer: 500,
+        }));
+    } else {
+        player.worn_mut().set_bonus_override(None);
+    }
+    send_message!(player, "God mode: {}.", if enabled { "ON" } else { "OFF" });
+}
+
 #[command(name = "proj")]
 async fn proj(player: &mut Player, graphic: Option<u16>) {
     let gfx = graphic.unwrap_or(19);

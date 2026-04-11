@@ -1,14 +1,17 @@
 mod anim;
 mod formula;
 mod npc;
+mod npcs;
 mod player;
 mod special;
 mod specials;
 
-pub use formula::{MeleeAttack, MeleeDefence, max_hit};
-use formula::{accuracy, roll_damage};
-pub use npc::npc_size;
+pub use formula::{MeleeAttack, MeleeDefence, accuracy, max_hit, roll_damage};
+pub use npc::{
+    NpcAttackResult, NpcCombatScript, NpcHit, npc_center, npc_melee_atk, npc_size, player_def, roll_npc_hit,
+};
 pub use player::melee_atk;
+pub use special::get as get_spec;
 
 use crate::{
     entity::{Hit, HitType},
@@ -135,11 +138,22 @@ pub async fn send_projectile(player: &mut crate::player::Player, world: &World, 
     }
 }
 
+pub async fn broadcast_projectile(world: &World, proj: &Projectile) {
+    for index in world.players.keys() {
+        let mut player = world.players.get_mut(index);
+        if !player.viewport.is_within_view(player.position, proj.src) {
+            continue;
+        }
+        let frame = build_projanim(proj, player.viewport.region_base);
+        player.map_projanim(frame).await;
+    }
+}
+
 pub fn process_pending_hits(world: &World) {
     let ready: Vec<PendingHit> = {
         let mut queue = world.pending_hits.lock();
-        queue.iter_mut().for_each(|h| h.delay = h.delay.saturating_sub(1));
-        let (ready, pending): (Vec<_>, Vec<_>) = queue.drain(..).partition(|h| h.delay == 0);
+        let (ready, mut pending): (Vec<_>, Vec<_>) = queue.drain(..).partition(|h| h.delay == 0);
+        pending.iter_mut().for_each(|h| h.delay -= 1);
         *queue = pending;
         ready
     };
@@ -152,7 +166,7 @@ pub fn process_pending_hits(world: &World) {
     }
 }
 
-fn roll_hit(atk: &MeleeAttack, def: &MeleeDefence, atk_type: filesystem::AttackType) -> (HitType, u16) {
+pub fn roll_hit(atk: &MeleeAttack, def: &MeleeDefence, atk_type: filesystem::AttackType) -> (HitType, u16) {
     if accuracy(atk, def, atk_type) {
         let max = max_hit(atk);
         let dmg = roll_damage(max);
@@ -239,7 +253,16 @@ pub async fn start_melee_combat(target: CombatTarget) {
             player_cd = 1;
         }
 
-        if !can_interact_rect(collision, player.position, target_pos, target_size, target_size, 0) {
+        let adjacent = can_interact_rect(collision, player.position, target_pos, target_size, target_size, 0);
+
+        if adjacent && player_cd > 0 && player.combat().spec_enabled() && special::is_instant(&player) {
+            let (atk, style) = player::melee_atk(&player);
+            let def = target.melee_def(&player.world(), style.atk_type);
+            if let Some(result) = special::try_execute(&mut player, target, &atk, &def, style.atk_type) {
+                special::apply_result(&mut player, target, &result);
+                player::award_melee_xp(style.xp_type, special::total_damage(&result)).await;
+            }
+        } else if !adjacent {
             player.entity.walk_queue =
                 find_path_adjacent_rect(player.position, target_pos, target_size, target_size, 0);
         } else if player_cd == 0 {

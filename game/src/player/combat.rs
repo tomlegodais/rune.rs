@@ -30,6 +30,7 @@ pub struct CombatManager {
     spec_enabled: bool,
     spec_dirty: bool,
     spec_regen_timer: u16,
+    infinite_spec: bool,
     combat_target: Option<CombatTarget>,
     eat_delay: u16,
     retaliate_target: Option<CombatTarget>,
@@ -66,8 +67,20 @@ impl CombatManager {
     }
 
     pub fn drain_spec(&mut self, amount: u16) {
+        if self.infinite_spec {
+            return;
+        }
         self.spec_energy = self.spec_energy.saturating_sub(amount);
         self.spec_dirty = true;
+    }
+
+    pub fn toggle_infinite_spec(&mut self) -> bool {
+        self.infinite_spec = !self.infinite_spec;
+        if self.infinite_spec {
+            self.spec_energy = MAX_SPEC_ENERGY;
+            self.spec_dirty = true;
+        }
+        self.infinite_spec
     }
 
     pub fn combat_target(&self) -> Option<CombatTarget> {
@@ -126,6 +139,7 @@ impl PlayerSystem for CombatManager {
             spec_enabled: false,
             spec_dirty: false,
             spec_regen_timer: SPEC_REGEN_TICKS,
+            infinite_spec: false,
             combat_target: None,
             eat_delay: 0,
             retaliate_target: None,

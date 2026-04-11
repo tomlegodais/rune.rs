@@ -50,6 +50,7 @@ impl<T: AsRef<[Option<(u16, u32)>]>> From<T> for WornSlots {
 pub struct Worn {
     player: PlayerHandle,
     slots: WornSlots,
+    bonus_override: Option<EquipBonuses>,
 }
 
 impl Worn {
@@ -65,7 +66,14 @@ impl Worn {
         &self.slots
     }
 
+    pub fn set_bonus_override(&mut self, bonuses: Option<EquipBonuses>) {
+        self.bonus_override = bonuses;
+    }
+
     pub fn bonuses(&self) -> EquipBonuses {
+        if let Some(overrides) = &self.bonus_override {
+            return *overrides;
+        }
         let mut total = EquipBonuses::default();
         for obj in self.slots.0.iter().flatten() {
             let Some(t) = crate::provider::get_obj_type(obj.id as u32) else { continue };
@@ -159,6 +167,7 @@ impl PlayerSystem for Worn {
         Self {
             player: ctx.player,
             slots: WornSlots::from(&ctx.player_data.worn),
+            bonus_override: None,
         }
     }
 

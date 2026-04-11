@@ -23,12 +23,19 @@ pub use macros::base as base_macros;
 
 pub enum AttrValue {
     Int(syn::LitInt),
+    Bool(syn::LitBool),
     Ident(syn::Ident),
 }
 
 impl Parse for AttrValue {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        if input.peek(syn::LitInt) { Ok(AttrValue::Int(input.parse()?)) } else { Ok(AttrValue::Ident(input.parse()?)) }
+        if input.peek(syn::LitInt) {
+            Ok(AttrValue::Int(input.parse()?))
+        } else if input.peek(syn::LitBool) {
+            Ok(AttrValue::Bool(input.parse()?))
+        } else {
+            Ok(AttrValue::Ident(input.parse()?))
+        }
     }
 }
 
@@ -81,6 +88,15 @@ impl InteractionAttr {
 
     pub fn get_ident(&self, key: &str) -> Option<&syn::Ident> {
         self.get_value(key, |v| if let AttrValue::Ident(i) = v { Some(i) } else { None })
+    }
+
+    pub fn get_bool(&self, key: &str) -> Option<bool> {
+        self.pairs.iter().find_map(|(k, v)| {
+            (k == key).then_some(match v {
+                AttrValue::Bool(b) => Some(b.value),
+                _ => None,
+            })?
+        })
     }
 
     pub fn op_variant(&self) -> syn::Result<proc_macro2::TokenStream> {

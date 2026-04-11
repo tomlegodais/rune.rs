@@ -24,6 +24,7 @@ pub struct SpecialResult {
 pub struct SpecialAttackEntry {
     pub obj_id: u16,
     pub energy_cost: u16,
+    pub instant: bool,
     pub execute: SpecialExecuteFn,
 }
 
@@ -38,6 +39,14 @@ pub fn get(obj_id: u16) -> Option<&'static SpecialAttackEntry> {
 
 pub fn has_special(obj_id: u16) -> bool {
     SPECIALS.contains_key(&obj_id)
+}
+
+pub fn is_instant(player: &Player) -> bool {
+    player
+        .worn()
+        .slot(filesystem::WearPos::Weapon)
+        .and_then(|obj| get(obj.id))
+        .is_some_and(|e| e.instant)
 }
 
 pub fn try_execute(
@@ -73,7 +82,7 @@ pub fn apply_result(player: &mut Player, target: CombatTarget, result: &SpecialR
 
     let world = player.world();
     let attacker = CombatTarget::Player(player.index);
-    for hit in &result.hits {
+    for (i, hit) in result.hits.iter().enumerate() {
         queue_hit(
             &world,
             PendingHit {
@@ -81,7 +90,7 @@ pub fn apply_result(player: &mut Player, target: CombatTarget, result: &SpecialR
                 attacker,
                 damage: hit.damage,
                 hit_type: hit.hit_type,
-                delay: 0,
+                delay: (i / 2) as u16,
             },
         );
     }

@@ -6,7 +6,7 @@ use crate::interaction::InteractionAttr;
 
 pub fn special_attack(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as InteractionAttr);
-    if let Err(e) = attr.validate_keys(&["obj_id", "energy"]) {
+    if let Err(e) = attr.validate_keys(&["obj_id", "energy", "instant"]) {
         return e.to_compile_error().into();
     }
 
@@ -25,6 +25,8 @@ pub fn special_attack(attr: TokenStream, item: TokenStream) -> TokenStream {
         Err(e) => return e.to_compile_error().into(),
     };
 
+    let instant = attr.get_bool("instant").unwrap_or(false);
+
     quote! {
         fn #func_name(
             player: &mut crate::player::Player,
@@ -33,6 +35,14 @@ pub fn special_attack(attr: TokenStream, item: TokenStream) -> TokenStream {
             atk_type: filesystem::AttackType,
             target: crate::content::combat::CombatTarget,
         ) -> crate::content::combat::special::SpecialResult {
+            macro_rules! hit {
+                ($dmg:expr) => {
+                    crate::content::combat::special::SpecialHit {
+                        hit_type: if $dmg == 0 { crate::entity::HitType::Block } else { crate::entity::HitType::Normal },
+                        damage: $dmg,
+                    }
+                };
+            }
             #func_body
         }
 
@@ -42,6 +52,7 @@ pub fn special_attack(attr: TokenStream, item: TokenStream) -> TokenStream {
                 crate::content::combat::special::SpecialAttackEntry {
                     obj_id: #obj_id,
                     energy_cost: #energy,
+                    instant: #instant,
                     execute: #func_name,
                 }
             }
