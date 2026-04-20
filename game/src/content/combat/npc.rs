@@ -4,13 +4,14 @@ use filesystem::{AttackType, WeaponStance};
 
 use super::{
     CombatTarget, PendingHit, Projectile,
-    formula::{MeleeAttack, MeleeDefence, def_bonus_for_type},
+    formula::{AttackRoll, DefenceRoll, def_bonus_for_type},
     queue_hit, roll_hit,
 };
 use crate::{
+    content::combat::ranged,
     npc::Npc,
     provider,
-    world::{Position, World, can_interact_rect, find_path},
+    world::{Position, World, can_interact_rect, find_path, has_line_of_sight},
 };
 
 const MAX_CHASE_DISTANCE: i32 = 16;
@@ -54,17 +55,24 @@ pub fn npc_size(npc_id: u16) -> i32 {
         .unwrap_or(1)
 }
 
-pub fn melee_def(combat: &crate::npc::NpcCombat, atk_type: AttackType) -> MeleeDefence {
-    MeleeDefence {
+pub fn npc_def(combat: &crate::npc::NpcCombat, atk_type: AttackType) -> DefenceRoll {
+    DefenceRoll {
         def_level: combat.def_level,
-        def_bonus: def_bonus_for_type(atk_type, combat.def_stab, combat.def_slash, combat.def_crush),
+        def_bonus: def_bonus_for_type(
+            atk_type,
+            combat.def_stab,
+            combat.def_slash,
+            combat.def_crush,
+            combat.def_ranged,
+            combat.def_magic,
+        ),
         stance: WeaponStance::Defensive,
     }
 }
 
-pub fn npc_melee_atk(npc: &Npc) -> MeleeAttack {
+pub fn npc_melee_atk(npc: &Npc) -> AttackRoll {
     let c = &npc.combat;
-    MeleeAttack {
+    AttackRoll {
         atk_level: c.atk_level,
         str_level: c.str_level,
         atk_bonus: c.atk_bonus,
@@ -73,9 +81,9 @@ pub fn npc_melee_atk(npc: &Npc) -> MeleeAttack {
     }
 }
 
-pub fn player_def(world: &World, target: CombatTarget, atk_type: AttackType) -> MeleeDefence {
+pub fn player_def(world: &World, target: CombatTarget, atk_type: AttackType) -> DefenceRoll {
     let CombatTarget::Player(idx) = target else { unreachable!() };
-    super::player::melee_def(&world.player(idx), atk_type)
+    super::player::player_def(&world.player(idx), atk_type)
 }
 
 pub fn roll_npc_hit(npc: &Npc, target: CombatTarget, world: &World, atk_type: AttackType, delay: u16) -> NpcHit {
@@ -145,6 +153,7 @@ pub async fn start_combat(target_index: usize) {
     npc.combat_target = Some(target_index);
 
     let atk_speed = npc.combat.atk_speed;
+    let atk_range = npc.combat.atk_range;
     let spawn_pos = npc.spawn_position;
     let attack_fn = get_attack_fn(npc.npc_id);
     let mut cd: u16 = (atk_speed / 2).saturating_sub(1);
@@ -173,7 +182,17 @@ pub async fn start_combat(target_index: usize) {
 
         npc.masks.add(crate::npc::FaceEntityMask(player_face));
 
-        if is_adjacent(target_pos, npc.position, size) && cd == 0 {
+        let in_range = if atk_range > 0 {
+            let dist = ranged::distance_to_target(npc.position, target_pos, 1);
+            let collision = provider::get_collision();
+            dist <= atk_range as i32
+                && npc.position.plane == target_pos.plane
+                && has_line_of_sight(collision, npc_center(&npc), target_pos)
+        } else {
+            is_adjacent(target_pos, npc.position, size)
+        };
+
+        if in_range && cd == 0 {
             npc.entity.stop();
 
             let world = npc.entity.world();
@@ -202,7 +221,7 @@ pub async fn start_combat(target_index: usize) {
             }
 
             cd = atk_speed;
-        } else if !is_adjacent(target_pos, npc.position, size) {
+        } else if !in_range {
             follow_target(&mut npc, target_pos, size);
         }
 

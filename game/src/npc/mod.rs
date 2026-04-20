@@ -31,11 +31,14 @@ pub struct NpcCombat {
     pub def_stab: i16,
     pub def_slash: i16,
     pub def_crush: i16,
+    pub def_ranged: i16,
+    pub def_magic: i16,
     pub atk_speed: u16,
     pub atk_seq: u16,
     pub block_seq: u16,
     pub death_seq: u16,
     pub max_hit: u16,
+    pub atk_range: u16,
 }
 
 impl Default for NpcCombat {
@@ -50,11 +53,14 @@ impl Default for NpcCombat {
             def_stab: 0,
             def_slash: 0,
             def_crush: 0,
+            def_ranged: 0,
+            def_magic: 0,
             atk_speed: 4,
             atk_seq: 422,
             block_seq: 424,
             death_seq: 836,
             max_hit: 1,
+            atk_range: 0,
         }
     }
 }

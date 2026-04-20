@@ -1,7 +1,7 @@
 use filesystem::{AttackType, WeaponStance};
 use rand::Rng;
 
-pub struct MeleeAttack {
+pub struct AttackRoll {
     pub atk_level: u16,
     pub str_level: u16,
     pub atk_bonus: i16,
@@ -9,7 +9,7 @@ pub struct MeleeAttack {
     pub stance: WeaponStance,
 }
 
-pub struct MeleeDefence {
+pub struct DefenceRoll {
     pub def_level: u16,
     pub def_bonus: i16,
     pub stance: WeaponStance,
@@ -43,13 +43,13 @@ fn effective_level(base: u16, stance_bonus: u32) -> u32 {
     base as u32 + stance_bonus + 8
 }
 
-pub fn max_hit(attacker: &MeleeAttack) -> u16 {
+pub fn max_hit(attacker: &AttackRoll) -> u16 {
     let eff_str = effective_level(attacker.str_level, stance_str_bonus(attacker.stance));
     let bonus = attacker.str_bonus.max(0) as u32 + 64;
     ((eff_str * bonus + 320) / 640) as u16
 }
 
-pub fn accuracy(attacker: &MeleeAttack, defender: &MeleeDefence, atk_type: AttackType) -> bool {
+pub fn accuracy(attacker: &AttackRoll, defender: &DefenceRoll, atk_type: AttackType) -> bool {
     let _ = atk_type; // atk_type already factored into the bonus values passed in
     let eff_atk = effective_level(attacker.atk_level, stance_atk_bonus(attacker.stance));
     let atk_roll = eff_atk * (attacker.atk_bonus.max(0) as u32 + 64);
@@ -73,12 +73,20 @@ pub fn roll_damage(max: u16) -> u16 {
     rand::rng().random_range(0..=max)
 }
 
-pub fn def_bonus_for_type(atk_type: AttackType, def_stab: i16, def_slash: i16, def_crush: i16) -> i16 {
+pub fn def_bonus_for_type(
+    atk_type: AttackType,
+    def_stab: i16,
+    def_slash: i16,
+    def_crush: i16,
+    def_ranged: i16,
+    def_magic: i16,
+) -> i16 {
     match atk_type {
         AttackType::Stab => def_stab,
         AttackType::Slash => def_slash,
         AttackType::Crush => def_crush,
-        _ => 0,
+        AttackType::Ranged => def_ranged,
+        AttackType::Magic => def_magic,
     }
 }
 

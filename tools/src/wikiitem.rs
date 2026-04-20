@@ -189,26 +189,16 @@ async fn fetch_stats(page: &str) -> Result<ItemStats> {
 }
 
 fn print_sql(obj_id: u32, s: &ItemStats) {
-    let weapon_cat = s
-        .weapon_category
-        .as_deref()
-        .map(|v| format!("'{v}'"))
-        .unwrap_or_else(|| "NULL".to_string());
-    let atk_speed = s.atk_speed.map(|v| v.to_string()).unwrap_or_else(|| "NULL".to_string());
-    let weight = s.weight.map(|v| v.to_string()).unwrap_or_else(|| "NULL".to_string());
-
     println!(
-        r#"UPDATE obj_configs SET
-    weapon_category = {weapon_cat},
-    atk_stab        = {}, atk_slash   = {}, atk_crush  = {},
-    atk_magic       = {}, atk_ranged  = {},
-    def_stab        = {}, def_slash   = {}, def_crush  = {},
-    def_magic       = {}, def_ranged  = {},
-    str_bonus       = {}, ranged_str  = {},
-    magic_dmg       = {}, prayer      = {},
-    atk_speed       = {atk_speed},
-    weight          = {weight}
-WHERE obj_id = {obj_id};"#,
+        r#"INSERT INTO obj_stat_configs (obj_id, atk_stab, atk_slash, atk_crush, atk_magic, atk_ranged, def_stab, def_slash, def_crush, def_magic, def_ranged, str_bonus, ranged_str, magic_dmg, prayer)
+VALUES ({obj_id}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
+ON CONFLICT (obj_id) DO UPDATE SET
+    atk_stab = EXCLUDED.atk_stab, atk_slash = EXCLUDED.atk_slash, atk_crush = EXCLUDED.atk_crush,
+    atk_magic = EXCLUDED.atk_magic, atk_ranged = EXCLUDED.atk_ranged,
+    def_stab = EXCLUDED.def_stab, def_slash = EXCLUDED.def_slash, def_crush = EXCLUDED.def_crush,
+    def_magic = EXCLUDED.def_magic, def_ranged = EXCLUDED.def_ranged,
+    str_bonus = EXCLUDED.str_bonus, ranged_str = EXCLUDED.ranged_str,
+    magic_dmg = EXCLUDED.magic_dmg, prayer = EXCLUDED.prayer;"#,
         s.atk_stab,
         s.atk_slash,
         s.atk_crush,
@@ -224,6 +214,26 @@ WHERE obj_id = {obj_id};"#,
         s.magic_dmg,
         s.prayer,
     );
+
+    if let Some(cat) = &s.weapon_category {
+        let atk_speed = s.atk_speed.map(|v| v.to_string()).unwrap_or("4".to_string());
+        println!(
+            r#"
+INSERT INTO obj_weapon_configs (obj_id, weapon_category, atk_speed)
+VALUES ({obj_id}, '{cat}', {atk_speed})
+ON CONFLICT (obj_id) DO UPDATE SET
+    weapon_category = EXCLUDED.weapon_category, atk_speed = EXCLUDED.atk_speed;"#,
+        );
+    }
+
+    if let Some(weight) = s.weight {
+        println!(
+            r#"
+UPDATE obj_wear_configs SET
+    weight = {weight}
+WHERE obj_id = {obj_id};"#,
+        );
+    }
 }
 
 #[tokio::main]

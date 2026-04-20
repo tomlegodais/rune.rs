@@ -3,7 +3,7 @@ use std::{collections::HashMap, future::Future, pin::Pin, sync::Arc};
 use net::Op;
 
 use crate::{
-    content::{CombatTarget, start_melee_combat},
+    content::{CombatTarget, start_combat},
     player::{
         ActionShared, ActionState, InteractionTarget, Player, clear_action_context, poll_action, set_action_context,
     },
@@ -59,8 +59,8 @@ pub fn dispatch(
 
     if op == Op::OpT {
         return match target {
-            InteractionTarget::Npc { index } => Some(start_melee_combat(CombatTarget::Npc(index))),
-            InteractionTarget::Player { index } => Some(start_melee_combat(CombatTarget::Player(index))),
+            InteractionTarget::Npc { index } => Some(start_combat(CombatTarget::Npc(index))),
+            InteractionTarget::Player { index } => Some(start_combat(CombatTarget::Player(index))),
             _ => None,
         };
     }

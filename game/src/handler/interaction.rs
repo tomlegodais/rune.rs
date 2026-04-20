@@ -91,34 +91,15 @@ async fn handle_opnpct(player: &mut Player, msg: OpNpcT) {
     player.cancel_action(true).await;
     player.entity.stop();
 
-    let index = msg.npc_index as usize;
-    let world = player.world();
-    if !world.npcs.contains(index) {
+    if !player.world().npcs.contains(msg.npc_index as usize) {
         return;
     }
 
-    let (npc_pos, npc_id) = {
-        let npc = world.npc(index);
-        (npc.position, npc.npc_id)
-    };
+    if msg.ctrl_run && !player.movement().running {
+        player.movement_mut().set_run(true).await;
+    }
 
-    let size = crate::provider::get_npc_type(npc_id as u32)
-        .map(|d| d.size as i32)
-        .unwrap_or(1);
-
-    player.interaction_mut().set(InteractionTarget::Npc { index }, Op::OpT);
-    player
-        .movement_mut()
-        .walk_to(
-            npc_pos,
-            msg.ctrl_run,
-            Some(WalkTarget::Rect {
-                width: size,
-                height: size,
-                access: 0,
-            }),
-        )
-        .await;
+    run_action(player, crate::content::start_combat(target));
 }
 
 #[message_handler]
@@ -128,11 +109,8 @@ async fn handle_opplayer(player: &mut Player, msg: OpPlayer) {
     }
 
     let index = msg.player_index as usize;
-    if msg.op == Op::Op1 {
-        let target = CombatTarget::Player(index);
-        if player.combat().combat_target() == Some(target) {
-            return;
-        }
+    if msg.op == Op::Op1 && player.combat().combat_target() == Some(CombatTarget::Player(index)) {
+        return;
     }
 
     player.cancel_action(true).await;
@@ -142,10 +120,20 @@ async fn handle_opplayer(player: &mut Player, msg: OpPlayer) {
         return;
     }
 
-    let target_pos = world.player(index).position;
-    let op = if msg.op == Op::Op1 { Op::OpT } else { msg.op };
-    player.interaction_mut().set(InteractionTarget::Player { index }, op);
+    if msg.op == Op::Op1 {
+        drop(world);
+        player.entity.stop();
+        if msg.ctrl_run && !player.movement().running {
+            player.movement_mut().set_run(true).await;
+        }
+        run_action(player, crate::content::start_combat(CombatTarget::Player(index)));
+        return;
+    }
 
+    let target_pos = world.player(index).position;
+    player
+        .interaction_mut()
+        .set(InteractionTarget::Player { index }, msg.op);
     player
         .movement_mut()
         .walk_to(

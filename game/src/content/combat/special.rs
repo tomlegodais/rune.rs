@@ -1,24 +1,26 @@
 use std::collections::HashMap;
 
 use super::{
-    CombatTarget, PendingHit,
-    formula::{MeleeAttack, MeleeDefence},
-    queue_hit,
+    CombatTarget, PendingHit, Projectile,
+    formula::{AttackRoll, DefenceRoll},
+    queue_hit, send_projectile,
 };
 use crate::{entity::HitType, player::Player};
 
 pub type SpecialExecuteFn =
-    fn(&mut Player, &MeleeAttack, &MeleeDefence, filesystem::AttackType, CombatTarget) -> SpecialResult;
+    fn(&mut Player, &AttackRoll, &DefenceRoll, filesystem::AttackType, CombatTarget) -> SpecialResult;
 
 pub struct SpecialHit {
     pub hit_type: HitType,
     pub damage: u16,
+    pub delay: u16,
 }
 
 pub struct SpecialResult {
     pub hits: Vec<SpecialHit>,
     pub anim: u16,
     pub gfx: Option<u16>,
+    pub projectiles: Vec<Projectile>,
 }
 
 pub struct SpecialAttackEntry {
@@ -52,8 +54,8 @@ pub fn is_instant(player: &Player) -> bool {
 pub fn try_execute(
     player: &mut Player,
     target: CombatTarget,
-    atk: &MeleeAttack,
-    def: &MeleeDefence,
+    atk: &AttackRoll,
+    def: &DefenceRoll,
     atk_type: filesystem::AttackType,
 ) -> Option<SpecialResult> {
     let weapon = player.worn().slot(filesystem::WearPos::Weapon)?;
@@ -74,15 +76,20 @@ pub fn try_execute(
     Some((entry.execute)(player, atk, def, atk_type, target))
 }
 
-pub fn apply_result(player: &mut Player, target: CombatTarget, result: &SpecialResult) {
+pub async fn apply_result(player: &mut Player, target: CombatTarget, result: &SpecialResult) {
     player.seq(result.anim);
     if let Some(gfx) = result.gfx {
         player.spot_anim(gfx);
     }
 
+    for proj in &result.projectiles {
+        let world = player.world();
+        send_projectile(player, &world, proj).await;
+    }
+
     let world = player.world();
     let attacker = CombatTarget::Player(player.index);
-    for (i, hit) in result.hits.iter().enumerate() {
+    for hit in &result.hits {
         queue_hit(
             &world,
             PendingHit {
@@ -90,7 +97,7 @@ pub fn apply_result(player: &mut Player, target: CombatTarget, result: &SpecialR
                 attacker,
                 damage: hit.damage,
                 hit_type: hit.hit_type,
-                delay: (i / 2) as u16,
+                delay: hit.delay,
             },
         );
     }

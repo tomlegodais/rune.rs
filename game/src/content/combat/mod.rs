@@ -1,12 +1,14 @@
 mod anim;
 mod formula;
+mod melee;
 mod npc;
 mod npcs;
 mod player;
+mod ranged;
 mod special;
 mod specials;
 
-pub use formula::{MeleeAttack, MeleeDefence, accuracy, max_hit, roll_damage};
+pub use formula::{AttackRoll, DefenceRoll, accuracy, max_hit, roll_damage};
 pub use npc::{
     NpcAttackResult, NpcCombatScript, NpcHit, npc_center, npc_melee_atk, npc_size, player_def, roll_npc_hit,
 };
@@ -17,7 +19,7 @@ use crate::{
     entity::{Hit, HitType},
     player::{Clientbound, FaceEntityMask as PlayerFaceEntityMask},
     provider,
-    world::{Position, World, can_interact_rect, find_path_adjacent_rect},
+    world::{Position, World, can_interact_rect, find_path_adjacent_rect, has_line_of_sight},
 };
 
 pub struct PendingHit {
@@ -63,10 +65,10 @@ impl CombatTarget {
         }
     }
 
-    fn melee_def(self, world: &World, atk_type: filesystem::AttackType) -> MeleeDefence {
+    fn def(self, world: &World, atk_type: filesystem::AttackType) -> DefenceRoll {
         match self {
-            Self::Npc(i) => npc::melee_def(&world.npc(i).combat, atk_type),
-            Self::Player(i) => player::melee_def(&world.player(i), atk_type),
+            Self::Npc(i) => npc::npc_def(&world.npc(i).combat, atk_type),
+            Self::Player(i) => player::player_def(&world.player(i), atk_type),
         }
     }
 
@@ -166,7 +168,7 @@ pub fn process_pending_hits(world: &World) {
     }
 }
 
-pub fn roll_hit(atk: &MeleeAttack, def: &MeleeDefence, atk_type: filesystem::AttackType) -> (HitType, u16) {
+pub fn roll_hit(atk: &AttackRoll, def: &DefenceRoll, atk_type: filesystem::AttackType) -> (HitType, u16) {
     if accuracy(atk, def, atk_type) {
         let max = max_hit(atk);
         let dmg = roll_damage(max);
@@ -207,21 +209,14 @@ fn apply_hit_player(world: &World, target_index: usize, damage: u16, hit_type: H
 }
 
 #[macros::player_action]
-pub async fn start_melee_combat(target: CombatTarget) {
+pub async fn start_combat(target: CombatTarget) {
     player.combat_mut().set_combat_target(Some(target));
 
     let target_face = target.client_index();
     player.entity.face_target = Some(target_face);
     player.player_info.add_mask(PlayerFaceEntityMask(target_face));
 
-    if let CombatTarget::Npc(npc_index) = target {
-        let world = player.world();
-        if !world.npcs.contains(npc_index) {
-            return;
-        }
-        crate::npc::fire_action(&mut world.npc_mut(npc_index), npc::start_combat(player.index));
-    }
-
+    let mut npc_engaged = false;
     let mut player_cd: u16 = if let CombatTarget::Player(target_index) = target {
         let world = player.world();
         let target_fighting_us = world.players.contains(target_index)
@@ -239,7 +234,7 @@ pub async fn start_melee_combat(target: CombatTarget) {
 
         let target_pos = target.position(&world);
         let target_size = target.size(&world);
-        let collision = provider::get_collision();
+        drop(world);
 
         if player.combat_mut().consume_eat_delay() {
             player_cd = player_cd.max(1);
@@ -253,47 +248,53 @@ pub async fn start_melee_combat(target: CombatTarget) {
             player_cd = 1;
         }
 
-        let adjacent = can_interact_rect(collision, player.position, target_pos, target_size, target_size, 0);
+        let ranged = player::is_ranged_weapon(&player);
+        let collision = provider::get_collision();
+        let in_range = if ranged {
+            let dist = ranged::distance_to_target(player.position, target_pos, target_size);
+            let los_tile = ranged::nearest_tile(player.position, target_pos, target_size);
+            dist <= ranged::attack_range(&player)
+                && player.position.plane == target_pos.plane
+                && has_line_of_sight(collision, player.position, los_tile)
+        } else {
+            can_interact_rect(collision, player.position, target_pos, target_size, target_size, 0)
+        };
 
-        if adjacent && player_cd > 0 && player.combat().spec_enabled() && special::is_instant(&player) {
-            let (atk, style) = player::melee_atk(&player);
-            let def = target.melee_def(&player.world(), style.atk_type);
-            if let Some(result) = special::try_execute(&mut player, target, &atk, &def, style.atk_type) {
-                special::apply_result(&mut player, target, &result);
-                player::award_melee_xp(style.xp_type, special::total_damage(&result)).await;
+        if in_range && !npc_engaged {
+            if let CombatTarget::Npc(npc_index) = target {
+                let world = player.world();
+                if !world.npcs.contains(npc_index) {
+                    break;
+                }
+                crate::npc::fire_action(&mut world.npc_mut(npc_index), npc::start_combat(player.index));
             }
-        } else if !adjacent {
-            player.entity.walk_queue =
-                find_path_adjacent_rect(player.position, target_pos, target_size, target_size, 0);
-        } else if player_cd == 0 {
+            npc_engaged = true;
+        }
+
+        if in_range && player_cd > 0 && player.combat().spec_enabled() && special::is_instant(&player) {
+            let (atk, style) = player::melee_atk(&player);
+            let def = target.def(&player.world(), style.atk_type);
+            if let Some(result) = special::try_execute(&mut player, target, &atk, &def, style.atk_type) {
+                special::apply_result(&mut player, target, &result).await;
+                player::award_combat_xp(style.xp_type, special::total_damage(&result)).await;
+            }
+        } else if in_range && player_cd == 0 {
             player.entity.stop();
 
-            let (atk, style) = player::melee_atk(&player);
-            let def = target.melee_def(&player.world(), style.atk_type);
-
-            let attacker = CombatTarget::Player(player.index);
-            if let Some(result) = special::try_execute(&mut player, target, &atk, &def, style.atk_type) {
-                special::apply_result(&mut player, target, &result);
-                player::award_melee_xp(style.xp_type, special::total_damage(&result)).await;
+            if ranged {
+                if !ranged::has_ammo(&player) {
+                    crate::send_message!(&mut player, "There is no ammo left in your quiver.");
+                    break;
+                }
+                ranged::fire_ranged_attack(&mut player, target).await;
             } else {
-                let anim = anim::attack(&player);
-                player.seq(anim);
-
-                let (hit_type, damage) = roll_hit(&atk, &def, style.atk_type);
-                queue_hit(
-                    &player.world(),
-                    PendingHit {
-                        target,
-                        attacker,
-                        damage,
-                        hit_type,
-                        delay: 0,
-                    },
-                );
-                player::award_melee_xp(style.xp_type, damage).await;
+                melee::fire_melee_attack(&mut player, target).await;
             }
 
             player_cd = player::weapon_atk_speed(&player);
+        } else if !in_range {
+            player.entity.walk_queue =
+                find_path_adjacent_rect(player.position, target_pos, target_size, target_size, 0);
         }
 
         player_cd = player_cd.saturating_sub(1);

@@ -8,8 +8,9 @@ mod id;
 mod loader;
 
 pub use config::{
-    AttackType, CombatStyle, EnumType, EnumValue, EquipBonuses, LocType, NpcType, ObjType, ParamMap, ParamValue,
-    StructType, StyleName, TransformKind, VarbitType, WeaponCategory, WeaponStance, WearFlag, WearPos, XpType,
+    AmmoType, AttackType, CombatStyle, EnumType, EnumValue, EquipBonuses, LocType, NpcType, ObjType, ParamMap,
+    ParamValue, StructType, StyleName, TransformKind, VarbitType, WeaponCategory, WeaponStance, WearFlag, WearPos,
+    XpType,
 };
 pub use loader::{EnumLoader, LocLoader, NpcLoader, ObjLoader, StructLoader, VarbitLoader};
 mod reference;

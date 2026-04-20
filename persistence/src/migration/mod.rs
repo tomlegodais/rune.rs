@@ -14,6 +14,13 @@ mod m011_add_combat_settings;
 mod m012_create_npc_configs;
 mod m013_add_current_hp;
 mod m014_add_obj_anim;
+mod m015_add_npc_atk_range;
+mod m016_add_ammo_type;
+mod m017_split_obj_configs;
+mod m018_create_obj_ammo_configs;
+mod m019_split_obj_combat_configs;
+mod m020_add_obj_proj_gfx;
+mod m021_add_obj_atk_spotanim;
 
 pub struct Migrator;
 
@@ -35,6 +42,13 @@ impl MigratorTrait for Migrator {
             Box::new(m012_create_npc_configs::Migration),
             Box::new(m013_add_current_hp::Migration),
             Box::new(m014_add_obj_anim::Migration),
+            Box::new(m015_add_npc_atk_range::Migration),
+            Box::new(m016_add_ammo_type::Migration),
+            Box::new(m017_split_obj_configs::Migration),
+            Box::new(m018_create_obj_ammo_configs::Migration),
+            Box::new(m019_split_obj_combat_configs::Migration),
+            Box::new(m020_add_obj_proj_gfx::Migration),
+            Box::new(m021_add_obj_atk_spotanim::Migration),
         ]
     }
 }

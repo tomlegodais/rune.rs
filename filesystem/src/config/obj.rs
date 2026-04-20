@@ -118,6 +118,12 @@ impl CombatStyle {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AmmoType {
+    Arrow,
+    Bolt,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WeaponCategory {
     TwoHandedSword,
     Axe,
@@ -446,6 +452,11 @@ pub struct ObjType {
     pub atk_seq: Vec<u16>,
     pub block_seq: Option<u16>,
     pub weapon_category: Option<WeaponCategory>,
+    pub ammo_type: Option<AmmoType>,
+    pub ammo_tier: Option<i16>,
+    pub atk_range: Option<i16>,
+    pub proj_gfx: Option<u16>,
+    pub atk_spotanim: Option<u16>,
     pub lent_id: Option<u32>,
     pub lent_template: Option<u32>,
     pub params: HashMap<u32, ParamValue>,
@@ -489,6 +500,11 @@ impl Default for ObjType {
             atk_seq: Vec::new(),
             block_seq: None,
             weapon_category: None,
+            ammo_type: None,
+            ammo_tier: None,
+            atk_range: None,
+            proj_gfx: None,
+            atk_spotanim: None,
             lent_id: None,
             lent_template: None,
             params: HashMap::new(),

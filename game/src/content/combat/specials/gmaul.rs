@@ -11,5 +11,6 @@ fn gmaul_spec() {
         hits: vec![hit!(dmg)],
         anim: 1667,
         gfx: Some(340),
+        projectiles: vec![],
     }
 }

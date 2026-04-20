@@ -5,7 +5,7 @@ use super::super::{
 
 #[macros::special_attack(obj_id = 11694, energy = 500)]
 fn ags_spec() {
-    let boosted_atk = crate::content::MeleeAttack {
+    let boosted_atk = crate::content::AttackRoll {
         atk_bonus: atk.atk_bonus * 2,
         ..*atk
     };
@@ -19,5 +19,6 @@ fn ags_spec() {
         hits: vec![hit!(dmg)],
         anim: 7074,
         gfx: Some(1222),
+        projectiles: vec![],
     }
 }

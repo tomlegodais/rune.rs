@@ -17,7 +17,8 @@ use net::{Frame, IncomingMessage, Logout, OutboxExt};
 pub use objstack::ObjStackStore;
 use parking_lot::Mutex;
 pub use pathfinding::{
-    can_interact_loc, can_interact_rect, find_path, find_path_adjacent_rect, find_path_to_loc, wall_face_direction,
+    can_interact_loc, can_interact_rect, find_path, find_path_adjacent_rect, find_path_to_loc, has_line_of_sight,
+    wall_face_direction,
 };
 use persistence::{Account, PlayerData};
 pub use position::{Direction, Position, RegionId, Teleport, running_direction};

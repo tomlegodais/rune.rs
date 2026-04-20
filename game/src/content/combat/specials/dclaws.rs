@@ -27,5 +27,6 @@ fn dclaws_spec() {
         hits: vec![hit!(h1), hit!(h2), hit!(h3), hit!(h4)],
         anim: 10961,
         gfx: Some(1950),
+        projectiles: vec![],
     }
 }

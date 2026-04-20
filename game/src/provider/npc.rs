@@ -48,11 +48,14 @@ async fn load_npc_configs(ctx: &ProviderContext) -> anyhow::Result<()> {
                     def_stab: c.def_stab,
                     def_slash: c.def_slash,
                     def_crush: c.def_crush,
+                    def_ranged: c.def_ranged,
+                    def_magic: c.def_magic,
                     atk_speed: c.atk_speed,
                     atk_seq: c.atk_seq,
                     block_seq: c.block_seq,
                     death_seq: c.death_seq,
                     max_hit: c.max_hit,
+                    atk_range: c.atk_range,
                 },
             )
         })

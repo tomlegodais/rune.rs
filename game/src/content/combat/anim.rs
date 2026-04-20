@@ -48,6 +48,10 @@ fn attack_anims(cat: WeaponCategory) -> &'static [u16] {
         WeaponCategory::Banner => &[386, 390, 401, 386],                                   // lunge, swipe, pound, block
         WeaponCategory::Bulwark => &[401, 401],                                            // pummel, block
         WeaponCategory::Polestaff => &[419, 419, 419],                                     // bash, pound, block
+        WeaponCategory::Bow => &[426, 426, 426],                                           // accurate, rapid, longrange
+        WeaponCategory::Crossbow | WeaponCategory::Gun | WeaponCategory::Blaster => &[4230, 4230, 4230],
+        WeaponCategory::Thrown => &[806, 806, 806],
+        WeaponCategory::Chinchompa => &[7618, 7618, 7618],
         _ => &[422],
     }
 }

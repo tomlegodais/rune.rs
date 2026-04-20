@@ -22,6 +22,7 @@ pub mod config {
         pub block_seq: i16,
         pub death_seq: i16,
         pub max_hit: i16,
+        pub atk_range: i16,
     }
 
     #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

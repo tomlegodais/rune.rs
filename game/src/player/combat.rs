@@ -1,14 +1,12 @@
 use std::{future::Future, pin::Pin, sync::Arc};
 
 use macros::player_system;
-use net::Op;
 use persistence::PlayerData;
 
 use crate::{
-    content::{CombatTarget, npc_size},
-    entity::WalkTarget,
+    content::CombatTarget,
     player::{
-        InteractionTarget, PlayerSnapshot,
+        PlayerSnapshot,
         action::is_action_locked,
         system::{PlayerHandle, PlayerInitContext, PlayerSystem},
     },
@@ -195,38 +193,16 @@ impl PlayerSystem for CombatManager {
                 return;
             }
 
-            let (interaction, target_pos, size) = match target {
-                CombatTarget::Npc(i) => {
-                    if !world.npcs.contains(i) || world.npc(i).is_dying() {
-                        return;
-                    }
-                    let npc = world.npc(i);
-                    let pos = npc.position;
-                    let size = npc_size(npc.npc_id);
-                    (InteractionTarget::Npc { index: i }, pos, size)
-                }
-                CombatTarget::Player(i) => {
-                    if !world.players.contains(i) || world.player(i).hitpoints().is_dying() {
-                        return;
-                    }
-                    let pos = world.player(i).position;
-                    (InteractionTarget::Player { index: i }, pos, 1)
-                }
+            let alive = match target {
+                CombatTarget::Npc(i) => world.npcs.contains(i) && !world.npc(i).is_dying(),
+                CombatTarget::Player(i) => world.players.contains(i) && !world.player(i).hitpoints().is_dying(),
             };
+            drop(world);
+            if !alive {
+                return;
+            }
 
-            player.interaction_mut().set(interaction, Op::OpT);
-            player
-                .movement_mut()
-                .walk_to(
-                    target_pos,
-                    false,
-                    Some(WalkTarget::Rect {
-                        width: size,
-                        height: size,
-                        access: 0,
-                    }),
-                )
-                .await;
+            crate::handler::run_action(player, crate::content::start_combat(target));
         })
     }
 

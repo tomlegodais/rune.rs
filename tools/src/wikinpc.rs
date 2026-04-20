@@ -38,14 +38,19 @@ struct NpcStats {
     max_hit: u16,
 }
 
-fn page_name_from_url(url: &str) -> Result<String> {
-    if let Some(path) = url.strip_prefix("https://oldschool.runescape.wiki/w/") {
-        Ok(path.to_string())
+fn parse_url(url: &str) -> Result<(String, Option<String>)> {
+    let (url, fragment) = url
+        .split_once('#')
+        .map(|(u, f)| (u, Some(f.to_string())))
+        .unwrap_or((url, None));
+    let page = if let Some(path) = url.strip_prefix("https://oldschool.runescape.wiki/w/") {
+        path.to_string()
     } else if url.starts_with("http") {
         bail!("Unrecognised wiki URL format: {url}");
     } else {
-        Ok(url.to_string())
-    }
+        url.to_string()
+    };
+    Ok((page, fragment))
 }
 
 fn parse_infobox(wikitext: &str, template: &str) -> Option<HashMap<String, String>> {
@@ -85,21 +90,35 @@ fn parse_infobox(wikitext: &str, template: &str) -> Option<HashMap<String, Strin
     Some(params)
 }
 
-fn parse_stat(params: &HashMap<String, String>, key: &str) -> u16 {
-    params
-        .get(key)
+fn resolve_version(params: &HashMap<String, String>, fragment: &Option<String>) -> String {
+    let Some(frag) = fragment else { return "1".to_string() };
+    let needle = frag.replace('_', " ");
+    for i in 1..=30 {
+        let key = format!("version{i}");
+        if params.get(&key).is_some_and(|val| val.eq_ignore_ascii_case(&needle)) {
+            return i.to_string();
+        }
+    }
+    "1".to_string()
+}
+
+fn get_param(params: &HashMap<String, String>, key: &str, ver: &str) -> Option<String> {
+    params.get(&format!("{key}{ver}")).or_else(|| params.get(key)).cloned()
+}
+
+fn parse_stat(params: &HashMap<String, String>, key: &str, ver: &str) -> u16 {
+    get_param(params, key, ver)
         .and_then(|v| v.trim_start_matches('+').parse::<u16>().ok())
         .unwrap_or(1)
 }
 
-fn parse_bonus(params: &HashMap<String, String>, key: &str) -> i16 {
-    params
-        .get(key)
+fn parse_bonus(params: &HashMap<String, String>, key: &str, ver: &str) -> i16 {
+    get_param(params, key, ver)
         .and_then(|v| v.trim_start_matches('+').parse::<i16>().ok())
         .unwrap_or(0)
 }
 
-async fn fetch_stats(page: &str) -> Result<NpcStats> {
+async fn fetch_stats(page: &str, fragment: &Option<String>) -> Result<NpcStats> {
     let client = reqwest::Client::builder().user_agent("rune.rs wiki-npc tool").build()?;
 
     let url = format!("{WIKI_API}?action=parse&page={page}&prop=wikitext&redirects=1&format=json");
@@ -116,27 +135,32 @@ async fn fetch_stats(page: &str) -> Result<NpcStats> {
     let params =
         parse_infobox(&wikitext, "Infobox Monster").context("could not find {{Infobox Monster}} on this page")?;
 
-    let name = params.get("name").cloned().unwrap_or_else(|| page.replace('_', " "));
-    let max_hp = params.get("hitpoints").and_then(|v| v.parse::<u32>().ok()).unwrap_or(1);
-    let max_hit = params.get("max hit").and_then(|v| v.parse::<u16>().ok()).unwrap_or(1);
-    let atk_speed = params
-        .get("attack speed")
+    let ver = resolve_version(&params, fragment);
+    let name = get_param(&params, "name", &ver).unwrap_or_else(|| page.replace('_', " "));
+    let max_hp = get_param(&params, "hitpoints", &ver)
+        .and_then(|v| v.parse::<u32>().ok())
+        .unwrap_or(1);
+    let max_hit = get_param(&params, "max hit", &ver)
+        .and_then(|v| v.parse::<u16>().ok())
+        .unwrap_or(1);
+    let atk_speed = get_param(&params, "attack speed", &ver)
         .and_then(|v| v.parse::<u16>().ok())
         .unwrap_or(4);
+    let def_ranged = parse_bonus(&params, "drange", &ver).min(parse_bonus(&params, "dstandard", &ver));
 
     Ok(NpcStats {
         name,
         max_hp,
-        atk_level: parse_stat(&params, "att"),
-        str_level: parse_stat(&params, "str"),
-        def_level: parse_stat(&params, "def"),
-        atk_bonus: parse_bonus(&params, "attbns"),
-        str_bonus: parse_bonus(&params, "strbns"),
-        def_stab: parse_bonus(&params, "dstab"),
-        def_slash: parse_bonus(&params, "dslash"),
-        def_crush: parse_bonus(&params, "dcrush"),
-        def_magic: parse_bonus(&params, "dmagic"),
-        def_ranged: parse_bonus(&params, "drange"),
+        atk_level: parse_stat(&params, "att", &ver),
+        str_level: parse_stat(&params, "str", &ver),
+        def_level: parse_stat(&params, "def", &ver),
+        atk_bonus: parse_bonus(&params, "attbns", &ver),
+        str_bonus: parse_bonus(&params, "strbns", &ver),
+        def_stab: parse_bonus(&params, "dstab", &ver),
+        def_slash: parse_bonus(&params, "dslash", &ver),
+        def_crush: parse_bonus(&params, "dcrush", &ver),
+        def_magic: parse_bonus(&params, "dmagic", &ver),
+        def_ranged,
         atk_speed,
         max_hit,
     })
@@ -183,11 +207,11 @@ async fn main() -> Result<()> {
         );
     }
 
-    let page = page_name_from_url(&args[1])?;
+    let (page, fragment) = parse_url(&args[1])?;
     let npc_id: u32 = args[2].parse().context("npc-id must be a positive integer")?;
 
     eprintln!("Fetching https://oldschool.runescape.wiki/w/{page} ...");
-    let stats = fetch_stats(&page).await?;
+    let stats = fetch_stats(&page, &fragment).await?;
 
     eprintln!(
         "  {} — HP:{} ATK:{} STR:{} DEF:{} MaxHit:{} Speed:{}",

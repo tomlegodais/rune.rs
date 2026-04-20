@@ -296,6 +296,47 @@ fn walk_closest(
     if closest_key != start_key { reconstruct_path(came_from, closest_key, start_key, plane) } else { VecDeque::new() }
 }
 
+pub fn has_line_of_sight(collision: &CollisionMap, src: Position, dst: Position) -> bool {
+    if src.plane != dst.plane {
+        return false;
+    }
+
+    let dx = (dst.x - src.x).abs();
+    let dy = (dst.y - src.y).abs();
+    let sx = (dst.x - src.x).signum();
+    let sy = (dst.y - src.y).signum();
+
+    let mut err = dx - dy;
+    let (mut cx, mut cy) = (src.x, src.y);
+
+    while cx != dst.x || cy != dst.y {
+        let e2 = 2 * err;
+        let mut step_x = 0;
+        let mut step_y = 0;
+
+        if e2 > -dy {
+            err -= dy;
+            step_x = sx;
+        }
+        if e2 < dx {
+            err += dx;
+            step_y = sy;
+        }
+
+        let Some(dir) = Direction::from_delta(step_x, step_y) else {
+            return false;
+        };
+        if !collision.can_move(Position::new(cx, cy, src.plane), dir) {
+            return false;
+        }
+
+        cx += step_x;
+        cy += step_y;
+    }
+
+    true
+}
+
 fn chebyshev(a: (i32, i32), b: (i32, i32)) -> i32 {
     (a.0 - b.0).abs().max((a.1 - b.1).abs())
 }

@@ -5,7 +5,7 @@ use super::super::{
 
 #[macros::special_attack(obj_id = 5698, energy = 250)]
 fn dds_spec() {
-    let boosted_atk = crate::content::MeleeAttack {
+    let boosted_atk = crate::content::AttackRoll {
         atk_bonus: atk.atk_bonus + atk.atk_bonus * 15 / 100,
         ..*atk
     };
@@ -24,5 +24,6 @@ fn dds_spec() {
         hits,
         anim: 1062,
         gfx: Some(252),
+        projectiles: vec![],
     }
 }

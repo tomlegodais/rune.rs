@@ -23,6 +23,7 @@ pub struct NpcConfig {
     pub block_seq: u16,
     pub death_seq: u16,
     pub max_hit: u16,
+    pub atk_range: u16,
 }
 
 pub struct NpcSpawn {
@@ -72,6 +73,7 @@ impl NpcConfigRepository for PgNpcConfigRepository {
                 block_seq: m.block_seq as u16,
                 death_seq: m.death_seq as u16,
                 max_hit: m.max_hit as u16,
+                atk_range: m.atk_range as u16,
             })
             .collect())
     }

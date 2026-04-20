@@ -111,37 +111,131 @@ pub enum WearFlag {
     Mask,
 }
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "obj_configs")]
-pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
-    pub obj_id: i32,
-    #[sea_orm(column_name = "wear_pos")]
-    pub wearpos: Option<WearPos>,
-    #[sea_orm(column_name = "wear_flag")]
-    pub wearflag: Option<WearFlag>,
-    pub weapon_category: Option<WeaponCategory>,
-    pub atk_stab: i16,
-    pub atk_slash: i16,
-    pub atk_crush: i16,
-    pub atk_magic: i16,
-    pub atk_ranged: i16,
-    pub def_stab: i16,
-    pub def_slash: i16,
-    pub def_crush: i16,
-    pub def_magic: i16,
-    pub def_ranged: i16,
-    pub str_bonus: i16,
-    pub ranged_str: i16,
-    pub magic_dmg: i16,
-    pub prayer: i16,
-    pub atk_speed: Option<i16>,
-    pub weight: i32,
-    pub atk_seq: Option<Vec<i16>>,
-    pub block_seq: Option<i16>,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "ammo_type")]
+pub enum AmmoType {
+    #[sea_orm(string_value = "arrow")]
+    Arrow,
+    #[sea_orm(string_value = "bolt")]
+    Bolt,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
+pub mod wear {
+    use sea_orm::entity::prelude::*;
 
-impl ActiveModelBehavior for ActiveModel {}
+    use super::{WearFlag, WearPos};
+
+    #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+    #[sea_orm(table_name = "obj_wear_configs")]
+    pub struct Model {
+        #[sea_orm(primary_key, auto_increment = false)]
+        pub obj_id: i32,
+        #[sea_orm(column_name = "wear_pos")]
+        pub wearpos: Option<WearPos>,
+        #[sea_orm(column_name = "wear_flag")]
+        pub wearflag: Option<WearFlag>,
+        pub weight: i32,
+    }
+
+    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+    pub enum Relation {}
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+pub mod stat {
+    use sea_orm::entity::prelude::*;
+
+    #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+    #[sea_orm(table_name = "obj_stat_configs")]
+    pub struct Model {
+        #[sea_orm(primary_key, auto_increment = false)]
+        pub obj_id: i32,
+        pub atk_stab: i16,
+        pub atk_slash: i16,
+        pub atk_crush: i16,
+        pub atk_magic: i16,
+        pub atk_ranged: i16,
+        pub def_stab: i16,
+        pub def_slash: i16,
+        pub def_crush: i16,
+        pub def_magic: i16,
+        pub def_ranged: i16,
+        pub str_bonus: i16,
+        pub ranged_str: i16,
+        pub magic_dmg: i16,
+        pub prayer: i16,
+    }
+
+    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+    pub enum Relation {}
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+pub mod weapon {
+    use sea_orm::entity::prelude::*;
+
+    use super::WeaponCategory;
+
+    #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+    #[sea_orm(table_name = "obj_weapon_configs")]
+    pub struct Model {
+        #[sea_orm(primary_key, auto_increment = false)]
+        pub obj_id: i32,
+        pub weapon_category: WeaponCategory,
+        pub atk_speed: i16,
+        pub atk_seq: Option<Vec<i16>>,
+        pub block_seq: Option<i16>,
+    }
+
+    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+    pub enum Relation {}
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+pub mod ranged {
+    use sea_orm::entity::prelude::*;
+
+    use super::AmmoType;
+
+    #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+    #[sea_orm(table_name = "obj_ranged_configs")]
+    pub struct Model {
+        #[sea_orm(primary_key, auto_increment = false)]
+        pub obj_id: i32,
+        pub ammo_type: Option<AmmoType>,
+        pub ammo_tier: Option<i16>,
+        pub atk_range: Option<i16>,
+        pub proj_gfx: Option<i16>,
+        pub atk_spotanim: Option<i16>,
+    }
+
+    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+    pub enum Relation {}
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
+
+pub mod ammo {
+    use sea_orm::entity::prelude::*;
+
+    use super::AmmoType;
+
+    #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
+    #[sea_orm(table_name = "obj_ammo_configs")]
+    pub struct Model {
+        #[sea_orm(primary_key, auto_increment = false)]
+        pub obj_id: i32,
+        pub ammo_type: AmmoType,
+        pub ammo_tier: i16,
+        pub proj_gfx: Option<i16>,
+        pub atk_spotanim: Option<i16>,
+    }
+
+    #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+    pub enum Relation {}
+
+    impl ActiveModelBehavior for ActiveModel {}
+}
