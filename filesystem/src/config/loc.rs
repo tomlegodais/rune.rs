@@ -8,7 +8,7 @@ pub struct LocType {
     pub size_x: u8,
     pub size_y: u8,
     pub block_walk: bool,
-    pub block_range: bool,
+    pub block_projectile: bool,
     pub solid: u8,
     pub access_block_flag: u8,
     pub obstruct_ground: bool,
@@ -28,7 +28,7 @@ impl Default for LocType {
             size_x: 1,
             size_y: 1,
             block_walk: true,
-            block_range: true,
+            block_projectile: true,
             solid: 2,
             access_block_flag: 0,
             obstruct_ground: false,
@@ -98,7 +98,7 @@ impl LocType {
                 self.solid = 0;
             }
             18 => {
-                self.block_range = false;
+                self.block_projectile = false;
             }
             19 => {
                 self.interact_type = buf.get_u8();

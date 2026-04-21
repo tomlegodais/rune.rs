@@ -22,8 +22,8 @@ fn dds_spec() {
 
     SpecialResult {
         hits,
-        anim: 1062,
-        gfx: Some(252),
+        seq: 1062,
+        spot_anim: Some(252),
         projectiles: vec![],
     }
 }

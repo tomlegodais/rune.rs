@@ -208,7 +208,7 @@ pub mod ranged {
         pub ammo_type: Option<AmmoType>,
         pub ammo_tier: Option<i16>,
         pub atk_range: Option<i16>,
-        pub proj_gfx: Option<i16>,
+        pub proj_spotanim: Option<i16>,
         pub atk_spotanim: Option<i16>,
     }
 
@@ -230,7 +230,7 @@ pub mod ammo {
         pub obj_id: i32,
         pub ammo_type: AmmoType,
         pub ammo_tier: i16,
-        pub proj_gfx: Option<i16>,
+        pub proj_spotanim: Option<i16>,
         pub atk_spotanim: Option<i16>,
     }
 

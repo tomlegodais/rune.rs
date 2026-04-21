@@ -26,7 +26,7 @@ pub struct NpcHit {
 }
 
 pub struct NpcAttackResult {
-    pub anim: u16,
+    pub seq: u16,
     pub hits: Vec<NpcHit>,
 }
 
@@ -140,7 +140,7 @@ pub fn follow_target(npc: &mut Npc, target_pos: Position, size: i32) {
 
 fn default_attack(npc: &mut Npc, target: CombatTarget, world: &World) -> NpcAttackResult {
     NpcAttackResult {
-        anim: npc.combat.atk_seq,
+        seq: npc.combat.atk_seq,
         hits: vec![roll_npc_hit(npc, target, world, AttackType::Crush, 0)],
     }
 }
@@ -202,7 +202,7 @@ pub async fn start_combat(target_index: usize) {
                 None => default_attack(&mut npc, target, &world),
             };
 
-            npc.seq(result.anim);
+            npc.seq(result.seq);
             let attacker = CombatTarget::Npc(npc.index);
             for hit in result.hits {
                 if let Some(proj) = &hit.projectile {

@@ -54,7 +54,9 @@ async fn wear_slot(player: &mut Player, inv_slot: usize, obj: Obj) {
         let leftover = obj.amount - added;
 
         player.inv_mut().clear_slot(inv_slot).await;
-        player.worn_mut().set(target_slot, Some(Obj::new(obj.id, existing.amount + added)));
+        player
+            .worn_mut()
+            .set(target_slot, Some(Obj::new(obj.id, existing.amount + added)));
         if leftover > 0 {
             player.inv_mut().add(obj.id, leftover).await;
         }

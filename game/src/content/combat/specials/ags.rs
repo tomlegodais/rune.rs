@@ -17,8 +17,8 @@ fn ags_spec() {
 
     SpecialResult {
         hits: vec![hit!(dmg)],
-        anim: 7074,
-        gfx: Some(1222),
+        seq: 7074,
+        spot_anim: Some(1222),
         projectiles: vec![],
     }
 }

@@ -43,7 +43,7 @@ pub struct ObjRangedConfig {
     pub ammo_type: Option<AmmoType>,
     pub ammo_tier: Option<i16>,
     pub atk_range: Option<i16>,
-    pub proj_gfx: Option<i16>,
+    pub proj_spotanim: Option<i16>,
     pub atk_spotanim: Option<i16>,
 }
 
@@ -51,7 +51,7 @@ pub struct ObjAmmoConfig {
     pub obj_id: u32,
     pub ammo_type: AmmoType,
     pub ammo_tier: i16,
-    pub proj_gfx: Option<i16>,
+    pub proj_spotanim: Option<i16>,
     pub atk_spotanim: Option<i16>,
 }
 
@@ -133,7 +133,7 @@ impl ObjConfigRepository for PgObjConfigRepository {
                 ammo_type: m.ammo_type,
                 ammo_tier: m.ammo_tier,
                 atk_range: m.atk_range,
-                proj_gfx: m.proj_gfx,
+                proj_spotanim: m.proj_spotanim,
                 atk_spotanim: m.atk_spotanim,
             })
             .collect())
@@ -147,7 +147,7 @@ impl ObjConfigRepository for PgObjConfigRepository {
                 obj_id: m.obj_id as u32,
                 ammo_type: m.ammo_type,
                 ammo_tier: m.ammo_tier,
-                proj_gfx: m.proj_gfx,
+                proj_spotanim: m.proj_spotanim,
                 atk_spotanim: m.atk_spotanim,
             })
             .collect())

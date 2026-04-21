@@ -8,7 +8,7 @@ pub struct NpcType {
     pub size: u8,
     pub options: [Option<String>; 5],
     pub combat_level: i16,
-    pub visible_on_map: bool,
+    pub visible_on_minimap: bool,
 }
 
 impl Default for NpcType {
@@ -19,7 +19,7 @@ impl Default for NpcType {
             size: 1,
             options: [None, None, None, None, None],
             combat_level: -1,
-            visible_on_map: true,
+            visible_on_minimap: true,
         }
     }
 }
@@ -79,7 +79,7 @@ impl NpcType {
                 let count = buf.get_u8() as usize;
                 buf.advance(count * 2);
             }
-            93 => self.visible_on_map = false,
+            93 => self.visible_on_minimap = false,
             95 => self.combat_level = buf.get_u16() as i16,
             97 => buf.advance(2),
             98 => buf.advance(2),

@@ -55,7 +55,9 @@ impl ObjStackManager {
     async fn send_obj_count(&mut self, obj_id: u16, old_amount: u32, new_amount: u32, pos: Position) {
         let (zone_x, zone_y, packed_offset) = pos.zone_coords(self.region_base());
         let zone_frame = ZoneFrame::new(zone_x, zone_y, pos.plane as u8);
-        self.player.obj_count(zone_frame, obj_id, old_amount, new_amount, packed_offset).await;
+        self.player
+            .obj_count(zone_frame, obj_id, old_amount, new_amount, packed_offset)
+            .await;
     }
 }
 

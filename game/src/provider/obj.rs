@@ -136,7 +136,7 @@ async fn load_obj_types(ctx: &ProviderContext) -> anyhow::Result<()> {
             t.ammo_type = cfg.ammo_type.map(map_ammo_type);
             t.ammo_tier = cfg.ammo_tier;
             t.atk_range = cfg.atk_range;
-            t.proj_gfx = cfg.proj_gfx.map(|v| v as u16);
+            t.proj_spotanim = cfg.proj_spotanim.map(|v| v as u16);
             t.atk_spotanim = cfg.atk_spotanim.map(|v| v as u16);
         }
     }
@@ -145,7 +145,7 @@ async fn load_obj_types(ctx: &ProviderContext) -> anyhow::Result<()> {
         if let Some(t) = loader.get_mut(cfg.obj_id) {
             t.ammo_type = Some(map_ammo_type(cfg.ammo_type));
             t.ammo_tier = Some(cfg.ammo_tier);
-            t.proj_gfx = cfg.proj_gfx.map(|v| v as u16);
+            t.proj_spotanim = cfg.proj_spotanim.map(|v| v as u16);
             t.atk_spotanim = cfg.atk_spotanim.map(|v| v as u16);
         }
     }

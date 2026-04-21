@@ -4,8 +4,8 @@ use crate::content::{
     CombatTarget, NpcAttackResult, NpcHit, Projectile, combat::ranged, npc_center, npc_melee_atk, player_def,
 };
 
-const RANGED_ANIM: u16 = 6953;
-const PROJ_GFX: u16 = 1191;
+const RANGED_SEQ: u16 = 6953;
+const PROJ_SPOTANIM: u16 = 1191;
 const PROJ_START_CYCLE: u16 = 41;
 const PROJ_SPEED: u16 = 20;
 
@@ -24,14 +24,14 @@ fn aviansie_attack() {
     let delay = ranged::hit_delay(dist);
 
     NpcAttackResult {
-        anim: RANGED_ANIM,
+        seq: RANGED_SEQ,
         hits: vec![NpcHit {
             target,
             damage,
             hit_type,
             delay,
             projectile: Some(Projectile {
-                graphic_id: PROJ_GFX,
+                spotanim: PROJ_SPOTANIM,
                 src,
                 dst,
                 target,

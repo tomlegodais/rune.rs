@@ -5,8 +5,8 @@ use super::super::{
     special::SpecialResult,
 };
 
-const FIRST_ARROW_GFX: u16 = 1099;
-const SECOND_ARROW_GFX: u16 = 1099;
+const FIRST_ARROW_SPOTANIM: u16 = 1099;
+const SECOND_ARROW_SPOTANIM: u16 = 1099;
 const MIN_HIT: u16 = 5;
 const DRAGON_ARROW: u16 = 11212;
 const DRAGON_MIN_HIT: u16 = 8;
@@ -25,8 +25,8 @@ fn darkbow_spec() {
     drop(world);
 
     let roll = |min: u16| -> u16 { if accuracy(atk, def, atk_type) { roll_damage(boosted_max).max(min) } else { 0 } };
-    let make_proj = |gfx: u16, start: u16, angle: u8| Projectile {
-        graphic_id: gfx,
+    let make_proj = |spotanim: u16, start: u16, angle: u8| Projectile {
+        spotanim,
         src: player.position,
         dst: target_pos,
         target,
@@ -40,8 +40,11 @@ fn darkbow_spec() {
 
     SpecialResult {
         hits: vec![hit!(roll(min), delay), hit!(roll(min), delay + 1)],
-        anim: 426,
-        gfx: None,
-        projectiles: vec![make_proj(FIRST_ARROW_GFX, 41, 5), make_proj(SECOND_ARROW_GFX, 51, 11)],
+        seq: 426,
+        spot_anim: None,
+        projectiles: vec![
+            make_proj(FIRST_ARROW_SPOTANIM, 41, 5),
+            make_proj(SECOND_ARROW_SPOTANIM, 51, 11),
+        ],
     }
 }

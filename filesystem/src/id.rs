@@ -23,7 +23,7 @@ impl IndexId {
     pub const LOCS: Self = Self(16);
     pub const ENUMS: Self = Self(17);
     pub const NPCS: Self = Self(18);
-    pub const ITEMS: Self = Self(19);
+    pub const OBJS: Self = Self(19);
     pub const SEQUENCES: Self = Self(20);
     pub const SPOTANIMS: Self = Self(21);
     pub const VARBITS: Self = Self(22);
@@ -72,7 +72,7 @@ impl IndexId {
             16 => "locs",
             17 => "worldmap",
             18 => "npcs",
-            19 => "items",
+            19 => "objs",
             20 => "sequences",
             21 => "spotanims",
             22 => "varbits",

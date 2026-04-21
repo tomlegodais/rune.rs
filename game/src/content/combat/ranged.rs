@@ -11,7 +11,7 @@ const DEFAULT_ATTACK_RANGE: i32 = 7;
 const LONGRANGE_BONUS: i32 = 2;
 const MAX_ATTACK_RANGE: i32 = 10;
 
-const DEFAULT_PROJ_GFX: u16 = 15;
+const DEFAULT_PROJ_SPOTANIM: u16 = 15;
 
 #[derive(Clone, Copy)]
 struct ProjectileTemplate {
@@ -117,10 +117,10 @@ pub fn distance_to_target(pos: Position, target: Position, size: i32) -> i32 {
     dx.max(dy)
 }
 
-fn proj_graphic(player: &Player) -> u16 {
+fn proj_spotanim(player: &Player) -> u16 {
     ranged_source(player)
-        .and_then(|t| t.proj_gfx)
-        .unwrap_or(DEFAULT_PROJ_GFX)
+        .and_then(|t| t.proj_spotanim)
+        .unwrap_or(DEFAULT_PROJ_SPOTANIM)
 }
 
 fn attack_spot_anim(player: &Player) -> Option<u16> {
@@ -224,7 +224,7 @@ pub async fn fire_ranged_attack(player: &mut Player, target: CombatTarget) -> Op
 
     let (hit_type, damage) = roll_hit(&atk, &def, style.atk_type);
 
-    let gfx = proj_graphic(player);
+    let spotanim = proj_spotanim(player);
     let world = player.world();
     let target_pos = target.position(&world);
     let target_size = target.size(&world);
@@ -238,7 +238,7 @@ pub async fn fire_ranged_attack(player: &mut Player, target: CombatTarget) -> Op
     let eucl = eucl_dist(src, target_pos);
     let speed = eff_speed(cat, eucl);
     let proj = Projectile {
-        graphic_id: gfx,
+        spotanim,
         src,
         dst,
         target,
@@ -257,8 +257,8 @@ pub async fn fire_ranged_attack(player: &mut Player, target: CombatTarget) -> Op
     let world = player.world();
     send_projectile(player, &world, &proj).await;
 
-    let anim = super::anim::attack(player);
-    player.seq(anim);
+    let attack_seq = super::seq::attack(player);
+    player.seq(attack_seq);
 
     consume_ammo(player, target_pos);
     player.worn_mut().flush().await;

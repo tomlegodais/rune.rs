@@ -9,8 +9,8 @@ fn gmaul_spec() {
 
     SpecialResult {
         hits: vec![hit!(dmg)],
-        anim: 1667,
-        gfx: Some(340),
+        seq: 1667,
+        spot_anim: Some(340),
         projectiles: vec![],
     }
 }

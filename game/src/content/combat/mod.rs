@@ -1,10 +1,10 @@
-mod anim;
 mod formula;
 mod melee;
 mod npc;
 mod npcs;
 mod player;
 mod ranged;
+mod seq;
 mod special;
 mod specials;
 
@@ -85,7 +85,7 @@ pub fn queue_hit(world: &World, hit: PendingHit) {
 }
 
 pub struct Projectile {
-    pub graphic_id: u16,
+    pub spotanim: u16,
     pub src: Position,
     pub dst: Position,
     pub target: CombatTarget,
@@ -112,7 +112,7 @@ fn build_projanim(proj: &Projectile, region_base: Position) -> net::MapProjAnim 
         dst_dx: (proj.dst.x - proj.src.x) as i8,
         dst_dy: (proj.dst.y - proj.src.y) as i8,
         target: proj_target_index(proj.target),
-        graphic_id: proj.graphic_id,
+        spotanim: proj.spotanim,
         start_height: proj.start_height,
         end_height: proj.end_height,
         start_cycle: proj.start_cycle,
@@ -183,16 +183,16 @@ fn apply_hit_npc(world: &World, npc_index: usize, damage: u16, hit_type: HitType
 
     let npc = world.npc(npc_index);
     let play_block = !npc.is_dying() && !npc.has_seq();
-    let block_anim = npc.combat.block_seq;
+    let block_seq = npc.combat.block_seq;
     drop(npc);
     if play_block {
-        world.npc_mut(npc_index).seq(block_anim);
+        world.npc_mut(npc_index).seq(block_seq);
     }
 }
 
 fn apply_hit_player(world: &World, target_index: usize, damage: u16, hit_type: HitType, attacker: CombatTarget) {
     let target = world.player(target_index);
-    let blk_anim = anim::block(&target);
+    let blk_seq = seq::block(&target);
     let has_seq = target.has_seq();
     drop(target);
 
@@ -202,7 +202,7 @@ fn apply_hit_player(world: &World, target_index: usize, damage: u16, hit_type: H
         .damage(Hit::new(damage, hit_type));
     if !died {
         if !has_seq {
-            world.player_mut(target_index).seq(blk_anim);
+            world.player_mut(target_index).seq(blk_seq);
         }
         world.player_mut(target_index).combat_mut().queue_retaliate(attacker);
     }

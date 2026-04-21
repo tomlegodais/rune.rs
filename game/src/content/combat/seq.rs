@@ -2,7 +2,7 @@ use filesystem::{WeaponCategory, WearPos};
 
 use crate::provider;
 
-const SHIELD_BLOCK_ANIM: u16 = 1156;
+const SHIELD_BLOCK_SEQ: u16 = 1156;
 
 fn weapon_type(player: &crate::player::Player) -> Option<&'static filesystem::ObjType> {
     player
@@ -25,11 +25,11 @@ pub fn attack(player: &crate::player::Player) -> u16 {
     }
 
     let cat = player.worn().weapon_category().unwrap_or(WeaponCategory::Unarmed);
-    let anims = attack_anims(cat);
-    anims.get(style).or_else(|| anims.first()).copied().unwrap_or(422)
+    let seqs = attack_seqs(cat);
+    seqs.get(style).or_else(|| seqs.first()).copied().unwrap_or(422)
 }
 
-fn attack_anims(cat: WeaponCategory) -> &'static [u16] {
+fn attack_seqs(cat: WeaponCategory) -> &'static [u16] {
     match cat {
         WeaponCategory::Unarmed => &[422, 423, 422],         // punch, kick, block
         WeaponCategory::StabSword => &[386, 386, 390, 388],  // stab, lunge, slash, block
@@ -58,7 +58,7 @@ fn attack_anims(cat: WeaponCategory) -> &'static [u16] {
 
 pub fn block(player: &crate::player::Player) -> u16 {
     if player.worn().slot(WearPos::Shield).is_some() {
-        return SHIELD_BLOCK_ANIM;
+        return SHIELD_BLOCK_SEQ;
     }
     if let Some(seq) = weapon_type(player).and_then(|t| t.block_seq) {
         return seq;

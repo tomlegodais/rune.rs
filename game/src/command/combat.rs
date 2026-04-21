@@ -56,8 +56,8 @@ async fn god(player: &mut Player) {
 }
 
 #[command(name = "proj")]
-async fn proj(player: &mut Player, graphic: Option<u16>) {
-    let gfx = graphic.unwrap_or(19);
+async fn proj(player: &mut Player, spotanim: Option<u16>) {
+    let spotanim = spotanim.unwrap_or(19);
     let src = player.position;
     let world = player.world();
 
@@ -88,7 +88,7 @@ async fn proj(player: &mut Player, graphic: Option<u16>) {
     drop(world);
 
     let proj = Projectile {
-        graphic_id: gfx,
+        spotanim,
         src,
         dst,
         target: CombatTarget::Npc(npc_index),
@@ -101,5 +101,10 @@ async fn proj(player: &mut Player, graphic: Option<u16>) {
     };
     send_projectile(player, &player.world(), &proj).await;
 
-    send_message!(player, "Fired projectile (gfx {}) at NPC index {}.", gfx, npc_index);
+    send_message!(
+        player,
+        "Fired projectile (spotanim {}) at NPC index {}.",
+        spotanim,
+        npc_index
+    );
 }

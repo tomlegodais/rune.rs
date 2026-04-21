@@ -18,7 +18,7 @@ pub trait Clientbound {
     async fn if_open_sub(&mut self, parent: u16, component: u16, interface: u16, transparent: bool);
     async fn if_close_sub(&mut self, parent: u16, component: u16);
     async fn if_set_text(&mut self, parent: u16, component: u16, text: impl Into<String> + Send);
-    async fn if_set_anim(&mut self, interface_id: u16, component: u16, anim_id: u16);
+    async fn if_set_anim(&mut self, interface_id: u16, component: u16, seq: u16);
     async fn if_set_npc_head(&mut self, interface_id: u16, component: u16, npc_id: u16);
     async fn if_set_player_head(&mut self, interface_id: u16, component: u16);
     async fn if_set_events(&mut self, events: IfSetEvents);
@@ -81,8 +81,8 @@ impl Clientbound for Player {
         self.outbox.write(IfSetText { parent, component, text: text.into() }).await;
     }
 
-    async fn if_set_anim(&mut self, interface_id: u16, component: u16, anim_id: u16) {
-        self.outbox.write(IfSetAnim { interface_id, component, anim_id }).await;
+    async fn if_set_anim(&mut self, interface_id: u16, component: u16, seq: u16) {
+        self.outbox.write(IfSetAnim { interface_id, component, seq }).await;
     }
 
     async fn if_set_npc_head(&mut self, interface_id: u16, component: u16, npc_id: u16) {

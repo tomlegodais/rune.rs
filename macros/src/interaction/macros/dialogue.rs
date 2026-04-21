@@ -3,14 +3,14 @@ use quote::quote;
 pub fn macros() -> proc_macro2::TokenStream {
     quote! {
         macro_rules! npc_dialogue {
-            (id = $id:expr, anim = $anim:expr, $($fmt_args:tt)+) => {{
+            (id = $id:expr, seq = $seq:expr, $($fmt_args:tt)+) => {{
                 let __name = crate::provider::get_npc_type($id as u32)
                     .map(|t| t.name.as_str())
                     .unwrap_or("Unknown");
                 let __text = format!($($fmt_args)+);
                 crate::player::active_player()
                     .dialogue_mut()
-                    .entity_dialogue(crate::player::DialogueEntity::Npc($id as u16, Some($anim as u16)), __name, &__text)
+                    .entity_dialogue(crate::player::DialogueEntity::Npc($id as u16, Some($seq as u16)), __name, &__text)
                     .await;
                 crate::player::await_dialogue().await;
             }};
@@ -25,11 +25,11 @@ pub fn macros() -> proc_macro2::TokenStream {
                     .await;
                 crate::player::await_dialogue().await;
             }};
-            (anim = $anim:expr, $($fmt_args:tt)+) => {{
+            (seq = $seq:expr, $($fmt_args:tt)+) => {{
                 let __text = format!($($fmt_args)+);
                 crate::player::active_player()
                     .dialogue_mut()
-                    .entity_dialogue(crate::player::DialogueEntity::Npc(__npc_id, Some($anim as u16)), __npc_name, &__text)
+                    .entity_dialogue(crate::player::DialogueEntity::Npc(__npc_id, Some($seq as u16)), __npc_name, &__text)
                     .await;
                 crate::player::await_dialogue().await;
             }};
@@ -44,11 +44,11 @@ pub fn macros() -> proc_macro2::TokenStream {
         }
 
         macro_rules! player_dialogue {
-            (anim = $anim:expr, $($fmt_args:tt)+) => {{
+            (seq = $seq:expr, $($fmt_args:tt)+) => {{
                 let __text = format!($($fmt_args)+);
                 crate::player::active_player()
                     .dialogue_mut()
-                    .entity_dialogue(crate::player::DialogueEntity::Player(Some($anim as u16)), &crate::player::active_player().username, &__text)
+                    .entity_dialogue(crate::player::DialogueEntity::Player(Some($seq as u16)), &crate::player::active_player().username, &__text)
                     .await;
                 crate::player::await_dialogue().await;
             }};

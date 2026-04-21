@@ -18,8 +18,8 @@ pub struct SpecialHit {
 
 pub struct SpecialResult {
     pub hits: Vec<SpecialHit>,
-    pub anim: u16,
-    pub gfx: Option<u16>,
+    pub seq: u16,
+    pub spot_anim: Option<u16>,
     pub projectiles: Vec<Projectile>,
 }
 
@@ -77,9 +77,9 @@ pub fn try_execute(
 }
 
 pub async fn apply_result(player: &mut Player, target: CombatTarget, result: &SpecialResult) {
-    player.seq(result.anim);
-    if let Some(gfx) = result.gfx {
-        player.spot_anim(gfx);
+    player.seq(result.seq);
+    if let Some(id) = result.spot_anim {
+        player.spot_anim(id);
     }
 
     for proj in &result.projectiles {

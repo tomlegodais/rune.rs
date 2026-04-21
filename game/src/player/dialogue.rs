@@ -31,9 +31,9 @@ impl DialogueEntity {
         }
     }
 
-    fn anim(&self) -> Option<u16> {
+    fn seq(&self) -> Option<u16> {
         match self {
-            Self::Npc(_, anim) | Self::Player(anim) => *anim,
+            Self::Npc(_, seq) | Self::Player(seq) => *seq,
         }
     }
 }
@@ -54,7 +54,7 @@ impl Dialogue {
     pub async fn entity_dialogue(&mut self, entity: DialogueEntity, name: &str, text: &str) {
         let lines = word_wrap(text, 55);
         let interface = entity.base_interface() + lines.len() as u16;
-        let anim_id = entity.anim().unwrap_or(9827);
+        let seq_id = entity.seq().unwrap_or(9827);
 
         self.state = State::Active;
         self.player.interface_mut().open_slot(InterfaceSlot::Chatbox, interface).await;
@@ -64,7 +64,7 @@ impl Dialogue {
             DialogueEntity::Player(_) => self.player.if_set_player_head(interface, 2).await,
         }
 
-        self.player.if_set_anim(interface, 2, anim_id).await;
+        self.player.if_set_anim(interface, 2, seq_id).await;
         self.player.interface_mut().set_text(InterfaceSlot::Chatbox, 3, name).await;
         for (i, line) in lines.iter().enumerate() {
             self.player.interface_mut().set_text(InterfaceSlot::Chatbox, 4 + i as u16, line).await;

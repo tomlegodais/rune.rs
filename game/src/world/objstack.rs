@@ -30,7 +30,7 @@ pub struct ObjStackStore {
 
 #[derive(Default)]
 struct StoreInner {
-    items: HashMap<u32, ObjStack>,
+    stacks: HashMap<u32, ObjStack>,
     next_id: u32,
 }
 
@@ -42,7 +42,7 @@ impl ObjStackStore {
         let mut inner = self.inner.lock();
 
         if let Some(existing) = inner
-            .items
+            .stacks
             .values_mut()
             .find(|s| s.obj_id == obj_id && s.position == position && s.owner == owner)
         {
@@ -54,7 +54,7 @@ impl ObjStackStore {
 
         let id = inner.next_id;
         inner.next_id = inner.next_id.wrapping_add(1);
-        inner.items.insert(
+        inner.stacks.insert(
             id,
             ObjStack {
                 id,
@@ -70,13 +70,13 @@ impl ObjStackStore {
     }
 
     pub fn remove(&self, id: u32) -> Option<ObjStack> {
-        self.inner.lock().items.remove(&id)
+        self.inner.lock().stacks.remove(&id)
     }
 
     pub fn find(&self, obj_id: u16, x: i32, y: i32, viewer: usize) -> Option<u32> {
         let inner = self.inner.lock();
         inner
-            .items
+            .stacks
             .values()
             .find(|g| {
                 g.obj_id == obj_id
@@ -87,29 +87,29 @@ impl ObjStackStore {
             .map(|g| g.id)
     }
 
-    pub fn with_items<F>(&self, mut f: F)
+    pub fn with_stacks<F>(&self, mut f: F)
     where
         F: FnMut(&mut ObjStack),
     {
         let mut inner = self.inner.lock();
-        for item in inner.items.values_mut() {
-            f(item);
+        for stack in inner.stacks.values_mut() {
+            f(stack);
         }
     }
 
     pub fn decay(&self) -> Vec<ObjStack> {
         let mut expired_ids = Vec::new();
 
-        self.with_items(|item| {
-            if item.private_ticks_remaining > 0 {
-                item.private_ticks_remaining -= 1;
-                if item.private_ticks_remaining == 0 {
-                    item.owner = None;
+        self.with_stacks(|stack| {
+            if stack.private_ticks_remaining > 0 {
+                stack.private_ticks_remaining -= 1;
+                if stack.private_ticks_remaining == 0 {
+                    stack.owner = None;
                 }
             } else {
-                item.public_ticks_remaining = item.public_ticks_remaining.saturating_sub(1);
-                if item.public_ticks_remaining == 0 {
-                    expired_ids.push(item.id);
+                stack.public_ticks_remaining = stack.public_ticks_remaining.saturating_sub(1);
+                if stack.public_ticks_remaining == 0 {
+                    expired_ids.push(stack.id);
                 }
             }
         });
@@ -124,7 +124,7 @@ impl ObjStackStore {
     ) -> Vec<(u32, u16, u32, Position)> {
         let inner = self.inner.lock();
         inner
-            .items
+            .stacks
             .values()
             .filter(|g| viewport_contains(g.position) && (g.owner.is_none() || g.owner == Some(player_index)))
             .map(|g| (g.id, g.obj_id, g.amount, g.position))
@@ -133,7 +133,7 @@ impl ObjStackStore {
 
     pub fn get(&self, id: u32) -> Option<ObjStackSnapshot> {
         let inner = self.inner.lock();
-        inner.items.get(&id).map(|g| ObjStackSnapshot {
+        inner.stacks.get(&id).map(|g| ObjStackSnapshot {
             obj_id: g.obj_id,
             amount: g.amount,
             position: g.position,
@@ -155,7 +155,7 @@ impl ObjStackStore {
         let mut inner = self.inner.lock();
         let id = inner.next_id;
         inner.next_id = inner.next_id.wrapping_add(1);
-        inner.items.insert(
+        inner.stacks.insert(
             id,
             ObjStack {
                 id,

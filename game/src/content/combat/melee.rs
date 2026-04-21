@@ -1,4 +1,4 @@
-use super::{CombatTarget, PendingHit, anim, player, queue_hit, roll_hit, special};
+use super::{CombatTarget, PendingHit, player, queue_hit, roll_hit, seq, special};
 use crate::player::Player;
 
 pub async fn fire_melee_attack(player: &mut Player, target: CombatTarget) {
@@ -13,8 +13,8 @@ pub async fn fire_melee_attack(player: &mut Player, target: CombatTarget) {
         special::apply_result(player, target, &result).await;
         player::award_combat_xp(style.xp_type, special::total_damage(&result)).await;
     } else {
-        let anim = anim::attack(player);
-        player.seq(anim);
+        let attack_seq = seq::attack(player);
+        player.seq(attack_seq);
 
         let (hit_type, damage) = roll_hit(&atk, &def, style.atk_type);
         let world = player.world();

@@ -13,10 +13,10 @@ impl ObjLoader {
     #[rustfmt::skip]
     pub fn load(cache: &Cache) -> CacheResult<Self> {
         let mut types = HashMap::new();
-        let ref_table = cache.reference_table(IndexId::ITEMS)?;
+        let ref_table = cache.reference_table(IndexId::OBJS)?;
         let decoded = ref_table.iter_archive_ids().flat_map(|archive_id| {
             cache
-                .read_all_files(IndexId::ITEMS, archive_id)
+                .read_all_files(IndexId::OBJS, archive_id)
                 .into_iter()
                 .flatten()
                 .map(move |(file_id, data)| {

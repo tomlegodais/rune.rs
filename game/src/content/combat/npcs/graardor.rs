@@ -10,9 +10,9 @@ use crate::{
     npc::Npc,
 };
 
-const MELEE_ANIM: u16 = 7060;
-const RANGED_ANIM: u16 = 7063;
-const RANGED_GFX: u16 = 1200;
+const MELEE_SEQ: u16 = 7060;
+const RANGED_SEQ: u16 = 7063;
+const RANGED_SPOTANIM: u16 = 1200;
 
 const SHOUTS: &[&str] = &[
     "Death to our enemies!",
@@ -42,7 +42,7 @@ fn graardor_attack() {
         ranged_slam(npc, world)
     } else {
         NpcAttackResult {
-            anim: MELEE_ANIM,
+            seq: MELEE_SEQ,
             hits: vec![roll_npc_hit(npc, target, world, AttackType::Crush, 0)],
         }
     }
@@ -81,7 +81,7 @@ fn ranged_slam(npc: &Npc, world: &crate::world::World) -> NpcAttackResult {
                 hit_type,
                 delay: 1,
                 projectile: Some(Projectile {
-                    graphic_id: RANGED_GFX,
+                    spotanim: RANGED_SPOTANIM,
                     src,
                     dst,
                     target,
@@ -96,8 +96,5 @@ fn ranged_slam(npc: &Npc, world: &crate::world::World) -> NpcAttackResult {
         })
         .collect();
 
-    NpcAttackResult {
-        anim: RANGED_ANIM,
-        hits,
-    }
+    NpcAttackResult { seq: RANGED_SEQ, hits }
 }

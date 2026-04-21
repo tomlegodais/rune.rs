@@ -21,6 +21,7 @@ mod m018_create_obj_ammo_configs;
 mod m019_split_obj_combat_configs;
 mod m020_add_obj_proj_gfx;
 mod m021_add_obj_atk_spotanim;
+mod m022_rename_proj_gfx;
 
 pub struct Migrator;
 
@@ -49,6 +50,7 @@ impl MigratorTrait for Migrator {
             Box::new(m019_split_obj_combat_configs::Migration),
             Box::new(m020_add_obj_proj_gfx::Migration),
             Box::new(m021_add_obj_atk_spotanim::Migration),
+            Box::new(m022_rename_proj_gfx::Migration),
         ]
     }
 }
