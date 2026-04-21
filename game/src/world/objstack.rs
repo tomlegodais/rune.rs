@@ -34,9 +34,24 @@ struct StoreInner {
     next_id: u32,
 }
 
+const PRIVATE_TICKS: u16 = 100;
+const PUBLIC_TICKS: u16 = 200;
+
 impl ObjStackStore {
     pub fn add(&self, obj_id: u16, amount: u32, position: Position, owner: Option<usize>) -> u32 {
         let mut inner = self.inner.lock();
+
+        if let Some(existing) = inner
+            .items
+            .values_mut()
+            .find(|s| s.obj_id == obj_id && s.position == position && s.owner == owner)
+        {
+            existing.amount = existing.amount.saturating_add(amount);
+            existing.private_ticks_remaining = PRIVATE_TICKS;
+            existing.public_ticks_remaining = PUBLIC_TICKS;
+            return existing.id;
+        }
+
         let id = inner.next_id;
         inner.next_id = inner.next_id.wrapping_add(1);
         inner.items.insert(
@@ -47,8 +62,8 @@ impl ObjStackStore {
                 amount,
                 position,
                 owner,
-                private_ticks_remaining: 100,
-                public_ticks_remaining: 200,
+                private_ticks_remaining: PRIVATE_TICKS,
+                public_ticks_remaining: PUBLIC_TICKS,
             },
         );
         id

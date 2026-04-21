@@ -1,4 +1,4 @@
-use std::{collections::HashSet, future::Future, pin::Pin, sync::Arc};
+use std::{collections::HashMap, future::Future, pin::Pin, sync::Arc};
 
 use macros::player_system;
 use net::ZoneFrame;
@@ -13,7 +13,7 @@ use crate::{
 
 pub struct ObjStackManager {
     player: PlayerHandle,
-    pub known: HashSet<u32>,
+    pub known: HashMap<u32, u32>,
 }
 
 impl ObjStackManager {
@@ -22,13 +22,13 @@ impl ObjStackManager {
     }
 
     pub async fn forget(&mut self, id: u32, obj_id: u16, pos: Position) {
-        if self.known.remove(&id) {
+        if self.known.remove(&id).is_some() {
             self.send_obj_del(obj_id, pos).await;
         }
     }
 
     pub async fn on_viewport_rebuild(&mut self, obj_stacks: &ObjStackStore) {
-        let ids: Vec<u32> = self.known.drain().collect();
+        let ids: Vec<u32> = self.known.drain().map(|(id, _)| id).collect();
         for id in ids {
             if let Some(item) = obj_stacks.get(id) {
                 self.send_obj_del(item.obj_id, item.position).await;
@@ -51,6 +51,12 @@ impl ObjStackManager {
         let zone_frame = ZoneFrame::new(zone_x, zone_y, pos.plane as u8);
         self.player.obj_del(zone_frame, obj_id, packed_offset).await;
     }
+
+    async fn send_obj_count(&mut self, obj_id: u16, old_amount: u32, new_amount: u32, pos: Position) {
+        let (zone_x, zone_y, packed_offset) = pos.zone_coords(self.region_base());
+        let zone_frame = ZoneFrame::new(zone_x, zone_y, pos.plane as u8);
+        self.player.obj_count(zone_frame, obj_id, old_amount, new_amount, packed_offset).await;
+    }
 }
 
 #[player_system]
@@ -60,7 +66,7 @@ impl PlayerSystem for ObjStackManager {
     fn create(ctx: &PlayerInitContext) -> Self {
         Self {
             player: ctx.player,
-            known: HashSet::new(),
+            known: HashMap::new(),
         }
     }
 
@@ -80,14 +86,22 @@ impl PlayerSystem for ObjStackManager {
 
             let visible = world.obj_stacks.visible_to(player_index, in_range);
             for (id, obj_id, amount, pos) in visible {
-                if self.known.insert(id) {
-                    self.send_obj_add(obj_id, amount, pos).await;
+                match self.known.get(&id).copied() {
+                    None => {
+                        self.known.insert(id, amount);
+                        self.send_obj_add(obj_id, amount, pos).await;
+                    }
+                    Some(prev) if prev != amount => {
+                        self.known.insert(id, amount);
+                        self.send_obj_count(obj_id, prev, amount, pos).await;
+                    }
+                    _ => {}
                 }
             }
 
             let invisible: Vec<u32> = self
                 .known
-                .iter()
+                .keys()
                 .copied()
                 .filter(|id| {
                     world

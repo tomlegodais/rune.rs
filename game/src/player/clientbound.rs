@@ -1,8 +1,8 @@
 use net::{
     IfCloseSub, IfOpenSub, IfOpenTop, IfSetAnim, IfSetEvents, IfSetNpcHead, IfSetPlayerHead, IfSetText, InvEntry,
-    InvType, LocAddChange, LocDel, Logout, MapProjAnim, MessageGame, MidiJingle, MinimapToggle, ObjAdd, ObjDel,
-    OutboxExt, RunClientScript, ScriptArg, SetPlayerOp, UpdateInvFull, UpdateRunEnergy, UpdateStat, VarbitLarge,
-    VarbitSmall, VarcLarge, VarcSmall, VarpLarge, VarpSmall, ZoneFrame,
+    InvType, LocAddChange, LocDel, Logout, MapProjAnim, MessageGame, MidiJingle, MinimapToggle, ObjAdd, ObjCount,
+    ObjDel, OutboxExt, RunClientScript, ScriptArg, SetPlayerOp, UpdateInvFull, UpdateRunEnergy, UpdateStat,
+    VarbitLarge, VarbitSmall, VarcLarge, VarcSmall, VarpLarge, VarpSmall, ZoneFrame,
 };
 
 use super::Player;
@@ -45,6 +45,7 @@ pub trait Clientbound {
     async fn loc_del(&mut self, zone_frame: ZoneFrame, loc_type: u8, rotation: u8, packed_offset: u8);
     async fn obj_add(&mut self, zone_frame: ZoneFrame, obj_id: u16, amount: u32, packed_offset: u8);
     async fn obj_del(&mut self, zone_frame: ZoneFrame, obj_id: u16, packed_offset: u8);
+    async fn obj_count(&mut self, zone_frame: ZoneFrame, obj_id: u16, old_amount: u32, new_amount: u32, packed_offset: u8);
     async fn map_projanim(&mut self, projanim: MapProjAnim);
 
     async fn rebuild_normal(&mut self, init: bool);
@@ -175,6 +176,10 @@ impl Clientbound for Player {
 
     async fn obj_del(&mut self, zone_frame: ZoneFrame, obj_id: u16, packed_offset: u8) {
         self.outbox.write(ObjDel { zone_frame, obj_id, packed_offset }).await;
+    }
+
+    async fn obj_count(&mut self, zone_frame: ZoneFrame, obj_id: u16, old_amount: u32, new_amount: u32, packed_offset: u8) {
+        self.outbox.write(ObjCount { zone_frame, obj_id, old_amount, new_amount, packed_offset }).await;
     }
 
     async fn map_projanim(&mut self, projanim: MapProjAnim) {

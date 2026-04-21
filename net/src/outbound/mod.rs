@@ -37,7 +37,7 @@ pub use logout::Logout;
 pub use message::MessageGame;
 pub use midijingle::MidiJingle;
 pub use minimap::MinimapToggle;
-pub use obj::{ObjAdd, ObjDel};
+pub use obj::{ObjAdd, ObjCount, ObjDel};
 pub use playerop::SetPlayerOp;
 pub use projanim::MapProjAnim;
 pub use rebuild::RebuildNormal;

@@ -19,7 +19,7 @@ pub use message::{Encodable, Frame, LoginOutcome, LoginRequest, LoginSuccess, Pr
 pub use outbound::{
     IfCloseSub, IfEvents, IfOpenSub, IfOpenTop, IfSetAnim, IfSetEvents, IfSetNpcHead, IfSetPlayerHead, IfSetText,
     InvEntry, InvType, LocAddChange, LocDel, Logout, MapProjAnim, MessageGame, MidiJingle, MinimapToggle, ObjAdd,
-    ObjDel, Outbox, OutboxExt, RebuildNormal, RunClientScript, ScriptArg, SetPlayerOp, UpdateInvFull, UpdateRunEnergy,
-    UpdateStat, VarbitLarge, VarbitSmall, VarcLarge, VarcSmall, VarpLarge, VarpSmall, ZoneFrame,
+    ObjCount, ObjDel, Outbox, OutboxExt, RebuildNormal, RunClientScript, ScriptArg, SetPlayerOp, UpdateInvFull,
+    UpdateRunEnergy, UpdateStat, VarbitLarge, VarbitSmall, VarcLarge, VarcSmall, VarpLarge, VarpSmall, ZoneFrame,
 };
 pub use service::{LoginService, TcpService};
