@@ -42,7 +42,7 @@ pub use gpi::encode_player_info;
 pub use info::PlayerInfo;
 pub use interaction::{InteractionTarget, resolve as resolve_interaction};
 pub use interface::InterfaceSlot;
-pub use inv::SIZE as INV_SIZE;
+pub use inv::{SIZE as INV_SIZE, STACK_MAX};
 pub use mask::{
     ChatMask, FaceDirectionMask, FaceEntityMask, Hit1Mask, Hit2Mask, MoveTypeMask, SeqMask, SpotAnim1Mask,
     SpotAnim2Mask, TempMoveTypeMask,

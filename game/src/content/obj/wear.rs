@@ -2,7 +2,7 @@ use filesystem::{WearFlag, WearPos};
 use net::{ScriptArg, if_events, if_set_events};
 use num_enum::TryFromPrimitive;
 
-use crate::player::{Clientbound, InterfaceSlot, Obj, Player, equipment};
+use crate::player::{Clientbound, InterfaceSlot, Obj, Player, STACK_MAX, equipment};
 
 #[macros::on_obj(op = Op2)]
 async fn wear_obj() {
@@ -45,6 +45,26 @@ async fn wear_slot(player: &mut Player, inv_slot: usize, obj: Obj) {
     let Some(obj_type) = crate::provider::get_obj_type(obj.id as u32) else { return };
     let Some(raw_slot) = obj_type.wearpos else { return };
     let Ok(target_slot) = WearPos::try_from_primitive(raw_slot as usize) else { return };
+
+    if obj_type.stackable
+        && let Some(existing) = player.worn().slot(target_slot)
+        && existing.id == obj.id
+    {
+        let added = obj.amount.min(STACK_MAX - existing.amount);
+        let leftover = obj.amount - added;
+
+        player.inv_mut().clear_slot(inv_slot).await;
+        player.worn_mut().set(target_slot, Some(Obj::new(obj.id, existing.amount + added)));
+        if leftover > 0 {
+            player.inv_mut().add(obj.id, leftover).await;
+        }
+        player.worn_mut().flush().await;
+
+        if player.interface().get_slot(InterfaceSlot::Modal) == Some(equipment::STATS) {
+            send_equip_bonuses(player).await;
+        }
+        return;
+    }
 
     let displaced = player.worn().displace(target_slot, obj_type.wearflag);
     let needed = displaced.len().saturating_sub(1);
