@@ -12,6 +12,10 @@ path = "src/wikiitem.rs"
 name = "wiki-npc"
 path = "src/wikinpc.rs"
 
+[[bin]]
+name = "seed-bank"
+path = "src/seedbank.rs"
+
 [dependencies]
 anyhow = { workspace = true }
 reqwest = { version = "0.12", features = ["json"] }

@@ -159,9 +159,9 @@ async fn handle_examloc(player: &mut Player, msg: ExamLoc) {
 
 #[message_handler]
 async fn handle_ifbutton(player: &mut Player, msg: IfButton) {
-    let handler = [Some(msg.op), None]
+    let handler = [Some(msg.component), None]
         .into_iter()
-        .flat_map(|o| [Some(msg.component), None].map(|c| (o, c)))
+        .flat_map(|c| [Some(msg.op), None].map(|o| (o, c)))
         .find_map(|(o, c)| CONTENT_HANDLERS.get(&ContentTarget::Button(o, msg.interface, c)));
 
     let Some(handler) = handler else {

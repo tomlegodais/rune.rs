@@ -40,3 +40,8 @@ pub mod equipment {
     pub const STATS: u16 = 667;
     pub const INV: u16 = 670;
 }
+
+pub mod banking {
+    pub const MAIN: u16 = 762;
+    pub const INV: u16 = 763;
+}

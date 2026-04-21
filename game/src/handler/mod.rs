@@ -7,6 +7,7 @@ mod interaction;
 mod message_public;
 mod moveclick;
 mod objstack;
+mod resumecount;
 
 use std::{any::TypeId, collections::HashMap, future::Future, pin::Pin};
 

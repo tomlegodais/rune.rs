@@ -18,7 +18,7 @@ impl Encodable for VarcSmall {
         let mut buf = BytesMut::new();
         buf.put_u16_le_add(0);
         buf.put_u16(self.id);
-        buf.put_u8_add(self.value);
+        buf.put_u8_sub(self.value);
 
         Frame {
             opcode: 12,

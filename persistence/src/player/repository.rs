@@ -3,7 +3,9 @@ use sea_orm::{prelude::Expr, *};
 use shaku::{Component, Interface};
 
 use super::entity::{
-    appearance, inv,
+    appearance,
+    bank::{self, BankEntry},
+    inv,
     inv::InvEntry,
     player, stats,
     stats::StatEntry,
@@ -25,6 +27,8 @@ pub struct PlayerData {
     pub xp: [u32; 24],
     pub inv: Vec<Option<(u16, u32)>>,
     pub worn: Vec<Option<(u16, u32)>>,
+    pub bank_tabs: Vec<Vec<(u16, u32)>>,
+    pub bank_last_x: u32,
     pub combat_style: u8,
     pub auto_retaliate: bool,
     pub spec_energy: u16,
@@ -45,6 +49,19 @@ pub struct PgPlayerRepository {
     db: DatabaseConnection,
 }
 
+fn parse_bank_tabs(value: sea_orm::prelude::Json) -> Result<Vec<Vec<(u16, u32)>>, DbErr> {
+    if let Ok(tabs) = serde_json::from_value::<Vec<Vec<BankEntry>>>(value.clone()) {
+        return Ok(tabs
+            .into_iter()
+            .map(|tab| tab.into_iter().map(|e| (e.obj_id, e.amount)).collect())
+            .collect());
+    }
+    let flat: Vec<Option<BankEntry>> = serde_json::from_value(value).map_err(|e| DbErr::Type(e.to_string()))?;
+    let mut tabs = vec![Vec::new(); 9];
+    tabs[0] = flat.into_iter().flatten().map(|e| (e.obj_id, e.amount)).collect();
+    Ok(tabs)
+}
+
 impl PlayerData {
     fn from_models(
         player: player::Model,
@@ -52,6 +69,7 @@ impl PlayerData {
         stat_model: stats::Model,
         inv_model: inv::Model,
         worn_model: worn::Model,
+        bank_model: bank::Model,
     ) -> Result<Self, DbErr> {
         let stat_entries: Vec<StatEntry> =
             serde_json::from_value(stat_model.stats).map_err(|e| DbErr::Type(e.to_string()))?;
@@ -93,6 +111,9 @@ impl PlayerData {
             .map(|e| e.map(|e| (e.obj_id, e.amount)))
             .collect();
 
+        let bank_tabs = parse_bank_tabs(bank_model.objs)?;
+        let bank_last_x = bank_model.last_x.max(0) as u32;
+
         Ok(PlayerData {
             player_id: player.id,
             x: player.x,
@@ -107,6 +128,8 @@ impl PlayerData {
             xp,
             inv,
             worn,
+            bank_tabs,
+            bank_last_x,
             combat_style: player.combat_style as u8,
             auto_retaliate: player.auto_retaliate,
             spec_energy: player.spec_energy as u16,
@@ -146,7 +169,12 @@ impl PlayerRepository for PgPlayerRepository {
             .await?
             .ok_or_else(|| DbErr::RecordNotFound("player_worn".to_string()))?;
 
-        PlayerData::from_models(player, appearance, stats, inv, worn).map(Some)
+        let bank = bank::Entity::find_by_id(player.id)
+            .one(&self.db)
+            .await?
+            .ok_or_else(|| DbErr::RecordNotFound("player_bank".to_string()))?;
+
+        PlayerData::from_models(player, appearance, stats, inv, worn, bank).map(Some)
     }
 
     async fn create_default(&self, account_id: i64) -> Result<PlayerData, DbErr> {
@@ -185,7 +213,14 @@ impl PlayerRepository for PgPlayerRepository {
         .insert(&self.db)
         .await?;
 
-        PlayerData::from_models(player, appearance, stats, inv, worn)
+        let bank = bank::ActiveModel {
+            player_id: Set(player.id),
+            ..Default::default()
+        }
+        .insert(&self.db)
+        .await?;
+
+        PlayerData::from_models(player, appearance, stats, inv, worn, bank)
     }
 
     async fn save(&self, data: &PlayerData) -> Result<(), DbErr> {
@@ -255,6 +290,24 @@ impl PlayerRepository for PgPlayerRepository {
         worn::Entity::update_many()
             .filter(worn::Column::PlayerId.eq(data.player_id))
             .col_expr(worn::Column::Objs, Expr::value(worn_json))
+            .exec(&self.db)
+            .await?;
+
+        let bank_payload: Vec<Vec<BankEntry>> = data
+            .bank_tabs
+            .iter()
+            .map(|tab| {
+                tab.iter()
+                    .map(|&(obj_id, amount)| BankEntry { obj_id, amount })
+                    .collect()
+            })
+            .collect();
+        let bank_json = serde_json::to_value(&bank_payload).map_err(|e| DbErr::Type(e.to_string()))?;
+
+        bank::Entity::update_many()
+            .filter(bank::Column::PlayerId.eq(data.player_id))
+            .col_expr(bank::Column::Objs, Expr::value(bank_json))
+            .col_expr(bank::Column::LastX, Expr::value(data.bank_last_x as i32))
             .exec(&self.db)
             .await?;
 

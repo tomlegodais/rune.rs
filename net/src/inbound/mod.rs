@@ -11,6 +11,7 @@ mod opnpc;
 mod opnpct;
 mod opobj;
 mod opplayer;
+mod resumecountdialog;
 
 use std::any::Any;
 
@@ -27,6 +28,7 @@ pub use opnpc::OpNpc;
 pub use opnpct::OpNpcT;
 pub use opobj::OpObj;
 pub use opplayer::OpPlayer;
+pub use resumecountdialog::ResumeCountDialog;
 use tokio::sync::mpsc;
 use tokio_util::bytes::Bytes;
 

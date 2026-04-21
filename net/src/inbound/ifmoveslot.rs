@@ -4,6 +4,7 @@ use util::BufExt;
 
 use super::{InboundDecoder, IncomingMessage};
 
+#[derive(Debug)]
 pub struct IfMoveSlot {
     pub from_interface: u16,
     pub from_component: u16,

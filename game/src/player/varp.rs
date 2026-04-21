@@ -36,6 +36,14 @@ impl VarpManager {
         (self.get(varbit.varp) >> varbit.low_bit) & varbit.mask() as i32
     }
 
+    pub async fn send_varc(&mut self, id: u16, value: i32) {
+        if value >= i8::MIN as i32 && value <= i8::MAX as i32 {
+            self.player.varc_small(id, value as u8).await;
+        } else {
+            self.player.varc_large(id, value as u32).await;
+        }
+    }
+
     pub async fn send_varbit(&mut self, id: u32, value: i32) {
         let Some(varbit) = provider::get_varbit_type(id) else {
             return;

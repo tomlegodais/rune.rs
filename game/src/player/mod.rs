@@ -3,8 +3,10 @@ mod macros;
 
 mod action;
 mod appearance;
+mod bank;
 mod clientbound;
 mod combat;
+mod countprompt;
 mod dialogue;
 mod gpi;
 mod hitpoints;
@@ -36,6 +38,7 @@ pub use action::{
     clear_action_context, delay, is_action_locked, lock, poll_action, send_message, set_action_context, unlock,
 };
 pub use appearance::{Appearance, DEFAULT_READYANIM};
+pub use bank::{PendingX as BankPendingX, SIZE as BANK_SIZE};
 pub use clientbound::Clientbound;
 pub use dialogue::{DialogueEntity, OPTIONS_BASE, OPTIONS_FIRST_COMPONENT};
 pub use gpi::encode_player_info;
@@ -52,7 +55,7 @@ pub use obj::Obj;
 use persistence::{Account, PlayerData, Rights};
 pub use stat::{NUM_STATS, Stat};
 use system::{PlayerHandle, PlayerInitContext, SystemStore};
-pub use ui::{chatbox, equipment};
+pub use ui::{banking, chatbox, equipment};
 pub use varp::VarpManager;
 pub use viewport::Viewport;
 pub use worn::{SIZE as WORN_SIZE, WornSlots};
@@ -167,6 +170,8 @@ impl Player {
             xp: [0; 24],
             inv: vec![None; INV_SIZE],
             worn: vec![None; WORN_SIZE],
+            bank_tabs: vec![Vec::new(); 9],
+            bank_last_x: 0,
             combat_style: 0,
             auto_retaliate: true,
             spec_energy: 1000,
@@ -230,6 +235,7 @@ impl Player {
         self.world().action_states.lock().remove(&self.index);
         self.combat_mut().set_combat_target(None);
         self.dialogue_mut().close().await;
+        self.count_prompt_mut().clear().await;
         if close_interfaces {
             self.interface_mut().close_slot(InterfaceSlot::Modal).await;
             self.interface_mut().close_slot(InterfaceSlot::Inventory).await;

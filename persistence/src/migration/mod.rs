@@ -22,6 +22,8 @@ mod m019_split_obj_combat_configs;
 mod m020_add_obj_proj_gfx;
 mod m021_add_obj_atk_spotanim;
 mod m022_rename_proj_gfx;
+mod m023_create_player_bank;
+mod m024_add_bank_last_x;
 
 pub struct Migrator;
 
@@ -51,6 +53,8 @@ impl MigratorTrait for Migrator {
             Box::new(m020_add_obj_proj_gfx::Migration),
             Box::new(m021_add_obj_atk_spotanim::Migration),
             Box::new(m022_rename_proj_gfx::Migration),
+            Box::new(m023_create_player_bank::Migration),
+            Box::new(m024_add_bank_last_x::Migration),
         ]
     }
 }
